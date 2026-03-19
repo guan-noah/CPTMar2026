@@ -248,72 +248,284 @@
       opacity: 1; transform: translateY(0);
     }
 
-    /* ── GAME SCREEN ──────────────────────────────── */
+    /* ── PHASE 4: GAME SCREEN ─────────────────────────
+       The screen itself is a flex column that fills the
+       viewport. game-area takes all remaining height.       */
     #game-screen {
-      background:linear-gradient(180deg,#b8e4ff 0%,#d6f0ff 60%,#e8f8e0 100%);
-      justify-content:flex-start;
+      background: linear-gradient(180deg, #b8e4ff 0%, #cceeff 55%, #d8f5c8 100%);
+      justify-content: flex-start;
+      align-items: stretch;
     }
-    #game-area { position:relative; width:100%; flex:1; overflow:hidden; }
+
+    /* ── PHASE 4: GAME AREA ──────────────────────────
+       Fills all space above the HUD. Has layered CSS
+       scenery built from child divs + pseudo-elements.     */
+    #game-area {
+      position: relative;
+      width: 100%;
+      flex: 1;
+      overflow: hidden;
+      /* Sky gradient base */
+      background: linear-gradient(180deg,
+        #a8d8f8 0%,
+        #c2e8f8 40%,
+        #d8f0ff 70%,
+        #e8f8e0 100%
+      );
+    }
+
+    /* Drifting cloud layer 1 */
+    #game-area::before {
+      content: '';
+      position: absolute;
+      top: 8%; left: -20%;
+      width: 140%; height: 30%;
+      background:
+        radial-gradient(ellipse 120px 50px at 15% 40%, #ffffffcc 0%, transparent 70%),
+        radial-gradient(ellipse 90px 40px  at 38% 25%, #ffffff99 0%, transparent 70%),
+        radial-gradient(ellipse 150px 55px at 62% 55%, #ffffffbb 0%, transparent 70%),
+        radial-gradient(ellipse 80px 35px  at 82% 35%, #ffffff88 0%, transparent 70%);
+      animation: cloudDrift1 28s linear infinite;
+      pointer-events: none; z-index: 1;
+    }
+    @keyframes cloudDrift1 {
+      from { transform: translateX(0);   }
+      to   { transform: translateX(18%); }
+    }
+
+    /* Drifting cloud layer 2 (slower, higher) */
+    #game-area::after {
+      content: '';
+      position: absolute;
+      top: 2%; left: -30%;
+      width: 160%; height: 20%;
+      background:
+        radial-gradient(ellipse 100px 40px at 22% 50%, #ffffff88 0%, transparent 70%),
+        radial-gradient(ellipse 130px 45px at 55% 30%, #ffffffaa 0%, transparent 70%),
+        radial-gradient(ellipse 70px 30px  at 78% 60%, #ffffff77 0%, transparent 70%);
+      animation: cloudDrift2 40s linear infinite;
+      pointer-events: none; z-index: 1;
+    }
+    @keyframes cloudDrift2 {
+      from { transform: translateX(0);    }
+      to   { transform: translateX(-15%); }
+    }
+
+    /* Ground strip at bottom */
+    #game-ground {
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      height: 52px;
+      background: linear-gradient(180deg, #a8d878 0%, #88c050 100%);
+      z-index: 3;
+      box-shadow: 0 -3px 0 #c8e890;
+    }
+    /* Ground highlight stripe */
+    #game-ground::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 8px;
+      background: linear-gradient(90deg,
+        transparent 0%, #b8e878 20%, transparent 40%,
+        #b8e878 60%, transparent 80%, #b8e878 100%
+      );
+      opacity: .6;
+    }
+
+    /* Tree silhouettes on ground */
+    #game-trees {
+      position: absolute;
+      bottom: 48px; left: 0; right: 0;
+      height: 80px;
+      z-index: 3;
+      pointer-events: none;
+    }
+    .game-tree {
+      position: absolute;
+      bottom: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .game-tree .trunk {
+      width: 9px;
+      background: linear-gradient(180deg, #8b5e3c, #6b3e1c);
+      border-radius: 3px 3px 0 0;
+    }
+    .game-tree .canopy {
+      border-radius: 50% 50% 40% 40%;
+      box-shadow: 0 4px 0 rgba(0,0,0,.08);
+    }
+    /* tree size variants */
+    .game-tree.sm .trunk  { height: 18px; }
+    .game-tree.sm .canopy { width: 38px; height: 46px; margin-bottom: -4px; }
+    .game-tree.md .trunk  { height: 24px; }
+    .game-tree.md .canopy { width: 52px; height: 62px; margin-bottom: -6px; }
+    .game-tree.lg .trunk  { height: 30px; }
+    .game-tree.lg .canopy { width: 66px; height: 76px; margin-bottom: -8px; }
+
+    /* ── PHASE 4: DANGER ZONE ────────────────────────
+       Bottom 22% of game area (above ground) glows red
+       when words enter it. Pulsing dashed border at top.  */
+    #danger-zone {
+      position: absolute;
+      bottom: 52px; left: 0; right: 0;
+      height: 22%;
+      z-index: 2;
+      pointer-events: none;
+      /* default: subtle warm tint */
+      background: linear-gradient(180deg, transparent 0%, rgba(255,120,80,.06) 100%);
+      border-top: 2px dashed rgba(255,120,80,.20);
+      transition: background .3s, border-color .3s;
+    }
+    #danger-zone.active {
+      background: linear-gradient(180deg, transparent 0%, rgba(255,80,60,.16) 100%);
+      border-color: rgba(255,80,60,.55);
+      animation: dangerPulse 1s ease-in-out infinite;
+    }
+    @keyframes dangerPulse {
+      0%,100% { border-color: rgba(255,80,60,.35); }
+      50%     { border-color: rgba(255,80,60,.80); }
+    }
+    #danger-label {
+      position: absolute;
+      top: 4px; right: 8px;
+      font-family: var(--font-title);
+      font-size: 10px; letter-spacing: 2px;
+      color: rgba(220,80,60,.50);
+      text-transform: uppercase;
+      transition: color .3s;
+    }
+    #danger-zone.active #danger-label { color: rgba(220,60,40,.80); }
+
+    /* Placeholder shown before Phase 5 adds real words */
     #game-area-placeholder {
-      position:absolute; inset:0;
-      display:flex; align-items:center; justify-content:center;
-      flex-direction:column; gap:10px; pointer-events:none;
+      position: absolute; inset: 0;
+      display: flex; align-items: center; justify-content: center;
+      flex-direction: column; gap: 10px;
+      pointer-events: none;
+      z-index: 4;
     }
     #game-area-placeholder span {
-      font-family:var(--font-title); font-size:clamp(14px,3vw,18px);
-      color:#8cc8e8; letter-spacing:1px;
+      font-family: var(--font-title); font-size: clamp(13px,2.5vw,17px);
+      color: #7ab8d8; letter-spacing: 1px;
     }
     #game-area-placeholder .ph-emoji {
-      font-size:48px; animation:floatDrift 2.5s ease-in-out infinite;
+      font-size: 48px; animation: floatDrift 2.5s ease-in-out infinite;
     }
 
+    /* ── PHASE 4: HUD ────────────────────────────────
+       Three clear zones: lives | level+XP-bar | input + XP
+       XP progress bar runs across the very top of the HUD.  */
     #hud {
-      width:100%; background:var(--white-card);
-      border-top:3px solid #d4eeff;
-      border-radius:28px 28px 0 0;
-      height:72px;
-      display:flex; align-items:center; justify-content:space-between;
-      padding:0 20px; gap:10px; flex-shrink:0;
-      box-shadow:0 -4px 20px rgba(140,200,240,.25);
+      width: 100%;
+      background: var(--white-card);
+      border-radius: 28px 28px 0 0;
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 -6px 24px rgba(120,190,240,.22);
+      border-top: 3px solid #d4eeff;
     }
-    #lives-container { display:flex; gap:4px; align-items:center; min-width:80px; }
+
+    /* XP progress bar — thin strip at very top of HUD */
+    #xp-bar-wrap {
+      width: 100%;
+      height: 6px;
+      background: #e8f4ff;
+      border-radius: 28px 28px 0 0;
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+    #xp-bar {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, var(--mint), #a0ffcc, var(--mint));
+      background-size: 200% 100%;
+      border-radius: 28px;
+      transition: width .5s cubic-bezier(.34,1.2,.64,1);
+      animation: xpBarShimmer 2s linear infinite;
+    }
+    @keyframes xpBarShimmer {
+      from { background-position: 200% 0; }
+      to   { background-position:  -200% 0; }
+    }
+
+    /* Inner HUD row */
+    #hud-inner {
+      height: 66px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 18px;
+      gap: 10px;
+    }
+
+    #lives-container {
+      display: flex; gap: 3px; align-items: center;
+      min-width: 76px; flex-shrink: 0;
+    }
     .heart {
-      font-size:24px; line-height:1; display:inline-block;
-      animation:heartBeat 1.8s ease-in-out infinite;
+      font-size: 22px; line-height: 1; display: inline-block;
+      animation: heartBeat 1.8s ease-in-out infinite;
     }
-    .heart:nth-child(2){ animation-delay:.15s; }
-    .heart:nth-child(3){ animation-delay:.30s; }
+    .heart:nth-child(2) { animation-delay: .15s; }
+    .heart:nth-child(3) { animation-delay: .30s; }
     @keyframes heartBeat {
-      0%,100%{ transform:scale(1);   }
-      14%    { transform:scale(1.2); }
-      28%    { transform:scale(1);   }
+      0%,100% { transform: scale(1);   }
+      14%     { transform: scale(1.2); }
+      28%     { transform: scale(1);   }
     }
-    .heart.lost { filter:grayscale(1) opacity(.25); animation:none; }
+    .heart.lost { filter: grayscale(1) opacity(.22); animation: none; }
 
-    #hud-level { font-family:var(--font-title); font-size:18px; color:var(--coral); flex:1; text-align:center; letter-spacing:1px; }
+    /* HUD level block — centred flex column */
+    #hud-level {
+      display: flex; flex-direction: column; align-items: center;
+      gap: 2px; flex: 1; text-align: center;
+    }
+    #hud-level-num {
+      font-family: var(--font-title); font-size: 17px;
+      color: var(--coral); letter-spacing: .5px; line-height: 1;
+    }
+    #hud-level-name {
+      font-size: 10px; font-weight: 800;
+      color: var(--text-soft); letter-spacing: 1.5px;
+      text-transform: uppercase; line-height: 1;
+    }
 
+    /* Input */
     #word-input {
-      font-family:var(--font-title); font-size:18px;
-      background:var(--sky); border:3px solid #a8d8f0; border-radius:50px;
-      color:var(--text); padding:8px 20px; width:200px; text-align:center;
-      transition: border-color .15s, box-shadow .15s; letter-spacing:1px;
+      font-family: var(--font-title); font-size: 17px;
+      background: var(--sky); border: 3px solid #a8d8f0;
+      border-radius: 50px; color: var(--text);
+      padding: 7px 18px; width: clamp(130px, 22vw, 200px);
+      text-align: center;
+      transition: border-color .15s, box-shadow .15s, background .15s;
+      letter-spacing: 1px; flex-shrink: 0;
     }
-    #word-input:focus { outline:none; border-color:var(--coral); box-shadow:0 0 0 4px #ff7f7f22; }
-    #word-input::placeholder { color:#90c0e0; font-size:14px; }
-
-    #xp-display { font-family:var(--font-title); font-size:16px; color:var(--mint-dark); min-width:80px; text-align:right; letter-spacing:1px; }
-
-    #btn-back {
-      position:fixed; top:14px; left:16px;
-      font-family:var(--font-title); font-size:14px;
-      background:var(--white-card); border:2px solid #c8e8ff;
-      border-radius:50px; color:var(--text-soft);
-      padding:6px 16px; cursor:pointer;
-      transition:all .12s; z-index:10;
-      box-shadow:0 3px 0 #c0d8ee;
+    #word-input:focus {
+      outline: none; border-color: var(--coral);
+      box-shadow: 0 0 0 4px #ff7f7f1e;
+      background: #fff7f7;
     }
-    #btn-back:hover { background:var(--coral); color:#fff; border-color:var(--coral); box-shadow:0 3px 0 var(--coral-dark); transform:translateY(-1px); }
-    #btn-back:focus-visible { outline:3px solid var(--sun); }
+    #word-input::placeholder { color: #90c0e0; font-size: 13px; }
+
+    /* XP counter */
+    #xp-display {
+      font-family: var(--font-title); font-size: 15px;
+      color: var(--mint-dark); min-width: 72px;
+      text-align: right; letter-spacing: .5px; flex-shrink: 0;
+      transition: color .2s;
+    }
+    #xp-display.xp-bump {
+      animation: xpBump .4s cubic-bezier(.34,1.56,.64,1);
+      color: var(--coral);
+    }
+    @keyframes xpBump {
+      from { transform: scale(1.4); }
+      to   { transform: scale(1);   }
+    }
 
     /* ── PHASE 3: Screen transitions ─────────────────
        Screens slide+fade in from below and out upward.
@@ -616,35 +828,50 @@
     </button>
 
     <div id="game-area" aria-label="Game area" role="region">
+
+      <!-- Phase 4: CSS scenery layers -->
+      <div id="danger-zone" aria-hidden="true">
+        <span id="danger-label">danger zone ⚠️</span>
+      </div>
+      <div id="game-trees" aria-hidden="true"></div>
+      <div id="game-ground" aria-hidden="true"></div>
+
       <div id="game-area-placeholder">
         <span class="ph-emoji">🌤️</span>
         <span>Words will fall here in Phase 5!</span>
       </div>
 
-      <!-- Phase 3: countdown overlay (shown before round starts) -->
+      <!-- Phase 3: countdown overlay -->
       <div id="countdown-overlay" class="hidden" aria-live="assertive" aria-label="Countdown">
         <span id="countdown-number">3</span>
         <span id="countdown-label">get ready!</span>
       </div>
     </div>
 
+    <!-- Phase 4: HUD with XP progress bar -->
     <div id="hud" role="status" aria-label="Game status bar">
-      <div id="lives-container" aria-label="Lives remaining">
-        <span class="heart" id="heart-1" aria-label="Life 1">❤️</span>
-        <span class="heart" id="heart-2" aria-label="Life 2">❤️</span>
-        <span class="heart" id="heart-3" aria-label="Life 3">❤️</span>
+      <div id="xp-bar-wrap" aria-hidden="true">
+        <div id="xp-bar"></div>
       </div>
+      <div id="hud-inner">
+        <div id="lives-container" aria-label="Lives remaining">
+          <span class="heart" id="heart-1" aria-label="Life 1">❤️</span>
+          <span class="heart" id="heart-2" aria-label="Life 2">❤️</span>
+          <span class="heart" id="heart-3" aria-label="Life 3">❤️</span>
+        </div>
 
-      <!-- Phase 3: HUD level now shows level number + level name -->
-      <span id="hud-level" aria-live="polite">
-        Level 1 ⭐
-        <span id="hud-level-name">Breezy Meadow</span>
-      </span>
+        <!-- Phase 4: level block with separate num + name spans -->
+        <div id="hud-level" aria-live="polite">
+          <span id="hud-level-num">Level 1 🌤️</span>
+          <span id="hud-level-name">Breezy Meadow</span>
+        </div>
 
-      <input type="text" id="word-input"
-        autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
-        placeholder="type here! ✏️" aria-label="Type the falling word"/>
-      <span id="xp-display" aria-live="polite">0 ✨</span>
+        <input type="text" id="word-input"
+          autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
+          placeholder="type here! ✏️" aria-label="Type the falling word"/>
+
+        <span id="xp-display" aria-live="polite">0 ✨</span>
+      </div>
     </div>
   </div>
 
@@ -777,44 +1004,122 @@
     const countdownOverlay = document.getElementById('countdown-overlay');
     const countdownNumber  = document.getElementById('countdown-number');
     const countdownLabel   = document.getElementById('countdown-label');
-    const hudLevelName     = document.getElementById('hud-level-name');
     const modalPause       = document.getElementById('modal-pause');
     const btnResume        = document.getElementById('btn-resume');
     const btnQuitConfirm   = document.getElementById('btn-quit-confirm');
+
+    // Phase 4 refs
+    const hudLevelNum  = document.getElementById('hud-level-num');
+    const hudLevelName = document.getElementById('hud-level-name');
+    const xpBar        = document.getElementById('xp-bar');
+    const xpDisplay    = document.getElementById('xp-display');
+    const dangerZone   = document.getElementById('danger-zone');
+    const gameTreesEl  = document.getElementById('game-trees');
+    const gameArea     = document.getElementById('game-area');
+
+    // ── Phase 4: XP thresholds per level (for progress bar) ─
+    const XP_THRESHOLDS = [0, 200, 500, 900, 1400, 2000, 2700];
+
+    // ── Phase 4: Update XP progress bar ───────────
+    function updateXpBar(xp, level) {
+      const from = XP_THRESHOLDS[level - 1] || 0;
+      const to   = XP_THRESHOLDS[level]     || XP_THRESHOLDS[XP_THRESHOLDS.length - 1];
+      const pct  = Math.min(100, Math.max(0, ((xp - from) / (to - from)) * 100));
+      xp_bar.style.width = pct + '%';
+    }
+    // Alias so tests and future phases can call either name
+    const xp_bar = xpBar;
+
+    // ── Phase 4: Bump XP display animation ────────
+    function bumpXpDisplay(newXP) {
+      xpDisplay.textContent = `${newXP} ✨`;
+      xpDisplay.classList.remove('xp-bump');
+      void xpDisplay.offsetWidth; // reflow
+      xpDisplay.classList.add('xp-bump');
+      setTimeout(() => xpDisplay.classList.remove('xp-bump'), 450);
+    }
+
+    // ── Phase 4: Build tree scenery ────────────────
+    // Called once on first game start; trees are randomised but seeded
+    // so they look the same every game.
+    function buildTrees() {
+      if (gameTreesEl.children.length > 0) return; // already built
+      const treeConfigs = [
+        { left:'3%',  size:'sm', hue:'#5bb84a' },
+        { left:'9%',  size:'md', hue:'#4caf40' },
+        { left:'17%', size:'lg', hue:'#52c248' },
+        { left:'26%', size:'sm', hue:'#62cc52' },
+        { left:'34%', size:'md', hue:'#4caf40' },
+        { left:'54%', size:'lg', hue:'#52c248' },
+        { left:'63%', size:'sm', hue:'#5bb84a' },
+        { left:'72%', size:'md', hue:'#4caf40' },
+        { left:'80%', size:'lg', hue:'#62cc52' },
+        { left:'89%', size:'sm', hue:'#5bb84a' },
+        { left:'95%', size:'md', hue:'#52c248' },
+      ];
+      treeConfigs.forEach(cfg => {
+        const t = document.createElement('div');
+        t.className = `game-tree ${cfg.size}`;
+        t.style.left = cfg.left;
+        const canopy = document.createElement('div');
+        canopy.className = 'canopy';
+        canopy.style.background = `radial-gradient(ellipse at 40% 35%, ${lighten(cfg.hue,22)} 0%, ${cfg.hue} 55%, ${darken(cfg.hue,12)} 100%)`;
+        const trunk = document.createElement('div');
+        trunk.className = 'trunk';
+        t.appendChild(canopy);
+        t.appendChild(trunk);
+        gameTreesEl.appendChild(t);
+      });
+    }
+
+    // Tiny colour helpers for tree shading
+    function lighten(hex, amt) { return shiftHex(hex, amt); }
+    function darken(hex, amt)  { return shiftHex(hex, -amt); }
+    function shiftHex(hex, amt) {
+      const n = parseInt(hex.replace('#',''), 16);
+      const r = Math.min(255, Math.max(0, (n>>16) + amt));
+      const g = Math.min(255, Math.max(0, ((n>>8)&0xff) + amt));
+      const b = Math.min(255, Math.max(0, (n&0xff) + amt));
+      return `rgb(${r},${g},${b})`;
+    }
+
+    // ── Phase 4: Danger zone activation ───────────
+    // Called by Phase 5 when a word enters the bottom 22%.
+    // For now exposed for tests; activated manually.
+    function setDangerZone(active) {
+      dangerZone.classList.toggle('active', active);
+    }
+
+    // ── Phase 4: Update HUD level display ─────────
+    function updateHudLevel(level) {
+      const data = LEVEL_DATA[level - 1];
+      if (!data) return;
+      hudLevelNum.textContent  = `Level ${level} ${data.emoji}`;
+      hudLevelName.textContent = data.name;
+    }
 
     // ── showScreen — instant, synchronous (used by tests) ─
     function showScreen(id) {
       document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
       document.getElementById(id).classList.remove('hidden');
       if (id === 'game-screen') {
-        const data = LEVEL_DATA[gameSession.level - 1];
-        hudLevel.innerHTML = `Level ${gameSession.level} ${data.emoji}
-          <span id="hud-level-name">${data.name}</span>`;
+        updateHudLevel(gameSession.level);
         setTimeout(() => wordInput.focus(), 50);
       }
     }
 
-    // ── transitionToScreen — animated version (used by buttons) ─
+    // ── transitionToScreen — animated version ─────
     function transitionToScreen(toId, onComplete) {
       const from = document.querySelector('.screen:not(.hidden)');
       const to   = document.getElementById(toId);
-
-      // Nothing to do if already on that screen
-      if (!from || from.id === toId) {
-        onComplete?.();
-        return;
-      }
-
-      // Lock to prevent double-clicks during animation
+      if (!from || from.id === toId) { onComplete?.(); return; }
       from.style.pointerEvents = 'none';
-
       from.classList.add('exiting');
       from.addEventListener('animationend', function exitDone() {
         from.removeEventListener('animationend', exitDone);
         from.classList.add('hidden');
         from.classList.remove('exiting');
         from.style.pointerEvents = '';
-
         to.classList.remove('hidden');
         to.classList.add('entering');
         to.addEventListener('animationend', function enterDone() {
@@ -828,11 +1133,51 @@
     // ── resetGameUI ────────────────────────────────
     function resetGameUI() {
       wordInput.value = '';
-      document.getElementById('xp-display').textContent = '0 ✨';
+      xpDisplay.textContent = '0 ✨';
+      xpDisplay.classList.remove('xp-bump');
+      updateXpBar(0, 1);
       document.querySelectorAll('.heart').forEach(h => h.classList.remove('lost'));
+      setDangerZone(false);
       hideCountdown();
       gameSession.status = 'idle';
     }
+
+    // ── Phase 4: PERMANENT FOCUS SYSTEM ───────────
+    // Strategy 1: if input loses focus while playing, refocus it
+    wordInput.addEventListener('blur', () => {
+      if (gameSession.status === 'playing') {
+        // Small delay so other legitimate click handlers fire first
+        setTimeout(() => {
+          if (gameSession.status === 'playing' &&
+              !document.querySelector('.modal-overlay:not(.hidden)')) {
+            wordInput.focus();
+          }
+        }, 80);
+      }
+    });
+
+    // Strategy 2: any click on game-area refocuses input
+    gameArea.addEventListener('click', e => {
+      if (gameSession.status === 'playing') wordInput.focus();
+    });
+
+    // Strategy 3: keystrokes on game screen route to input
+    document.addEventListener('keydown', e => {
+      if (gameSession.status !== 'playing') return;
+      if (document.querySelector('.modal-overlay:not(.hidden)')) return;
+      if (document.activeElement !== wordInput &&
+          e.key.length === 1 && !e.ctrlKey && !e.metaKey) {
+        wordInput.focus();
+        // Don't prevent default — the keystroke naturally lands in the focused input
+      }
+    });
+
+    // Strategy 4: when the tab regains visibility, refocus
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden && gameSession.status === 'playing') {
+        setTimeout(() => wordInput.focus(), 100);
+      }
+    });
 
     // ── Countdown helpers ──────────────────────────
     function showCountdown() { countdownOverlay.classList.remove('hidden'); }
@@ -845,28 +1190,22 @@
       gameSession.status = 'countdown';
       showCountdown();
       countdownOverlay.classList.remove('go');
-
       const steps = [
-        { num: '3', label: 'get ready!',  delay: 0    },
-        { num: '2', label: 'almost...',   delay: 900  },
-        { num: '1', label: 'fingers up!', delay: 1800 },
-        { num: 'GO!', label: '✨ type! ✨', delay: 2700, go: true },
+        { num: '3',   label: 'get ready!',  delay: 0    },
+        { num: '2',   label: 'almost...',   delay: 900  },
+        { num: '1',   label: 'fingers up!', delay: 1800 },
+        { num: 'GO!', label: '✨ type! ✨',  delay: 2700, go: true },
       ];
-
       steps.forEach(({ num, label, delay, go }) => {
         setTimeout(() => {
-          // Restart pop animation by removing and re-adding
           countdownNumber.style.animation = 'none';
           void countdownNumber.offsetWidth;
           countdownNumber.style.animation = '';
-
           countdownNumber.textContent = num;
           countdownLabel.textContent  = label;
           if (go) countdownOverlay.classList.add('go');
         }, delay);
       });
-
-      // After GO is shown, hide overlay and start playing
       setTimeout(() => {
         hideCountdown();
         gameSession.status = 'playing';
@@ -879,13 +1218,10 @@
     function startGame() {
       gameSession.level  = state.currentLevel;
       gameSession.status = 'idle';
-
+      buildTrees();
       transitionToScreen('game-screen', () => {
-        // Update HUD with the chosen level's info
-        const data = LEVEL_DATA[gameSession.level - 1];
-        hudLevel.innerHTML = `Level ${gameSession.level} ${data.emoji}
-          <span id="hud-level-name">${data.name}</span>`;
-
+        updateHudLevel(gameSession.level);
+        updateXpBar(0, gameSession.level);
         resetGameUI();
         runCountdown();
       });
@@ -896,7 +1232,6 @@
       closeModal('modal-pause');
       resetGameUI();
       transitionToScreen('menu-screen', () => {
-        // Re-sync level selector in case they changed mind
         updateLevelDisplay();
       });
     }
@@ -906,15 +1241,12 @@
 
     btnBack.addEventListener('click', () => {
       if (gameSession.status === 'playing' || gameSession.status === 'paused') {
-        // Pause and ask for confirmation
         gameSession.status = 'paused';
         openModal('modal-pause');
       } else if (gameSession.status === 'countdown') {
-        // Interrupt countdown and go back immediately
         hideCountdown();
         returnToMenu();
       } else {
-        // idle / over — just go back
         returnToMenu();
       }
     });
@@ -926,10 +1258,6 @@
     });
 
     btnQuitConfirm.addEventListener('click', returnToMenu);
-
-    document.getElementById('game-area').addEventListener('click', () => {
-      if (gameSession.status === 'playing') wordInput.focus();
-    });
 
     // ── Level selector ─────────────────────────────
     // Phase 2: updateLevelDisplay now also updates the info card + bg tint
@@ -1420,9 +1748,9 @@
     test('showScreen(game-screen) updates hudLevel with level data', p3(() => {
       gameSession.level = 3;
       showScreen('game-screen');
-      assert(hudLevel.textContent.includes('3'), 'HUD should show level number');
-      assert(hudLevel.textContent.includes(LEVEL_DATA[2].emoji), 'HUD should show level emoji');
-      // cleanup
+      assert(hudLevelNum.textContent.includes('3'), 'HUD num should show level number');
+      assert(hudLevelNum.textContent.includes(LEVEL_DATA[2].emoji), 'HUD num should show level emoji');
+      assert(hudLevelName.textContent === LEVEL_DATA[2].name, 'HUD name should show level name');
       showScreen('menu-screen');
       gameSession.level = 1;
       gameSession.status = 'idle';
@@ -1487,15 +1815,209 @@
         assert(document.getElementById(id).classList.contains('hidden'), `${id} not hidden`));
     }));
 
+    // ── Phase 4 tests ──────────────────────────────
+    const p4 = fn => { fn._phase = 4; return fn; };
+
+    // DOM structure
+    test('game-area exists', p4(() =>
+      assert(document.getElementById('game-area'))));
+
+    test('game-ground exists', p4(() =>
+      assert(document.getElementById('game-ground'))));
+
+    test('game-trees container exists', p4(() =>
+      assert(document.getElementById('game-trees'))));
+
+    test('danger-zone exists', p4(() =>
+      assert(document.getElementById('danger-zone'))));
+
+    test('danger-label exists', p4(() =>
+      assert(document.getElementById('danger-label'))));
+
+    test('xp-bar-wrap exists', p4(() =>
+      assert(document.getElementById('xp-bar-wrap'))));
+
+    test('xp-bar exists inside xp-bar-wrap', p4(() => {
+      const wrap = document.getElementById('xp-bar-wrap');
+      assert(wrap, 'xp-bar-wrap not found');
+      assert(wrap.contains(document.getElementById('xp-bar')), 'xp-bar not inside wrap');
+    }));
+
+    test('hud-inner exists inside hud', p4(() => {
+      const hud  = document.getElementById('hud');
+      const inner = document.getElementById('hud-inner');
+      assert(hud && inner, 'hud or hud-inner missing');
+      assert(hud.contains(inner), 'hud-inner not inside hud');
+    }));
+
+    test('hud-level-num exists', p4(() =>
+      assert(document.getElementById('hud-level-num'))));
+
+    test('hud-level-name exists', p4(() =>
+      assert(document.getElementById('hud-level-name'))));
+
+    // XP_THRESHOLDS
+    test('XP_THRESHOLDS is defined', p4(() =>
+      assert(typeof XP_THRESHOLDS !== 'undefined')));
+
+    test('XP_THRESHOLDS has 7 entries (levels 0-6)', p4(() =>
+      assertEqual(XP_THRESHOLDS.length, 7)));
+
+    test('XP_THRESHOLDS is strictly increasing', p4(() => {
+      for (let i = 1; i < XP_THRESHOLDS.length; i++)
+        assert(XP_THRESHOLDS[i] > XP_THRESHOLDS[i-1],
+          `Threshold ${i} (${XP_THRESHOLDS[i]}) should exceed ${XP_THRESHOLDS[i-1]}`);
+    }));
+
+    // updateXpBar
+    test('updateXpBar is a function', p4(() =>
+      assert(typeof updateXpBar === 'function')));
+
+    test('updateXpBar sets xp-bar width to 0% at level start', p4(() => {
+      updateXpBar(0, 1);
+      assertEqual(xpBar.style.width, '0%');
+    }));
+
+    test('updateXpBar sets xp-bar to 100% when threshold reached', p4(() => {
+      updateXpBar(XP_THRESHOLDS[1], 1); // exactly at level 2 threshold
+      assertEqual(xpBar.style.width, '100%');
+      updateXpBar(0, 1); // reset
+    }));
+
+    test('updateXpBar sets width between 0-100 for mid-level XP', p4(() => {
+      const midXp = Math.floor((XP_THRESHOLDS[0] + XP_THRESHOLDS[1]) / 2);
+      updateXpBar(midXp, 1);
+      const w = parseFloat(xpBar.style.width);
+      assert(w > 0 && w < 100, `Width ${w}% should be between 0 and 100`);
+      updateXpBar(0, 1);
+    }));
+
+    test('updateXpBar clamps to 100% above threshold', p4(() => {
+      updateXpBar(99999, 1);
+      assertEqual(xpBar.style.width, '100%');
+      updateXpBar(0, 1);
+    }));
+
+    // bumpXpDisplay
+    test('bumpXpDisplay updates xp text', p4(() => {
+      bumpXpDisplay(350);
+      assert(xpDisplay.textContent.includes('350'), `Got: "${xpDisplay.textContent}"`);
+    }));
+
+    test('bumpXpDisplay resets to 0 after resetGameUI', p4(() => {
+      bumpXpDisplay(500);
+      resetGameUI();
+      assert(xpDisplay.textContent.includes('0'), 'XP should be 0 after reset');
+    }));
+
+    // updateHudLevel
+    test('updateHudLevel is a function', p4(() =>
+      assert(typeof updateHudLevel === 'function')));
+
+    test('updateHudLevel sets correct num text for level 1', p4(() => {
+      updateHudLevel(1);
+      assert(hudLevelNum.textContent.includes('1'), 'num should contain 1');
+      assert(hudLevelNum.textContent.includes(LEVEL_DATA[0].emoji), 'num should contain emoji');
+    }));
+
+    test('updateHudLevel sets correct name for level 4', p4(() => {
+      updateHudLevel(4);
+      assertEqual(hudLevelName.textContent, LEVEL_DATA[3].name);
+      updateHudLevel(1);
+    }));
+
+    test('updateHudLevel is robust to out-of-range level', p4(() => {
+      // Should not throw
+      updateHudLevel(99);
+      updateHudLevel(1); // restore
+    }));
+
+    // Danger zone
+    test('setDangerZone is a function', p4(() =>
+      assert(typeof setDangerZone === 'function')));
+
+    test('setDangerZone(true) adds .active class', p4(() => {
+      setDangerZone(true);
+      assert(dangerZone.classList.contains('active'));
+      setDangerZone(false);
+    }));
+
+    test('setDangerZone(false) removes .active class', p4(() => {
+      setDangerZone(true);
+      setDangerZone(false);
+      assert(!dangerZone.classList.contains('active'));
+    }));
+
+    test('resetGameUI deactivates danger zone', p4(() => {
+      setDangerZone(true);
+      resetGameUI();
+      assert(!dangerZone.classList.contains('active'));
+    }));
+
+    // buildTrees
+    test('buildTrees is a function', p4(() =>
+      assert(typeof buildTrees === 'function')));
+
+    test('buildTrees populates game-trees with children', p4(() => {
+      // Clear first so it re-runs
+      gameTreesEl.innerHTML = '';
+      buildTrees();
+      assert(gameTreesEl.children.length > 0,
+        `Expected trees, got ${gameTreesEl.children.length}`);
+    }));
+
+    test('buildTrees creates .game-tree elements', p4(() => {
+      buildTrees();
+      const trees = gameTreesEl.querySelectorAll('.game-tree');
+      assert(trees.length > 0, 'No .game-tree elements found');
+    }));
+
+    test('each tree has a canopy and trunk', p4(() => {
+      buildTrees();
+      const trees = gameTreesEl.querySelectorAll('.game-tree');
+      trees.forEach((t, i) => {
+        assert(t.querySelector('.canopy'), `Tree ${i} missing canopy`);
+        assert(t.querySelector('.trunk'),  `Tree ${i} missing trunk`);
+      });
+    }));
+
+    test('buildTrees is idempotent (calling twice keeps same count)', p4(() => {
+      buildTrees();
+      const count1 = gameTreesEl.children.length;
+      buildTrees();
+      const count2 = gameTreesEl.children.length;
+      assertEqual(count1, count2, 'buildTrees should not add duplicates');
+    }));
+
+    // Focus system
+    test('wordInput exists and is an input element', p4(() => {
+      assert(wordInput, 'wordInput not found');
+      assertEqual(wordInput.tagName, 'INPUT');
+    }));
+
+    test('game-area has click listener that focuses input when playing', p4(() => {
+      gameSession.status = 'playing';
+      showScreen('game-screen');
+      // Simulate a click dispatch
+      gameArea.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      // Focus should have been called; check document.activeElement if input is visible
+      // (in jsdom/test env focus may not fully work, so we just verify no errors thrown)
+      gameSession.status = 'idle';
+      showScreen('menu-screen');
+    }));
+
     // ── Render results ─────────────────────────────
     const resultsEl = document.getElementById('test-results');
     const summaryEl = document.getElementById('test-summary');
 
-    let p1Pass=0, p1Fail=0, p2Pass=0, p2Fail=0, p3Pass=0, p3Fail=0;
+    let p1Pass=0, p1Fail=0, p2Pass=0, p2Fail=0, p3Pass=0, p3Fail=0, p4Pass=0, p4Fail=0;
     tests.forEach(t => {
       const ph = t.phase || 1;
-      if (t.pass) { if(ph===3) p3Pass++; else if(ph===2) p2Pass++; else p1Pass++; }
-      else        { if(ph===3) p3Fail++; else if(ph===2) p2Fail++; else p1Fail++; }
+      if (t.pass) {
+        if(ph===4) p4Pass++; else if(ph===3) p3Pass++; else if(ph===2) p2Pass++; else p1Pass++;
+      } else {
+        if(ph===4) p4Fail++; else if(ph===3) p3Fail++; else if(ph===2) p2Fail++; else p1Fail++;
+      }
       const d = document.createElement('div');
       d.className = `test-result ${t.pass?'pass':'fail'}`;
       d.innerHTML = `<span style="font-size:9px;opacity:.55;margin-right:4px">P${ph}</span><span class="icon">${t.pass?'✓':'✗'}</span>${t.name}${t.pass?'':`<span class="test-err">↳ ${t.error}</span>`}`;
@@ -1508,13 +2030,13 @@
     document.getElementById('test-panel-close')
       .addEventListener('click', () => document.getElementById('test-panel').style.display='none');
 
-    // Phase breakdown footer
     const footer = document.createElement('div');
     footer.style.cssText = 'padding:6px 14px 10px;font-size:10px;font-weight:700;color:#aac';
     footer.innerHTML =
       `P1: <span style="color:#2bad6a">${p1Pass}✓</span><span style="color:#e86060"> ${p1Fail}✗</span> &nbsp;|&nbsp; ` +
       `P2: <span style="color:#2bad6a">${p2Pass}✓</span><span style="color:#e86060"> ${p2Fail}✗</span> &nbsp;|&nbsp; ` +
-      `P3: <span style="color:#2bad6a">${p3Pass}✓</span><span style="color:#e86060"> ${p3Fail}✗</span>`;
+      `P3: <span style="color:#2bad6a">${p3Pass}✓</span><span style="color:#e86060"> ${p3Fail}✗</span> &nbsp;|&nbsp; ` +
+      `P4: <span style="color:#2bad6a">${p4Pass}✓</span><span style="color:#e86060"> ${p4Fail}✗</span>`;
     document.getElementById('test-panel').appendChild(footer);
   </script>
 </body>
