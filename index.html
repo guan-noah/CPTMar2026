@@ -399,8 +399,111 @@
     }
     #danger-zone.active #danger-label { color: rgba(220,60,40,.80); }
 
-    /* Placeholder shown before Phase 5 adds real words */
-    #game-area-placeholder {
+    /* ── PHASE 5: FALLING WORDS ──────────────────────
+       Words are absolutely-positioned pill divs inside
+       #game-area. z-index 5 puts them above all scenery.  */
+    .falling-word {
+      position: absolute;
+      z-index: 5;
+      font-family: var(--font-title);
+      font-size: clamp(16px, 2.8vw, 22px);
+      color: var(--text);
+      background: #ffffffee;
+      border: 2.5px solid #c8e8ff;
+      border-radius: 50px;
+      padding: 6px 18px;
+      white-space: nowrap;
+      user-select: none;
+      pointer-events: none;
+      box-shadow: 0 4px 12px rgba(100,160,220,.22), 0 1px 0 #fff inset;
+      /* entrance pop */
+      animation: wordSpawn .25s cubic-bezier(.34,1.56,.64,1);
+      transform-origin: top center;
+    }
+    @keyframes wordSpawn {
+      from { transform: scale(.5) translateY(-10px); opacity: 0; }
+      to   { transform: scale(1)  translateY(0);     opacity: 1; }
+    }
+
+    /* Near-danger state — word glows red and pulses */
+    .falling-word.near-danger {
+      border-color: var(--coral);
+      color: var(--coral-dark);
+      box-shadow: 0 4px 14px rgba(255,100,80,.35), 0 0 0 3px rgba(255,120,80,.15);
+      animation: wordDangerPulse .7s ease-in-out infinite;
+    }
+    @keyframes wordDangerPulse {
+      0%,100% { box-shadow: 0 4px 14px rgba(255,100,80,.25), 0 0 0 3px rgba(255,120,80,.10); }
+      50%     { box-shadow: 0 4px 18px rgba(255,80,60,.55),  0 0 0 5px rgba(255,80,60,.22); }
+    }
+
+    /* Destruction flash — played when word is correctly typed (Phase 6) */
+    .falling-word.zapped {
+      animation: wordZap .3s ease forwards;
+      pointer-events: none;
+    }
+    @keyframes wordZap {
+      0%   { transform: scale(1.2); opacity: 1; filter: brightness(2); }
+      100% { transform: scale(2.0); opacity: 0; filter: brightness(3); }
+    }
+
+    /* ── PHASE 5: FLASH OVERLAY ───────────────────────
+       Full-screen tint that flashes on life-lost (red)
+       or word-typed (green). Lives inside #game-area.     */
+    #flash-overlay {
+      position: absolute; inset: 0; z-index: 10;
+      pointer-events: none; border-radius: inherit;
+      opacity: 0; transition: opacity .05s;
+    }
+    #flash-overlay.flash-miss {
+      background: rgba(255,80,60,.28);
+      animation: flashAnim .45s ease forwards;
+    }
+    @keyframes flashAnim {
+      0%   { opacity: 1; }
+      100% { opacity: 0; }
+    }
+
+    /* ── PHASE 5: GAME OVER MODAL ─────────────────── */
+    .game-over-score {
+      font-family: var(--font-title);
+      font-size: 42px;
+      color: var(--coral);
+      text-align: center;
+      display: block;
+      margin: 4px 0 16px;
+      filter: drop-shadow(2px 3px 0 #ffb3b3);
+    }
+    .game-over-label {
+      font-size: 12px; font-weight: 800;
+      color: var(--text-soft); letter-spacing: 3px;
+      text-transform: uppercase; text-align: center;
+      display: block; margin-bottom: 20px;
+    }
+    .game-over-btns {
+      display: flex; flex-direction: column; gap: 12px;
+    }
+    .game-over-btn {
+      font-family: var(--font-title); font-size: 18px;
+      border: none; border-radius: 50px; padding: 13px;
+      cursor: pointer; width: 100%;
+      transition: transform .1s, box-shadow .1s, filter .1s;
+    }
+    .game-over-btn:active  { transform: translateY(2px)!important; box-shadow:none!important; }
+    .game-over-btn:focus-visible { outline: 3px solid var(--sun); }
+    #btn-play-again {
+      background: linear-gradient(160deg,#ff9090,var(--coral-dark));
+      color:#fff; box-shadow:0 5px 0 #c94040;
+    }
+    #btn-play-again:hover { transform:translateY(-2px); filter:brightness(1.07); box-shadow:0 8px 0 #c94040; }
+    #btn-go-menu {
+      background: linear-gradient(160deg,#c8e8ff,#a0c8f0);
+      color:var(--text); box-shadow:0 5px 0 #78a8d0;
+    }
+    #btn-go-menu:hover { transform:translateY(-2px); filter:brightness(1.07); box-shadow:0 8px 0 #78a8d0; }
+
+    /* Hide placeholder once game is running */
+    #game-area.game-running #game-area-placeholder { display: none; }
       position: absolute; inset: 0;
       display: flex; align-items: center; justify-content: center;
       flex-direction: column; gap: 10px;
@@ -841,6 +944,9 @@
         <span>Words will fall here in Phase 5!</span>
       </div>
 
+      <!-- Phase 5: full-screen flash effect -->
+      <div id="flash-overlay" aria-hidden="true"></div>
+
       <!-- Phase 3: countdown overlay -->
       <div id="countdown-overlay" class="hidden" aria-live="assertive" aria-label="Countdown">
         <span id="countdown-number">3</span>
@@ -936,10 +1042,24 @@
     </div>
   </div>
 
+  <!-- ── MODAL: GAME OVER (Phase 5) ──────────────── -->
+  <div id="modal-game-over" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="gameover-title">
+    <div class="modal-box">
+      <h2 class="modal-title" id="gameover-title">Game Over! 😢</h2>
+      <span class="game-over-label">you scored</span>
+      <span class="game-over-score" id="gameover-score">0 ✨</span>
+      <span class="game-over-label" id="gameover-level-reached">reached level 1</span>
+      <div class="game-over-btns">
+        <button class="game-over-btn" id="btn-play-again" aria-label="Play again">🔄 Play Again!</button>
+        <button class="game-over-btn" id="btn-go-menu"    aria-label="Back to menu">🏠 Back to Menu</button>
+      </div>
+    </div>
+  </div>
+
   <!-- ── TEST PANEL ───────────────────────────────── -->
   <div id="test-panel" role="region" aria-label="Test results">
     <div id="test-panel-header">
-      <span id="test-panel-title">🧪 Phase 1–3 Tests</span>
+      <span id="test-panel-title">🧪 Phase 1–5 Tests</span>
       <span id="test-summary"></span>
       <button id="test-panel-close" aria-label="Close test panel">✕</button>
     </div>
@@ -1019,6 +1139,182 @@
 
     // ── Phase 4: XP thresholds per level (for progress bar) ─
     const XP_THRESHOLDS = [0, 200, 500, 900, 1400, 2000, 2700];
+
+    // ════════════════════════════════════════════════
+    //  PHASE 5: WORD ENGINE
+    //  Word object: { id, text, x, y, speed, el }
+    //  Game loop runs via requestAnimationFrame.
+    // ════════════════════════════════════════════════
+
+    // ── Word state ─────────────────────────────────
+    let activeWords = [];   // currently falling words
+    let nextWordId  = 0;    // ever-increasing ID counter
+    let rafId       = null; // current requestAnimationFrame handle
+    let lastTime    = 0;    // timestamp of last frame (for dt calc)
+    let lives       = 3;    // current lives (reset on new game)
+    let totalXP     = 0;    // running XP total for the session
+
+    // Phase 5 word pool (replaced by Phase 7 per-level lists)
+    const WORD_POOL_P5 = [
+      'cat','dog','sun','moon','star','fish','bird','frog',
+      'cake','jump','tree','rain','cool','play','read','sing',
+      'skip','pink','blue','gold','fast','soft','warm','glow'
+    ];
+
+    // ── Geometry helpers ───────────────────────────
+    // Returns the y coordinate (px from top) where a word hits the ground
+    function getGroundY()   { return gameArea.clientHeight - 52; }
+    // Returns the y coordinate where the danger zone begins
+    function getDangerTop() { return getGroundY() - gameArea.clientHeight * 0.22; }
+
+    // ── createWordEl(text) — build the DOM pill ────
+    function createWordEl(text) {
+      const el = document.createElement('div');
+      el.className    = 'falling-word';
+      el.textContent  = text;
+      el.dataset.word = text;
+      el.setAttribute('aria-hidden', 'true');
+      gameArea.appendChild(el);
+      return el;
+    }
+
+    // ── spawnWord(text, speed) — add one word ──────
+    function spawnWord(text, speed) {
+      if (speed === undefined) speed = 0.7 + gameSession.level * 0.22;
+      const el     = createWordEl(text);
+      const w      = el.offsetWidth  || 80;
+      const areaW  = gameArea.clientWidth;
+      const pad    = 24;
+      const maxX   = Math.max(pad, areaW - w - pad);
+      const x      = pad + Math.random() * (maxX - pad);
+      const y      = -(el.offsetHeight + 4); // start just above the area
+
+      const word = { id: nextWordId++, text, x, y, speed, el };
+      activeWords.push(word);
+
+      el.style.left = x + 'px';
+      el.style.top  = y + 'px';
+
+      // Mark area as running (hides placeholder)
+      gameArea.classList.add('game-running');
+      return word;
+    }
+
+    // ── removeWord(id) — clean up one word ─────────
+    function removeWord(id) {
+      const idx = activeWords.findIndex(w => w.id === id);
+      if (idx === -1) return;
+      const [word] = activeWords.splice(idx, 1);
+      word.el.remove();
+    }
+
+    // ── clearAllWords() — wipe the board ───────────
+    function clearAllWords() {
+      activeWords.forEach(w => { try { w.el.remove(); } catch(_){} });
+      activeWords = [];
+      gameArea.classList.remove('game-running');
+    }
+
+    // ── flashScreen(type) ─────────────────────────
+    function flashScreen(type) {
+      const overlay = document.getElementById('flash-overlay');
+      if (!overlay) return;
+      overlay.className = '';
+      void overlay.offsetWidth; // reflow
+      overlay.className = `flash-${type}`;
+    }
+
+    // ── loseLife() ────────────────────────────────
+    function loseLife() {
+      if (gameSession.status !== 'playing') return;
+      lives = Math.max(0, lives - 1);
+      // Update heart display
+      document.querySelectorAll('.heart').forEach((h, i) => {
+        h.classList.toggle('lost', i >= lives);
+      });
+      flashScreen('miss');
+      if (lives <= 0) {
+        gameOver();
+      } else {
+        // Phase 5: respawn a word after a short gap
+        // (Phase 7 replaces this with the full spawn interval system)
+        setTimeout(() => {
+          if (gameSession.status === 'playing' && activeWords.length === 0) {
+            spawnNextWord();
+          }
+        }, 1200);
+      }
+    }
+
+    // ── spawnNextWord() — pick & spawn a Phase 5 word ─
+    function spawnNextWord() {
+      const text = WORD_POOL_P5[Math.floor(Math.random() * WORD_POOL_P5.length)];
+      spawnWord(text);
+    }
+
+    // ── gameOver() ────────────────────────────────
+    function gameOver() {
+      gameSession.status = 'over';
+      stopGameLoop();
+      clearAllWords();
+      setDangerZone(false);
+
+      // Populate game over modal
+      document.getElementById('gameover-score').textContent        = `${totalXP} ✨`;
+      document.getElementById('gameover-level-reached').textContent = `reached level ${gameSession.level}`;
+      setTimeout(() => openModal('modal-game-over'), 350);
+    }
+
+    // ── RAF game loop ──────────────────────────────
+    function gameLoop(timestamp) {
+      // Stop rescheduling if not playing (pause / over / idle)
+      if (gameSession.status !== 'playing') { rafId = null; return; }
+
+      const dt        = lastTime ? Math.min((timestamp - lastTime) / 16.667, 4) : 1;
+      lastTime        = timestamp;
+      const groundY   = getGroundY();
+      const dangerTop = getDangerTop();
+      let   anyDanger = false;
+      const toMiss    = [];
+
+      activeWords.forEach(word => {
+        // Move word down
+        word.y += word.speed * dt;
+        word.el.style.top = Math.round(word.y) + 'px';
+
+        const bottom = word.y + (word.el.offsetHeight || 36);
+
+        // Danger zone check
+        if (bottom >= dangerTop) {
+          anyDanger = true;
+          word.el.classList.add('near-danger');
+        } else {
+          word.el.classList.remove('near-danger');
+        }
+
+        // Ground collision
+        if (bottom >= groundY) toMiss.push(word.id);
+      });
+
+      // Handle misses (do after loop to avoid mutation during iteration)
+      toMiss.forEach(id => { removeWord(id); loseLife(); });
+
+      // Sync danger zone indicator
+      setDangerZone(anyDanger);
+
+      rafId = requestAnimationFrame(gameLoop);
+    }
+
+    // ── startGameLoop / stopGameLoop ──────────────
+    function startGameLoop() {
+      stopGameLoop(); // cancel any existing loop first
+      lastTime = 0;
+      rafId    = requestAnimationFrame(gameLoop);
+    }
+
+    function stopGameLoop() {
+      if (rafId !== null) { cancelAnimationFrame(rafId); rafId = null; }
+    }
 
     // ── Phase 4: Update XP progress bar ───────────
     function updateXpBar(xp, level) {
@@ -1132,6 +1428,12 @@
 
     // ── resetGameUI ────────────────────────────────
     function resetGameUI() {
+      // Phase 5: stop everything before resetting
+      stopGameLoop();
+      clearAllWords();
+      lives   = 3;
+      totalXP = 0;
+
       wordInput.value = '';
       xpDisplay.textContent = '0 ✨';
       xpDisplay.classList.remove('xp-bump');
@@ -1209,6 +1511,9 @@
       setTimeout(() => {
         hideCountdown();
         gameSession.status = 'playing';
+        // Phase 5: spawn the first word and start the RAF loop
+        spawnNextWord();
+        startGameLoop();
         wordInput.focus();
         onDone?.();
       }, 3550);
@@ -1254,10 +1559,27 @@
     btnResume.addEventListener('click', () => {
       closeModal('modal-pause');
       gameSession.status = 'playing';
+      lastTime = 0; // reset so dt doesn't spike after long pause
+      startGameLoop();
       setTimeout(() => wordInput.focus(), 60);
     });
 
     btnQuitConfirm.addEventListener('click', returnToMenu);
+
+    // ── Phase 5: Game Over modal buttons ───────────
+    document.getElementById('btn-play-again').addEventListener('click', () => {
+      closeModal('modal-game-over');
+      // Replay with same level — re-run startGame flow without transition
+      resetGameUI();
+      updateHudLevel(gameSession.level);
+      updateXpBar(0, gameSession.level);
+      runCountdown();
+    });
+
+    document.getElementById('btn-go-menu').addEventListener('click', () => {
+      closeModal('modal-game-over');
+      returnToMenu();
+    });
 
     // ── Level selector ─────────────────────────────
     // Phase 2: updateLevelDisplay now also updates the info card + bg tint
@@ -2006,17 +2328,324 @@
       showScreen('menu-screen');
     }));
 
+    // ── Phase 5 tests ──────────────────────────────
+    const p5 = fn => { fn._phase = 5; return fn; };
+
+    // Word state variables
+    test('activeWords is an array', p5(() =>
+      assert(Array.isArray(activeWords))));
+
+    test('activeWords starts empty', p5(() =>
+      assertEqual(activeWords.length, 0)));
+
+    test('lives starts at 3', p5(() =>
+      assertEqual(lives, 3)));
+
+    test('totalXP starts at 0', p5(() =>
+      assertEqual(totalXP, 0)));
+
+    test('WORD_POOL_P5 is a non-empty array', p5(() => {
+      assert(Array.isArray(WORD_POOL_P5));
+      assert(WORD_POOL_P5.length > 0);
+    }));
+
+    test('WORD_POOL_P5 contains only non-empty strings', p5(() => {
+      WORD_POOL_P5.forEach((w, i) =>
+        assert(typeof w === 'string' && w.length > 0, `Entry ${i} is invalid`));
+    }));
+
+    // DOM elements
+    test('flash-overlay exists', p5(() =>
+      assert(document.getElementById('flash-overlay'))));
+
+    test('modal-game-over exists', p5(() =>
+      assert(document.getElementById('modal-game-over'))));
+
+    test('modal-game-over hidden by default', p5(() =>
+      assert(document.getElementById('modal-game-over').classList.contains('hidden'))));
+
+    test('gameover-score element exists', p5(() =>
+      assert(document.getElementById('gameover-score'))));
+
+    test('btn-play-again exists', p5(() =>
+      assert(document.getElementById('btn-play-again'))));
+
+    test('btn-go-menu exists', p5(() =>
+      assert(document.getElementById('btn-go-menu'))));
+
+    // Geometry helpers
+    test('getGroundY is a function', p5(() =>
+      assert(typeof getGroundY === 'function')));
+
+    test('getDangerTop is a function', p5(() =>
+      assert(typeof getDangerTop === 'function')));
+
+    test('getDangerTop is less than getGroundY', p5(() => {
+      showScreen('game-screen');
+      assert(getDangerTop() < getGroundY(),
+        `dangerTop=${getDangerTop()} should be < groundY=${getGroundY()}`);
+      showScreen('menu-screen');
+    }));
+
+    // spawnWord
+    test('spawnWord is a function', p5(() =>
+      assert(typeof spawnWord === 'function')));
+
+    test('spawnWord adds a word to activeWords', p5(() => {
+      showScreen('game-screen');
+      const before = activeWords.length;
+      spawnWord('test');
+      assertEqual(activeWords.length, before + 1);
+      clearAllWords();
+      showScreen('menu-screen');
+    }));
+
+    test('spawnWord creates an element with correct text', p5(() => {
+      showScreen('game-screen');
+      const word = spawnWord('hello');
+      assertEqual(word.el.textContent, 'hello');
+      clearAllWords();
+      showScreen('menu-screen');
+    }));
+
+    test('spawnWord element has .falling-word class', p5(() => {
+      showScreen('game-screen');
+      const word = spawnWord('world');
+      assert(word.el.classList.contains('falling-word'));
+      clearAllWords();
+      showScreen('menu-screen');
+    }));
+
+    test('spawnWord object has id, text, x, y, speed, el', p5(() => {
+      showScreen('game-screen');
+      const word = spawnWord('check');
+      assert('id'    in word, 'missing id');
+      assert('text'  in word, 'missing text');
+      assert('x'     in word, 'missing x');
+      assert('y'     in word, 'missing y');
+      assert('speed' in word, 'missing speed');
+      assert('el'    in word, 'missing el');
+      clearAllWords();
+      showScreen('menu-screen');
+    }));
+
+    test('spawnWord uses provided speed', p5(() => {
+      showScreen('game-screen');
+      const word = spawnWord('fast', 3.5);
+      assertEqual(word.speed, 3.5);
+      clearAllWords();
+      showScreen('menu-screen');
+    }));
+
+    test('spawnWord adds game-running class to game-area', p5(() => {
+      showScreen('game-screen');
+      gameArea.classList.remove('game-running');
+      spawnWord('run');
+      assert(gameArea.classList.contains('game-running'));
+      clearAllWords();
+      showScreen('menu-screen');
+    }));
+
+    test('nextWordId increments with each spawn', p5(() => {
+      showScreen('game-screen');
+      const id1 = spawnWord('a').id;
+      const id2 = spawnWord('b').id;
+      assert(id2 > id1, 'IDs should be increasing');
+      clearAllWords();
+      showScreen('menu-screen');
+    }));
+
+    // removeWord
+    test('removeWord is a function', p5(() =>
+      assert(typeof removeWord === 'function')));
+
+    test('removeWord removes word from activeWords', p5(() => {
+      showScreen('game-screen');
+      const word = spawnWord('bye');
+      const id   = word.id;
+      assertEqual(activeWords.length, 1);
+      removeWord(id);
+      assertEqual(activeWords.length, 0);
+      showScreen('menu-screen');
+    }));
+
+    test('removeWord removes element from DOM', p5(() => {
+      showScreen('game-screen');
+      const word = spawnWord('gone');
+      gameArea.appendChild(word.el); // ensure in DOM
+      removeWord(word.id);
+      assert(!gameArea.contains(word.el), 'element should be removed');
+      showScreen('menu-screen');
+    }));
+
+    test('removeWord is safe to call with invalid id', p5(() => {
+      // should not throw
+      removeWord(-999);
+    }));
+
+    // clearAllWords
+    test('clearAllWords is a function', p5(() =>
+      assert(typeof clearAllWords === 'function')));
+
+    test('clearAllWords empties activeWords', p5(() => {
+      showScreen('game-screen');
+      spawnWord('one'); spawnWord('two'); spawnWord('three');
+      assertEqual(activeWords.length, 3);
+      clearAllWords();
+      assertEqual(activeWords.length, 0);
+      showScreen('menu-screen');
+    }));
+
+    test('clearAllWords removes game-running class', p5(() => {
+      showScreen('game-screen');
+      spawnWord('x');
+      assert(gameArea.classList.contains('game-running'));
+      clearAllWords();
+      assert(!gameArea.classList.contains('game-running'));
+      showScreen('menu-screen');
+    }));
+
+    // Game loop functions
+    test('startGameLoop is a function', p5(() =>
+      assert(typeof startGameLoop === 'function')));
+
+    test('stopGameLoop is a function', p5(() =>
+      assert(typeof stopGameLoop === 'function')));
+
+    test('stopGameLoop sets rafId to null', p5(() => {
+      gameSession.status = 'idle'; // prevent loop rescheduling
+      stopGameLoop();
+      assertEqual(rafId, null);
+    }));
+
+    // loseLife
+    test('loseLife is a function', p5(() =>
+      assert(typeof loseLife === 'function')));
+
+    test('loseLife decrements lives when playing', p5(() => {
+      lives = 3;
+      gameSession.status = 'playing';
+      loseLife();
+      assertEqual(lives, 2);
+      gameSession.status = 'idle';
+      lives = 3;
+      document.querySelectorAll('.heart').forEach(h => h.classList.remove('lost'));
+    }));
+
+    test('loseLife marks correct heart as lost', p5(() => {
+      lives = 3; gameSession.status = 'playing';
+      loseLife(); // lives now 2
+      const hearts = document.querySelectorAll('.heart');
+      assert(!hearts[0].classList.contains('lost'), 'heart 1 should not be lost');
+      assert(!hearts[1].classList.contains('lost'), 'heart 2 should not be lost');
+      assert(hearts[2].classList.contains('lost'),  'heart 3 should be lost');
+      lives = 3; gameSession.status = 'idle';
+      document.querySelectorAll('.heart').forEach(h => h.classList.remove('lost'));
+    }));
+
+    test('loseLife triggers gameOver when lives reach 0', p5(() => {
+      lives = 1; gameSession.status = 'playing';
+      showScreen('game-screen');
+      loseLife();
+      assertEqual(gameSession.status, 'over', 'status should be over');
+      closeModal('modal-game-over');
+      lives = 3; gameSession.status = 'idle';
+      showScreen('menu-screen');
+      document.querySelectorAll('.heart').forEach(h => h.classList.remove('lost'));
+    }));
+
+    test('loseLife does nothing when status is not playing', p5(() => {
+      lives = 3; gameSession.status = 'idle';
+      loseLife();
+      assertEqual(lives, 3); // unchanged
+    }));
+
+    // gameOver
+    test('gameOver is a function', p5(() =>
+      assert(typeof gameOver === 'function')));
+
+    test('gameOver sets status to over', p5(() => {
+      gameSession.status = 'playing';
+      showScreen('game-screen');
+      gameOver();
+      assertEqual(gameSession.status, 'over');
+      closeModal('modal-game-over');
+      gameSession.status = 'idle';
+      showScreen('menu-screen');
+    }));
+
+    test('gameOver clears all words', p5(() => {
+      showScreen('game-screen');
+      gameSession.status = 'playing';
+      spawnWord('clear-me');
+      gameOver();
+      assertEqual(activeWords.length, 0);
+      closeModal('modal-game-over');
+      gameSession.status = 'idle';
+      showScreen('menu-screen');
+    }));
+
+    test('gameOver deactivates danger zone', p5(() => {
+      showScreen('game-screen');
+      gameSession.status = 'playing';
+      setDangerZone(true);
+      gameOver();
+      assert(!dangerZone.classList.contains('active'));
+      closeModal('modal-game-over');
+      gameSession.status = 'idle';
+      showScreen('menu-screen');
+    }));
+
+    test('resetGameUI resets lives to 3', p5(() => {
+      lives = 1;
+      resetGameUI();
+      assertEqual(lives, 3);
+    }));
+
+    test('resetGameUI resets totalXP to 0', p5(() => {
+      totalXP = 500;
+      resetGameUI();
+      assertEqual(totalXP, 0);
+    }));
+
+    test('resetGameUI clears active words', p5(() => {
+      showScreen('game-screen');
+      spawnWord('reset-me');
+      assertEqual(activeWords.length, 1);
+      resetGameUI();
+      assertEqual(activeWords.length, 0);
+      showScreen('menu-screen');
+    }));
+
+    test('flashScreen does not throw', p5(() => {
+      flashScreen('miss');
+      // Should not throw even when overlay exists
+    }));
+
+    test('spawnNextWord is a function', p5(() =>
+      assert(typeof spawnNextWord === 'function')));
+
+    test('spawnNextWord spawns from WORD_POOL_P5', p5(() => {
+      showScreen('game-screen');
+      spawnNextWord();
+      assert(activeWords.length === 1);
+      assert(WORD_POOL_P5.includes(activeWords[0].text),
+        `"${activeWords[0].text}" not in WORD_POOL_P5`);
+      clearAllWords();
+      showScreen('menu-screen');
+    }));
+
     // ── Render results ─────────────────────────────
     const resultsEl = document.getElementById('test-results');
     const summaryEl = document.getElementById('test-summary');
 
-    let p1Pass=0, p1Fail=0, p2Pass=0, p2Fail=0, p3Pass=0, p3Fail=0, p4Pass=0, p4Fail=0;
+    let p1Pass=0,p1Fail=0,p2Pass=0,p2Fail=0,p3Pass=0,p3Fail=0,p4Pass=0,p4Fail=0,p5Pass=0,p5Fail=0;
     tests.forEach(t => {
       const ph = t.phase || 1;
       if (t.pass) {
-        if(ph===4) p4Pass++; else if(ph===3) p3Pass++; else if(ph===2) p2Pass++; else p1Pass++;
+        if(ph===5)p5Pass++;else if(ph===4)p4Pass++;else if(ph===3)p3Pass++;else if(ph===2)p2Pass++;else p1Pass++;
       } else {
-        if(ph===4) p4Fail++; else if(ph===3) p3Fail++; else if(ph===2) p2Fail++; else p1Fail++;
+        if(ph===5)p5Fail++;else if(ph===4)p4Fail++;else if(ph===3)p3Fail++;else if(ph===2)p2Fail++;else p1Fail++;
       }
       const d = document.createElement('div');
       d.className = `test-result ${t.pass?'pass':'fail'}`;
@@ -2033,10 +2662,11 @@
     const footer = document.createElement('div');
     footer.style.cssText = 'padding:6px 14px 10px;font-size:10px;font-weight:700;color:#aac';
     footer.innerHTML =
-      `P1: <span style="color:#2bad6a">${p1Pass}✓</span><span style="color:#e86060"> ${p1Fail}✗</span> &nbsp;|&nbsp; ` +
-      `P2: <span style="color:#2bad6a">${p2Pass}✓</span><span style="color:#e86060"> ${p2Fail}✗</span> &nbsp;|&nbsp; ` +
-      `P3: <span style="color:#2bad6a">${p3Pass}✓</span><span style="color:#e86060"> ${p3Fail}✗</span> &nbsp;|&nbsp; ` +
-      `P4: <span style="color:#2bad6a">${p4Pass}✓</span><span style="color:#e86060"> ${p4Fail}✗</span>`;
+      `P1:<span style="color:#2bad6a"> ${p1Pass}✓</span><span style="color:#e86060"> ${p1Fail}✗</span> &nbsp;|&nbsp; ` +
+      `P2:<span style="color:#2bad6a"> ${p2Pass}✓</span><span style="color:#e86060"> ${p2Fail}✗</span> &nbsp;|&nbsp; ` +
+      `P3:<span style="color:#2bad6a"> ${p3Pass}✓</span><span style="color:#e86060"> ${p3Fail}✗</span> &nbsp;|&nbsp; ` +
+      `P4:<span style="color:#2bad6a"> ${p4Pass}✓</span><span style="color:#e86060"> ${p4Fail}✗</span> &nbsp;|&nbsp; ` +
+      `P5:<span style="color:#2bad6a"> ${p5Pass}✓</span><span style="color:#e86060"> ${p5Fail}✗</span>`;
     document.getElementById('test-panel').appendChild(footer);
   </script>
 </body>
