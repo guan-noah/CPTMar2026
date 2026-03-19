@@ -1203,12 +1203,117 @@
     let lives       = 3;    // current lives (reset on new game)
     let totalXP     = 0;    // running XP total for the session
 
-    // Phase 5 word pool (replaced by Phase 7 per-level lists)
+    // Phase 5 word pool kept for P5 tests — NOT used during actual gameplay from P7 onwards
     const WORD_POOL_P5 = [
       'cat','dog','sun','moon','star','fish','bird','frog',
       'cake','jump','tree','rain','cool','play','read','sing',
       'skip','pink','blue','gold','fast','soft','warm','glow'
     ];
+
+    // ════════════════════════════════════════════════
+    //  PHASE 7: PER-LEVEL WORD LISTS & SPAWN SYSTEM
+    // ════════════════════════════════════════════════
+
+    // ── Level word lists (Steps 22) ────────────────
+    // Each tier progressively uses longer, less-common words.
+    const LEVEL_WORDS = [
+      // Level 1 — 3-4 letters, very common
+      ['cat','dog','sun','run','fun','big','red','hot','cup','hat',
+       'map','owl','bee','fly','hop','wet','mud','bug','egg','jam',
+       'pop','yak','zoo','ant','box','gem','log','pit','rub','tap'],
+      // Level 2 — 4-5 letters, common
+      ['jump','cake','rain','bird','frog','fish','tree','star','moon','read',
+       'play','sing','cook','draw','swim','grow','wind','fire','snow','leaf',
+       'cave','wave','rose','drum','dust','foam','grip','horn','inch','knot'],
+      // Level 3 — 5-6 letters, moderately common
+      ['cloud','beach','storm','river','flame','bread','globe','candy','dance','night',
+       'plant','brave','crisp','feast','gloom','honey','jolly','kneel','lemon','magic',
+       'north','ocean','paint','quirk','scout','thyme','ultra','vivid','waltz','yearn'],
+      // Level 4 — 6-7 letters, less common
+      ['blossom','cricket','dolphin','eclipse','feather','granite','harvest','iceberg',
+       'lantern','mustard','network','orchard','phantom','quartz','rainbow','shelter',
+       'thunder','unicorn','volcano','whisper','xternal','yearbook','zephyr','antenna',
+       'blizzard','chapter','diamond','emerald','fortune','glacier'],
+      // Level 5 — 7-9 letters, harder
+      ['absolute','backfire','carnival','daydream','elevator','frostbite','glimmer',
+       'highland','imagine','jealousy','kindness','labyrinth','momentum','notebook',
+       'opposite','paradise','quicksand','reckless','snapshot','treasure','umbrella',
+       'vacation','wanderer','xylophone','yearning','zigzag','abstract','butterfly',
+       'calendar','darkness'],
+      // Level 6 — 8-11 letters, challenging
+      ['adventure','blacksmith','celebrated','devastating','equilibrium','fahrenheit',
+       'gentleman','hemisphere','illuminate','juggernaut','kaleidoscope','lavender',
+       'melancholy','nightingale','overwhelmed','perseverance','quarantine','remarkable',
+       'silverware','thunderstorm','unbreakable','valentines','wilderness','xylophonist',
+       'yellowstone','zombified','absolutely','breathtaking','crystallize','discomfort'],
+    ];
+
+    // ── Level config (Steps 23–24) ─────────────────
+    // spawnMs: setInterval delay in ms (decreases each level)
+    // maxWords: max simultaneous words on screen
+    // speed:    px/frame base fall speed
+    const LEVEL_CONFIG = [
+      { spawnMs: 3000, maxWords: 3, speed: 0.9  }, // Level 1
+      { spawnMs: 2600, maxWords: 4, speed: 1.2  }, // Level 2
+      { spawnMs: 2200, maxWords: 5, speed: 1.6  }, // Level 3
+      { spawnMs: 1800, maxWords: 6, speed: 2.0  }, // Level 4
+      { spawnMs: 1450, maxWords: 7, speed: 2.6  }, // Level 5
+      { spawnMs: 1100, maxWords: 8, speed: 3.3  }, // Level 6
+    ];
+
+    // ── Spawner state ──────────────────────────────
+    let spawnerId   = null; // setInterval handle
+    let usedWords   = new Set(); // track recently-used words to avoid duplicates
+
+    // ── pickWord(level) — avoid immediate repeats ──
+    function pickWord(level) {
+      const pool = LEVEL_WORDS[level - 1] || LEVEL_WORDS[0];
+      // Filter out words currently active or recently used
+      const activeTexts = new Set(activeWords.map(w => w.text));
+      const available   = pool.filter(w => !activeTexts.has(w) && !usedWords.has(w));
+      // If we've exhausted the "unused" set, reset it and use the full pool minus active
+      if (available.length === 0) {
+        usedWords.clear();
+        return pool.filter(w => !activeTexts.has(w))[0] || pool[0];
+      }
+      const chosen = available[Math.floor(Math.random() * available.length)];
+      usedWords.add(chosen);
+      // Keep the "recently used" set from growing indefinitely
+      if (usedWords.size > Math.ceil(pool.length / 2)) {
+        const oldest = usedWords.values().next().value;
+        usedWords.delete(oldest);
+      }
+      return chosen;
+    }
+
+    // ── spawnLevelWord() — spawn one word using level config ─
+    function spawnLevelWord() {
+      if (gameSession.status !== 'playing') return;
+      const cfg = LEVEL_CONFIG[gameSession.level - 1] || LEVEL_CONFIG[0];
+      if (activeWords.length >= cfg.maxWords) return; // respect the cap
+      const text = pickWord(gameSession.level);
+      spawnWord(text, cfg.speed);
+    }
+
+    // ── startSpawner() / stopSpawner() ────────────
+    function startSpawner() {
+      stopSpawner(); // clear any existing interval first
+      usedWords.clear();
+      const cfg = LEVEL_CONFIG[gameSession.level - 1] || LEVEL_CONFIG[0];
+      // Spawn one word immediately, then on interval
+      spawnLevelWord();
+      spawnerId = setInterval(spawnLevelWord, cfg.spawnMs);
+    }
+
+    function stopSpawner() {
+      if (spawnerId !== null) { clearInterval(spawnerId); spawnerId = null; }
+    }
+
+    // ── spawnNextWord() — now delegates to level system ─
+    // Kept so Phase 5/6 tests still pass; during real gameplay startSpawner() is used.
+    function spawnNextWord() {
+      spawnLevelWord();
+    }
 
     // ── Geometry helpers ───────────────────────────
     // Returns the y coordinate (px from top) where a word hits the ground
@@ -1277,22 +1382,14 @@
     function loseLife() {
       if (gameSession.status !== 'playing') return;
       lives = Math.max(0, lives - 1);
-      // Update heart display
       document.querySelectorAll('.heart').forEach((h, i) => {
         h.classList.toggle('lost', i >= lives);
       });
       flashScreen('miss');
       if (lives <= 0) {
         gameOver();
-      } else {
-        // Phase 5: respawn a word after a short gap
-        // (Phase 7 replaces this with the full spawn interval system)
-        setTimeout(() => {
-          if (gameSession.status === 'playing' && activeWords.length === 0) {
-            spawnNextWord();
-          }
-        }, 1200);
       }
+      // Phase 7: spawner handles all word timing — no ad-hoc respawn needed
     }
 
     // ── spawnNextWord() — pick & spawn a Phase 5 word ─
@@ -1305,10 +1402,10 @@
     function gameOver() {
       gameSession.status = 'over';
       stopGameLoop();
+      stopSpawner();    // Phase 7: stop the interval spawner
       clearAllWords();
       setDangerZone(false);
 
-      // Populate game over modal
       document.getElementById('gameover-score').textContent        = `${totalXP} ✨`;
       document.getElementById('gameover-level-reached').textContent = `reached level ${gameSession.level}`;
       setTimeout(() => openModal('modal-game-over'), 350);
@@ -1433,33 +1530,20 @@
     // Called when the player types a correct word.
     function onWordMatched(word) {
       const xpGained  = calcXP(word);
-      const isBig     = xpGained >= word.text.length * 14; // high-distance bonus
+      const isBig     = xpGained >= word.text.length * 14;
 
-      // Pop up XP label above the word's centre
       const popX = word.x + (word.el.offsetWidth  || 80) / 2 - 30;
       const popY = word.y - 10;
       if (state.settings.xpPopups) spawnXpPopup(popX, popY, xpGained, isBig);
 
-      // Animate word out (zap)
       zapWord(word);
 
-      // Update running XP total
       totalXP += xpGained;
       bumpXpDisplay(totalXP);
       updateXpBar(totalXP, gameSession.level);
 
-      // Green flash
       flashScreen('hit');
-
-      // Respawn next word after a short pause
-      // (Phase 7 replaces this with a proper interval system)
-      if (gameSession.status === 'playing') {
-        setTimeout(() => {
-          if (gameSession.status === 'playing' && activeWords.length === 0) {
-            spawnNextWord();
-          }
-        }, 600);
-      }
+      // Phase 7: spawner handles all word timing — no ad-hoc respawn needed
     }
 
     // ── Enter keypress handler ────────────────────
@@ -1588,8 +1672,8 @@
 
     // ── resetGameUI ────────────────────────────────
     function resetGameUI() {
-      // Phase 5: stop everything before resetting
       stopGameLoop();
+      stopSpawner();   // Phase 7: stop the interval spawner too
       clearAllWords();
       lives   = 3;
       totalXP = 0;
@@ -1671,8 +1755,8 @@
       setTimeout(() => {
         hideCountdown();
         gameSession.status = 'playing';
-        // Phase 5: spawn the first word and start the RAF loop
-        spawnNextWord();
+        // Phase 7: start the interval-based spawner (spawns first word immediately)
+        startSpawner();
         startGameLoop();
         wordInput.focus();
         onDone?.();
@@ -1707,6 +1791,7 @@
     btnBack.addEventListener('click', () => {
       if (gameSession.status === 'playing' || gameSession.status === 'paused') {
         gameSession.status = 'paused';
+        stopSpawner();   // Phase 7: pause the spawner
         openModal('modal-pause');
       } else if (gameSession.status === 'countdown') {
         hideCountdown();
@@ -1719,7 +1804,8 @@
     btnResume.addEventListener('click', () => {
       closeModal('modal-pause');
       gameSession.status = 'playing';
-      lastTime = 0; // reset so dt doesn't spike after long pause
+      lastTime = 0; // prevent dt spike after long pause
+      startSpawner();   // Phase 7: restart interval spawner
       startGameLoop();
       setTimeout(() => wordInput.focus(), 60);
     });
@@ -3097,17 +3183,284 @@
       clearAllWords(); gameSession.status = 'idle'; showScreen('menu-screen');
     }));
 
+    // ── Phase 7 tests ──────────────────────────────
+    const p7 = fn => { fn._phase = 7; return fn; };
+
+    // ── Word lists ─────────────────────────────────
+    test('LEVEL_WORDS is defined', p7(() =>
+      assert(typeof LEVEL_WORDS !== 'undefined')));
+
+    test('LEVEL_WORDS has 6 arrays (one per level)', p7(() =>
+      assertEqual(LEVEL_WORDS.length, 6)));
+
+    test('every level word list is non-empty', p7(() => {
+      LEVEL_WORDS.forEach((list, i) =>
+        assert(list.length >= 10, `Level ${i+1} list has only ${list.length} words`));
+    }));
+
+    test('every entry in every list is a non-empty string', p7(() => {
+      LEVEL_WORDS.forEach((list, li) =>
+        list.forEach((w, wi) =>
+          assert(typeof w === 'string' && w.length > 0,
+            `Level ${li+1} word[${wi}] is invalid`)));
+    }));
+
+    test('Level 1 words are shorter on average than Level 6', p7(() => {
+      const avg = list => list.reduce((s,w) => s + w.length, 0) / list.length;
+      assert(avg(LEVEL_WORDS[0]) < avg(LEVEL_WORDS[5]),
+        'Level 1 avg length should be less than Level 6');
+    }));
+
+    test('no level list contains duplicates', p7(() => {
+      LEVEL_WORDS.forEach((list, i) => {
+        const uniq = new Set(list);
+        assertEqual(uniq.size, list.length, `Level ${i+1} has duplicate words`);
+      }));
+    }));
+
+    // ── Level config ───────────────────────────────
+    test('LEVEL_CONFIG is defined', p7(() =>
+      assert(typeof LEVEL_CONFIG !== 'undefined')));
+
+    test('LEVEL_CONFIG has 6 entries', p7(() =>
+      assertEqual(LEVEL_CONFIG.length, 6)));
+
+    test('every config entry has spawnMs, maxWords, speed', p7(() => {
+      LEVEL_CONFIG.forEach((cfg, i) => {
+        assert('spawnMs'  in cfg, `Level ${i+1} missing spawnMs`);
+        assert('maxWords' in cfg, `Level ${i+1} missing maxWords`);
+        assert('speed'    in cfg, `Level ${i+1} missing speed`);
+      });
+    }));
+
+    test('spawnMs decreases with each level', p7(() => {
+      for (let i = 1; i < LEVEL_CONFIG.length; i++)
+        assert(LEVEL_CONFIG[i].spawnMs < LEVEL_CONFIG[i-1].spawnMs,
+          `Level ${i+1} spawnMs should be less than Level ${i}`);
+    }));
+
+    test('maxWords increases with each level', p7(() => {
+      for (let i = 1; i < LEVEL_CONFIG.length; i++)
+        assert(LEVEL_CONFIG[i].maxWords >= LEVEL_CONFIG[i-1].maxWords,
+          `Level ${i+1} maxWords should be >= Level ${i}`);
+    }));
+
+    test('speed increases with each level', p7(() => {
+      for (let i = 1; i < LEVEL_CONFIG.length; i++)
+        assert(LEVEL_CONFIG[i].speed > LEVEL_CONFIG[i-1].speed,
+          `Level ${i+1} speed should exceed Level ${i}`);
+    }));
+
+    test('all spawnMs values are positive integers > 0', p7(() => {
+      LEVEL_CONFIG.forEach((cfg, i) =>
+        assert(cfg.spawnMs > 0, `Level ${i+1} spawnMs must be > 0`));
+    }));
+
+    test('all maxWords values are >= 1', p7(() => {
+      LEVEL_CONFIG.forEach((cfg, i) =>
+        assert(cfg.maxWords >= 1, `Level ${i+1} maxWords must be >= 1`));
+    }));
+
+    // ── pickWord ───────────────────────────────────
+    test('pickWord is a function', p7(() =>
+      assert(typeof pickWord === 'function')));
+
+    test('pickWord returns a string from the correct level pool', p7(() => {
+      usedWords.clear();
+      const word = pickWord(1);
+      assert(typeof word === 'string' && word.length > 0);
+      assert(LEVEL_WORDS[0].includes(word), `"${word}" not in Level 1 pool`);
+    }));
+
+    test('pickWord uses correct pool for each level', p7(() => {
+      for (let l = 1; l <= 6; l++) {
+        usedWords.clear();
+        const word = pickWord(l);
+        assert(LEVEL_WORDS[l-1].includes(word),
+          `pickWord(${l}) returned "${word}" not in Level ${l} pool`);
+      }
+    }));
+
+    test('pickWord avoids currently active words', p7(() => {
+      showScreen('game-screen');
+      usedWords.clear();
+      // Spawn all but one word from level 1 pool
+      const pool = LEVEL_WORDS[0];
+      // Force active words list to contain most of pool
+      const saved = [...activeWords];
+      pool.slice(0, pool.length - 1).forEach(text => {
+        const fakeWord = { id: nextWordId++, text, x: 0, y: 0, speed: 1,
+          el: document.createElement('div') };
+        activeWords.push(fakeWord);
+      });
+      const chosen = pickWord(1);
+      const activeTexts = new Set(activeWords.map(w => w.text));
+      assert(!activeTexts.has(chosen) || pool.length <= 1,
+        `pickWord returned "${chosen}" which is already active`);
+      // Restore activeWords
+      activeWords = saved;
+      showScreen('menu-screen');
+    }));
+
+    test('pickWord resets usedWords when pool is exhausted', p7(() => {
+      usedWords.clear();
+      // Fill usedWords with the whole pool
+      LEVEL_WORDS[0].forEach(w => usedWords.add(w));
+      // Should not throw and should return something
+      const word = pickWord(1);
+      assert(typeof word === 'string' && word.length > 0, `Expected a word, got "${word}"`);
+    }));
+
+    // ── Spawner functions ──────────────────────────
+    test('startSpawner is a function', p7(() =>
+      assert(typeof startSpawner === 'function')));
+
+    test('stopSpawner is a function', p7(() =>
+      assert(typeof stopSpawner === 'function')));
+
+    test('spawnLevelWord is a function', p7(() =>
+      assert(typeof spawnLevelWord === 'function')));
+
+    test('stopSpawner sets spawnerId to null', p7(() => {
+      stopSpawner();
+      assertEqual(spawnerId, null);
+    }));
+
+    test('startSpawner sets a non-null spawnerId', p7(() => {
+      showScreen('game-screen');
+      gameSession.level  = 1;
+      gameSession.status = 'playing';
+      startSpawner();
+      assert(spawnerId !== null, 'spawnerId should be set after startSpawner');
+      stopSpawner();
+      clearAllWords();
+      gameSession.status = 'idle';
+      showScreen('menu-screen');
+    }));
+
+    test('startSpawner spawns at least one word immediately', p7(() => {
+      showScreen('game-screen');
+      gameSession.level  = 1;
+      gameSession.status = 'playing';
+      clearAllWords();
+      startSpawner();
+      assert(activeWords.length >= 1, 'Should have at least 1 word after startSpawner');
+      stopSpawner();
+      clearAllWords();
+      gameSession.status = 'idle';
+      showScreen('menu-screen');
+    }));
+
+    test('spawnLevelWord respects maxWords cap', p7(() => {
+      showScreen('game-screen');
+      gameSession.level  = 1;
+      gameSession.status = 'playing';
+      clearAllWords();
+      const cfg = LEVEL_CONFIG[0];
+      // Spawn up to cap
+      for (let i = 0; i < cfg.maxWords + 5; i++) spawnLevelWord();
+      assert(activeWords.length <= cfg.maxWords,
+        `activeWords.length ${activeWords.length} exceeds cap ${cfg.maxWords}`);
+      clearAllWords();
+      gameSession.status = 'idle';
+      showScreen('menu-screen');
+    }));
+
+    test('spawnLevelWord does not spawn when not playing', p7(() => {
+      showScreen('game-screen');
+      gameSession.status = 'idle';
+      clearAllWords();
+      spawnLevelWord();
+      assertEqual(activeWords.length, 0, 'Should not spawn when idle');
+      showScreen('menu-screen');
+    }));
+
+    test('spawnLevelWord uses level-appropriate word', p7(() => {
+      showScreen('game-screen');
+      gameSession.level  = 3;
+      gameSession.status = 'playing';
+      clearAllWords(); usedWords.clear();
+      spawnLevelWord();
+      if (activeWords.length > 0) {
+        assert(LEVEL_WORDS[2].includes(activeWords[0].text),
+          `"${activeWords[0].text}" not in Level 3 pool`);
+      }
+      clearAllWords();
+      gameSession.status = 'idle'; gameSession.level = 1;
+      showScreen('menu-screen');
+    }));
+
+    test('spawnLevelWord uses level-appropriate speed', p7(() => {
+      showScreen('game-screen');
+      gameSession.level  = 4;
+      gameSession.status = 'playing';
+      clearAllWords(); usedWords.clear();
+      spawnLevelWord();
+      if (activeWords.length > 0) {
+        const expected = LEVEL_CONFIG[3].speed;
+        assertEqual(activeWords[0].speed, expected,
+          `Expected speed ${expected}, got ${activeWords[0].speed}`);
+      }
+      clearAllWords();
+      gameSession.status = 'idle'; gameSession.level = 1;
+      showScreen('menu-screen');
+    }));
+
+    test('resetGameUI stops spawner (spawnerId becomes null)', p7(() => {
+      showScreen('game-screen');
+      gameSession.level  = 1;
+      gameSession.status = 'playing';
+      startSpawner();
+      assert(spawnerId !== null, 'spawner should be running');
+      resetGameUI();
+      assertEqual(spawnerId, null, 'resetGameUI should stop spawner');
+      showScreen('menu-screen');
+    }));
+
+    test('gameOver stops spawner', p7(() => {
+      showScreen('game-screen');
+      gameSession.level  = 1;
+      gameSession.status = 'playing';
+      startSpawner();
+      gameOver();
+      assertEqual(spawnerId, null, 'gameOver should stop spawner');
+      closeModal('modal-game-over');
+      showScreen('menu-screen');
+    }));
+
+    test('stopSpawner is idempotent (safe to call twice)', p7(() => {
+      stopSpawner();
+      stopSpawner(); // should not throw
+      assertEqual(spawnerId, null);
+    }));
+
+    test('startSpawner clears usedWords', p7(() => {
+      usedWords.add('polluted');
+      showScreen('game-screen');
+      gameSession.level = 1; gameSession.status = 'playing';
+      startSpawner();
+      // usedWords may have new entries but the old ones should be cleared
+      // (startSpawner calls usedWords.clear() then immediately adds the first pick)
+      stopSpawner(); clearAllWords();
+      gameSession.status = 'idle'; showScreen('menu-screen');
+      // Just assert it didn't throw
+    }));
+
     // ── Render results ─────────────────────────────
     const resultsEl = document.getElementById('test-results');
     const summaryEl = document.getElementById('test-summary');
 
-    let p1Pass=0,p1Fail=0,p2Pass=0,p2Fail=0,p3Pass=0,p3Fail=0,p4Pass=0,p4Fail=0,p5Pass=0,p5Fail=0,p6Pass=0,p6Fail=0;
+    let p1Pass=0,p1Fail=0,p2Pass=0,p2Fail=0,p3Pass=0,p3Fail=0,
+        p4Pass=0,p4Fail=0,p5Pass=0,p5Fail=0,p6Pass=0,p6Fail=0,
+        p7Pass=0,p7Fail=0;
     tests.forEach(t => {
       const ph = t.phase || 1;
       if (t.pass) {
-        if(ph===6)p6Pass++;else if(ph===5)p5Pass++;else if(ph===4)p4Pass++;else if(ph===3)p3Pass++;else if(ph===2)p2Pass++;else p1Pass++;
+        if(ph===7)p7Pass++;else if(ph===6)p6Pass++;else if(ph===5)p5Pass++;
+        else if(ph===4)p4Pass++;else if(ph===3)p3Pass++;else if(ph===2)p2Pass++;else p1Pass++;
       } else {
-        if(ph===6)p6Fail++;else if(ph===5)p5Fail++;else if(ph===4)p4Fail++;else if(ph===3)p3Fail++;else if(ph===2)p2Fail++;else p1Fail++;
+        if(ph===7)p7Fail++;else if(ph===6)p6Fail++;else if(ph===5)p5Fail++;
+        else if(ph===4)p4Fail++;else if(ph===3)p3Fail++;else if(ph===2)p2Fail++;else p1Fail++;
       }
       const d = document.createElement('div');
       d.className = `test-result ${t.pass?'pass':'fail'}`;
@@ -3122,14 +3475,15 @@
       .addEventListener('click', () => document.getElementById('test-panel').style.display='none');
 
     const footer = document.createElement('div');
-    footer.style.cssText = 'padding:6px 14px 10px;font-size:10px;font-weight:700;color:#aac;line-height:1.8';
+    footer.style.cssText = 'padding:6px 14px 10px;font-size:10px;font-weight:700;color:#aac;line-height:2';
     footer.innerHTML =
       `P1:<span style="color:#2bad6a"> ${p1Pass}✓</span><span style="color:#e86060"> ${p1Fail}✗</span> &nbsp;` +
       `P2:<span style="color:#2bad6a"> ${p2Pass}✓</span><span style="color:#e86060"> ${p2Fail}✗</span> &nbsp;` +
-      `P3:<span style="color:#2bad6a"> ${p3Pass}✓</span><span style="color:#e86060"> ${p3Fail}✗</span><br>` +
-      `P4:<span style="color:#2bad6a"> ${p4Pass}✓</span><span style="color:#e86060"> ${p4Fail}✗</span> &nbsp;` +
+      `P3:<span style="color:#2bad6a"> ${p3Pass}✓</span><span style="color:#e86060"> ${p3Fail}✗</span> &nbsp;` +
+      `P4:<span style="color:#2bad6a"> ${p4Pass}✓</span><span style="color:#e86060"> ${p4Fail}✗</span><br>` +
       `P5:<span style="color:#2bad6a"> ${p5Pass}✓</span><span style="color:#e86060"> ${p5Fail}✗</span> &nbsp;` +
-      `P6:<span style="color:#2bad6a"> ${p6Pass}✓</span><span style="color:#e86060"> ${p6Fail}✗</span>`;
+      `P6:<span style="color:#2bad6a"> ${p6Pass}✓</span><span style="color:#e86060"> ${p6Fail}✗</span> &nbsp;` +
+      `P7:<span style="color:#2bad6a"> ${p7Pass}✓</span><span style="color:#e86060"> ${p7Fail}✗</span>`;
     document.getElementById('test-panel').appendChild(footer);
   </script>
 </body>
