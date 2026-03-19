@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Don't Drop the Words!</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- MENU -->
+  <div id="menu">
+    <h1>🌟 Don't Drop the Words!</h1>
+    <p>Type the falling words before they hit the ground.</p>
+
+    <div class="level-row">
+      <button id="lv-down">◀</button>
+      <div class="level-label-box">
+        <span id="lv-display">Level 1 — Easy</span>
+      </div>
+      <button id="lv-up">▶</button>
+    </div>
+
+    <button class="btn" id="btn-start">▶ Start Game</button>
+    <button class="btn btn-sm" id="btn-how">How to Play</button>
+  </div>
+
+  <!-- HOW TO PLAY MODAL -->
+  <div class="overlay" id="modal-how">
+    <div class="modal">
+      <button class="modal-close" id="close-how">✕</button>
+      <h2>How to Play 🎮</h2>
+      <ul>
+        <li>Words fall from the sky.</li>
+        <li>Type a word and press <strong>Enter</strong> or <strong>Space</strong> to destroy it.</li>
+        <li>You have <strong>3 lives ❤️</strong>. Lose one when a word hits the ground.</li>
+        <li>Type words early for a bigger <strong>XP bonus</strong>! ⚡</li>
+        <li>Earn XP to <strong>level up</strong> — words get faster! 🚀</li>
+        <li>Red glow means a word is about to fall! ⚠️</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- GAME -->
+  <div id="game">
+    <div id="hud">
+      <div id="hud-lives">❤️❤️❤️</div>
+      <div id="hud-level">Level 1</div>
+      <div id="hud-xp">0 xp</div>
+    </div>
+
+    <div id="arena">
+      <div id="levelup-banner"><div>⬆️ Level Up!</div></div>
+
+      <div id="gameover">
+        <div class="go-box">
+          <h2>Game Over!</h2>
+          <p id="final-score">You scored 0 xp</p>
+          <div class="go-btns">
+            <button class="btn btn-sm" id="btn-retry">Retry</button>
+            <button class="btn btn-sm" id="btn-menu">Menu</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="flash"></div>
+
+      <div id="input-area">
+        <input id="word-input" type="text" autocomplete="off" spellcheck="false" placeholder="type a word…" />
+      </div>
+    </div>
+  </div>
+
+  <script src="game.js"></script>
+</body>
+</html>
