@@ -459,9 +459,55 @@
       background: rgba(255,80,60,.28);
       animation: flashAnim .45s ease forwards;
     }
+    /* Phase 6: green flash on a correct word */
+    #flash-overlay.flash-hit {
+      background: rgba(80,220,140,.22);
+      animation: flashAnim .3s ease forwards;
+    }
     @keyframes flashAnim {
       0%   { opacity: 1; }
       100% { opacity: 0; }
+    }
+
+    /* ── PHASE 6: FLOATING XP POPUP ──────────────────
+       Spawned at the word's position, floats up and fades. */
+    .xp-popup {
+      position: absolute;
+      z-index: 15;
+      font-family: var(--font-title);
+      font-size: clamp(14px, 2.4vw, 20px);
+      color: var(--mint-dark);
+      pointer-events: none;
+      white-space: nowrap;
+      text-shadow: 0 2px 6px rgba(60,180,100,.35);
+      animation: xpPopupFloat .95s cubic-bezier(.22,.68,0,1.2) forwards;
+      transform-origin: bottom center;
+    }
+    .xp-popup.big {
+      color: var(--sun-dark);
+      font-size: clamp(18px, 3vw, 26px);
+      text-shadow: 0 2px 8px rgba(220,160,0,.45);
+    }
+    @keyframes xpPopupFloat {
+      0%   { opacity: 1;   transform: translateY(0)    scale(1);    }
+      20%  { opacity: 1;   transform: translateY(-14px) scale(1.15); }
+      100% { opacity: 0;   transform: translateY(-52px) scale(.85);  }
+    }
+
+    /* ── PHASE 6: INPUT SHAKE (no match) ─────────────
+       Horizontal shake applied to the input pill.         */
+    @keyframes inputShake {
+      0%,100% { transform: translateX(0);   }
+      15%     { transform: translateX(-7px);}
+      35%     { transform: translateX( 6px);}
+      55%     { transform: translateX(-5px);}
+      75%     { transform: translateX( 4px);}
+      90%     { transform: translateX(-2px);}
+    }
+    #word-input.shake {
+      animation: inputShake .38s ease;
+      border-color: var(--coral) !important;
+      box-shadow: 0 0 0 4px rgba(255,100,80,.20) !important;
     }
 
     /* ── PHASE 5: GAME OVER MODAL ─────────────────── */
@@ -504,6 +550,9 @@
 
     /* Hide placeholder once game is running */
     #game-area.game-running #game-area-placeholder { display: none; }
+
+    /* Placeholder shown before Phase 5 adds real words */
+    #game-area-placeholder {
       position: absolute; inset: 0;
       display: flex; align-items: center; justify-content: center;
       flex-direction: column; gap: 10px;
@@ -1316,7 +1365,118 @@
       if (rafId !== null) { cancelAnimationFrame(rafId); rafId = null; }
     }
 
-    // ── Phase 4: Update XP progress bar ───────────
+    // ════════════════════════════════════════════════
+    //  PHASE 6: INPUT MATCHING & SCORING
+    // ════════════════════════════════════════════════
+
+    // ── calcXP(word) ──────────────────────────────
+    // Base:    wordLength × 10
+    // Bonus:   floor( (distanceRemaining / gameAreaHeight) × 10 )
+    //   → Word typed near top  → bonus up to +10
+    //   → Word typed near ground → bonus ≈ 0
+    function calcXP(word) {
+      const areaH             = gameArea.clientHeight || 1;
+      const wordBottom        = word.y + (word.el.offsetHeight || 36);
+      const distanceRemaining = Math.max(0, getGroundY() - wordBottom);
+      const bonus             = Math.floor((distanceRemaining / areaH) * 10);
+      return (word.text.length * 10) + bonus;
+    }
+
+    // ── spawnXpPopup(x, y, xpGained) ─────────────
+    // Creates a floating "+XP" label that rises and fades.
+    // 'big' style if bonus is significant (>= word.text.length * 5)
+    function spawnXpPopup(x, y, xpGained, isBig) {
+      const popup = document.createElement('div');
+      popup.className  = 'xp-popup' + (isBig ? ' big' : '');
+      popup.textContent = `+${xpGained} ✨`;
+      popup.style.left  = Math.round(x) + 'px';
+      popup.style.top   = Math.round(y) + 'px';
+      gameArea.appendChild(popup);
+      // Remove after animation completes
+      popup.addEventListener('animationend', () => popup.remove(), { once: true });
+      return popup;
+    }
+
+    // ── zapWord(word) ─────────────────────────────
+    // Plays the .zapped exit animation then removes the element.
+    function zapWord(word) {
+      word.el.classList.add('zapped');
+      word.el.classList.remove('near-danger');
+      // Remove from activeWords immediately so the game loop ignores it
+      const idx = activeWords.findIndex(w => w.id === word.id);
+      if (idx !== -1) activeWords.splice(idx, 1);
+      // Remove DOM element after animation
+      word.el.addEventListener('animationend', () => {
+        try { word.el.remove(); } catch(_) {}
+      }, { once: true });
+    }
+
+    // ── shakeInput() ──────────────────────────────
+    function shakeInput() {
+      wordInput.classList.remove('shake');
+      void wordInput.offsetWidth; // reflow
+      wordInput.classList.add('shake');
+      wordInput.addEventListener('animationend', () =>
+        wordInput.classList.remove('shake'), { once: true });
+    }
+
+    // ── tryMatchWord(typed) ───────────────────────
+    // Returns the matched word object or null.
+    // Comparison is case-insensitive and trimmed.
+    function tryMatchWord(typed) {
+      const normalized = typed.trim().toLowerCase();
+      if (!normalized) return null;
+      return activeWords.find(w => w.text.toLowerCase() === normalized) || null;
+    }
+
+    // ── onWordMatched(word) ────────────────────────
+    // Called when the player types a correct word.
+    function onWordMatched(word) {
+      const xpGained  = calcXP(word);
+      const isBig     = xpGained >= word.text.length * 14; // high-distance bonus
+
+      // Pop up XP label above the word's centre
+      const popX = word.x + (word.el.offsetWidth  || 80) / 2 - 30;
+      const popY = word.y - 10;
+      if (state.settings.xpPopups) spawnXpPopup(popX, popY, xpGained, isBig);
+
+      // Animate word out (zap)
+      zapWord(word);
+
+      // Update running XP total
+      totalXP += xpGained;
+      bumpXpDisplay(totalXP);
+      updateXpBar(totalXP, gameSession.level);
+
+      // Green flash
+      flashScreen('hit');
+
+      // Respawn next word after a short pause
+      // (Phase 7 replaces this with a proper interval system)
+      if (gameSession.status === 'playing') {
+        setTimeout(() => {
+          if (gameSession.status === 'playing' && activeWords.length === 0) {
+            spawnNextWord();
+          }
+        }, 600);
+      }
+    }
+
+    // ── Enter keypress handler ────────────────────
+    wordInput.addEventListener('keydown', e => {
+      if (e.key !== 'Enter') return;
+      if (gameSession.status !== 'playing') return;
+
+      const typed = wordInput.value;
+      wordInput.value = ''; // always clear immediately
+
+      const matched = tryMatchWord(typed);
+      if (matched) {
+        onWordMatched(matched);
+      } else {
+        shakeInput();
+      }
+    });
     function updateXpBar(xp, level) {
       const from = XP_THRESHOLDS[level - 1] || 0;
       const to   = XP_THRESHOLDS[level]     || XP_THRESHOLDS[XP_THRESHOLDS.length - 1];
@@ -2635,17 +2795,319 @@
       showScreen('menu-screen');
     }));
 
+    // ── Phase 6 tests ──────────────────────────────
+    const p6 = fn => { fn._phase = 6; return fn; };
+
+    // calcXP
+    test('calcXP is a function', p6(() =>
+      assert(typeof calcXP === 'function')));
+
+    test('calcXP returns a number', p6(() => {
+      showScreen('game-screen');
+      const word = spawnWord('cat');
+      word.y = 10; // near top — high bonus
+      assert(typeof calcXP(word) === 'number');
+      clearAllWords(); showScreen('menu-screen');
+    }));
+
+    test('calcXP base is wordLength × 10', p6(() => {
+      showScreen('game-screen');
+      const word = spawnWord('hi'); // length 2
+      word.y = getGroundY(); // at ground — bonus ≈ 0
+      const xp = calcXP(word);
+      assert(xp >= 20, `Expected >= 20, got ${xp}`);
+      clearAllWords(); showScreen('menu-screen');
+    }));
+
+    test('calcXP gives more XP when word is near top', p6(() => {
+      showScreen('game-screen');
+      const w1 = spawnWord('jump'); w1.y = 5;                        // near top
+      const w2 = spawnWord('jump'); w2.y = getGroundY() - 30;        // near ground
+      const xpTop    = calcXP(w1);
+      const xpBottom = calcXP(w2);
+      assert(xpTop > xpBottom, `top xp ${xpTop} should exceed bottom xp ${xpBottom}`);
+      clearAllWords(); showScreen('menu-screen');
+    }));
+
+    test('calcXP bonus is non-negative', p6(() => {
+      showScreen('game-screen');
+      const word = spawnWord('glow');
+      word.y = getGroundY() + 50; // past ground
+      const xp = calcXP(word);
+      assert(xp >= word.text.length * 10, 'base xp should always be present');
+      clearAllWords(); showScreen('menu-screen');
+    }));
+
+    test('calcXP longer word always earns more base than shorter', p6(() => {
+      showScreen('game-screen');
+      const short = spawnWord('hi');   short.y = getGroundY();
+      const long  = spawnWord('jump'); long.y  = getGroundY();
+      assert(calcXP(long) > calcXP(short),
+        `"jump" base should exceed "hi" base`);
+      clearAllWords(); showScreen('menu-screen');
+    }));
+
+    // tryMatchWord
+    test('tryMatchWord is a function', p6(() =>
+      assert(typeof tryMatchWord === 'function')));
+
+    test('tryMatchWord returns null when no words present', p6(() => {
+      clearAllWords();
+      assertEqual(tryMatchWord('cat'), null);
+    }));
+
+    test('tryMatchWord returns null for empty string', p6(() => {
+      showScreen('game-screen');
+      spawnWord('cat');
+      assertEqual(tryMatchWord(''), null);
+      clearAllWords(); showScreen('menu-screen');
+    }));
+
+    test('tryMatchWord returns null for whitespace-only string', p6(() => {
+      showScreen('game-screen');
+      spawnWord('cat');
+      assertEqual(tryMatchWord('   '), null);
+      clearAllWords(); showScreen('menu-screen');
+    }));
+
+    test('tryMatchWord matches exact word', p6(() => {
+      showScreen('game-screen');
+      spawnWord('moon');
+      const result = tryMatchWord('moon');
+      assert(result !== null, 'should find "moon"');
+      assertEqual(result.text, 'moon');
+      clearAllWords(); showScreen('menu-screen');
+    }));
+
+    test('tryMatchWord is case-insensitive', p6(() => {
+      showScreen('game-screen');
+      spawnWord('star');
+      assert(tryMatchWord('STAR') !== null, 'uppercase should match');
+      assert(tryMatchWord('Star') !== null, 'mixed case should match');
+      clearAllWords(); showScreen('menu-screen');
+    }));
+
+    test('tryMatchWord trims surrounding spaces', p6(() => {
+      showScreen('game-screen');
+      spawnWord('frog');
+      assert(tryMatchWord('  frog  ') !== null, 'trimmed input should match');
+      clearAllWords(); showScreen('menu-screen');
+    }));
+
+    test('tryMatchWord returns null for partial match', p6(() => {
+      showScreen('game-screen');
+      spawnWord('fish');
+      assertEqual(tryMatchWord('fis'), null, 'partial should not match');
+      clearAllWords(); showScreen('menu-screen');
+    }));
+
+    test('tryMatchWord returns null for wrong word', p6(() => {
+      showScreen('game-screen');
+      spawnWord('bird');
+      assertEqual(tryMatchWord('fish'), null);
+      clearAllWords(); showScreen('menu-screen');
+    }));
+
+    test('tryMatchWord finds word among multiple actives', p6(() => {
+      showScreen('game-screen');
+      spawnWord('dog'); spawnWord('cat'); spawnWord('sun');
+      const result = tryMatchWord('cat');
+      assert(result !== null && result.text === 'cat');
+      clearAllWords(); showScreen('menu-screen');
+    }));
+
+    // zapWord
+    test('zapWord is a function', p6(() =>
+      assert(typeof zapWord === 'function')));
+
+    test('zapWord removes word from activeWords immediately', p6(() => {
+      showScreen('game-screen');
+      const word = spawnWord('zap');
+      assertEqual(activeWords.length, 1);
+      zapWord(word);
+      assertEqual(activeWords.length, 0, 'word should be gone from activeWords');
+      clearAllWords(); showScreen('menu-screen');
+    }));
+
+    test('zapWord adds .zapped class to element', p6(() => {
+      showScreen('game-screen');
+      const word = spawnWord('zap');
+      zapWord(word);
+      assert(word.el.classList.contains('zapped'));
+      clearAllWords(); showScreen('menu-screen');
+    }));
+
+    // spawnXpPopup
+    test('spawnXpPopup is a function', p6(() =>
+      assert(typeof spawnXpPopup === 'function')));
+
+    test('spawnXpPopup creates element with xp text', p6(() => {
+      showScreen('game-screen');
+      const popup = spawnXpPopup(50, 100, 42, false);
+      assert(popup.textContent.includes('42'), `Got: "${popup.textContent}"`);
+      popup.remove();
+      showScreen('menu-screen');
+    }));
+
+    test('spawnXpPopup adds .xp-popup class', p6(() => {
+      showScreen('game-screen');
+      const popup = spawnXpPopup(50, 100, 10, false);
+      assert(popup.classList.contains('xp-popup'));
+      popup.remove();
+      showScreen('menu-screen');
+    }));
+
+    test('spawnXpPopup adds .big class when isBig=true', p6(() => {
+      showScreen('game-screen');
+      const popup = spawnXpPopup(50, 100, 30, true);
+      assert(popup.classList.contains('big'));
+      popup.remove();
+      showScreen('menu-screen');
+    }));
+
+    test('spawnXpPopup does NOT add .big when isBig=false', p6(() => {
+      showScreen('game-screen');
+      const popup = spawnXpPopup(50, 100, 10, false);
+      assert(!popup.classList.contains('big'));
+      popup.remove();
+      showScreen('menu-screen');
+    }));
+
+    // shakeInput
+    test('shakeInput is a function', p6(() =>
+      assert(typeof shakeInput === 'function')));
+
+    test('shakeInput adds .shake class to word input', p6(() => {
+      shakeInput();
+      assert(wordInput.classList.contains('shake'));
+      wordInput.classList.remove('shake');
+    }));
+
+    // onWordMatched
+    test('onWordMatched is a function', p6(() =>
+      assert(typeof onWordMatched === 'function')));
+
+    test('onWordMatched increases totalXP', p6(() => {
+      showScreen('game-screen');
+      gameSession.status = 'playing';
+      totalXP = 0;
+      const word = spawnWord('star');
+      word.y = 20;
+      onWordMatched(word);
+      assert(totalXP > 0, `totalXP should be > 0, got ${totalXP}`);
+      clearAllWords(); gameSession.status = 'idle'; showScreen('menu-screen');
+    }));
+
+    test('onWordMatched removes word from activeWords', p6(() => {
+      showScreen('game-screen');
+      gameSession.status = 'playing';
+      const word = spawnWord('fish');
+      assertEqual(activeWords.length, 1);
+      onWordMatched(word);
+      assertEqual(activeWords.length, 0);
+      clearAllWords(); gameSession.status = 'idle'; showScreen('menu-screen');
+    }));
+
+    test('onWordMatched updates xp display', p6(() => {
+      showScreen('game-screen');
+      gameSession.status = 'playing';
+      totalXP = 0;
+      const word = spawnWord('gold'); word.y = 10;
+      onWordMatched(word);
+      assert(!xpDisplay.textContent.includes('0 ✨') || totalXP === 0,
+        'XP display should reflect earned xp');
+      clearAllWords(); gameSession.status = 'idle'; showScreen('menu-screen');
+    }));
+
+    // Enter key handler — integration
+    test('Enter key clears the input field on match', p6(() => {
+      showScreen('game-screen');
+      gameSession.status = 'playing';
+      spawnWord('cat');
+      wordInput.value = 'cat';
+      wordInput.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+      assertEqual(wordInput.value, '', 'input should be cleared after Enter');
+      clearAllWords(); gameSession.status = 'idle'; showScreen('menu-screen');
+    }));
+
+    test('Enter key clears input even on no match', p6(() => {
+      showScreen('game-screen');
+      gameSession.status = 'playing';
+      spawnWord('dog');
+      wordInput.value = 'xyz';
+      wordInput.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+      assertEqual(wordInput.value, '', 'input should be cleared after miss');
+      clearAllWords(); gameSession.status = 'idle'; showScreen('menu-screen');
+    }));
+
+    test('Enter key removes matched word', p6(() => {
+      showScreen('game-screen');
+      gameSession.status = 'playing';
+      spawnWord('sun');
+      assertEqual(activeWords.length, 1);
+      wordInput.value = 'sun';
+      wordInput.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+      assertEqual(activeWords.length, 0, 'matched word should be removed');
+      clearAllWords(); gameSession.status = 'idle'; showScreen('menu-screen');
+    }));
+
+    test('Enter key does not remove word on no match', p6(() => {
+      showScreen('game-screen');
+      gameSession.status = 'playing';
+      spawnWord('moon');
+      wordInput.value = 'star';
+      wordInput.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+      assertEqual(activeWords.length, 1, 'word should still be there after miss');
+      clearAllWords(); gameSession.status = 'idle'; showScreen('menu-screen');
+    }));
+
+    test('Enter key does nothing when status is not playing', p6(() => {
+      showScreen('game-screen');
+      gameSession.status = 'idle';
+      spawnWord('frog');
+      wordInput.value = 'frog';
+      wordInput.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+      assert(activeWords.length === 1 && wordInput.value === 'frog',
+        'should not process input when not playing');
+      clearAllWords(); gameSession.status = 'idle'; showScreen('menu-screen');
+      wordInput.value = '';
+    }));
+
+    test('non-Enter key does not trigger matching', p6(() => {
+      showScreen('game-screen');
+      gameSession.status = 'playing';
+      spawnWord('rain');
+      wordInput.value = 'rain';
+      wordInput.dispatchEvent(new KeyboardEvent('keydown', { key: 'a', bubbles: true }));
+      assertEqual(activeWords.length, 1, 'word should still be there after non-Enter key');
+      clearAllWords(); gameSession.status = 'idle'; showScreen('menu-screen');
+      wordInput.value = '';
+    }));
+
+    test('totalXP accumulates across multiple correct words', p6(() => {
+      showScreen('game-screen');
+      gameSession.status = 'playing';
+      totalXP = 0;
+      const w1 = spawnWord('cat'); w1.y = 10;
+      const w2 = spawnWord('dog'); w2.y = 10;
+      onWordMatched(w1);
+      const xpAfterFirst = totalXP;
+      onWordMatched(w2);
+      assert(totalXP > xpAfterFirst, 'XP should keep growing');
+      clearAllWords(); gameSession.status = 'idle'; showScreen('menu-screen');
+    }));
+
     // ── Render results ─────────────────────────────
     const resultsEl = document.getElementById('test-results');
     const summaryEl = document.getElementById('test-summary');
 
-    let p1Pass=0,p1Fail=0,p2Pass=0,p2Fail=0,p3Pass=0,p3Fail=0,p4Pass=0,p4Fail=0,p5Pass=0,p5Fail=0;
+    let p1Pass=0,p1Fail=0,p2Pass=0,p2Fail=0,p3Pass=0,p3Fail=0,p4Pass=0,p4Fail=0,p5Pass=0,p5Fail=0,p6Pass=0,p6Fail=0;
     tests.forEach(t => {
       const ph = t.phase || 1;
       if (t.pass) {
-        if(ph===5)p5Pass++;else if(ph===4)p4Pass++;else if(ph===3)p3Pass++;else if(ph===2)p2Pass++;else p1Pass++;
+        if(ph===6)p6Pass++;else if(ph===5)p5Pass++;else if(ph===4)p4Pass++;else if(ph===3)p3Pass++;else if(ph===2)p2Pass++;else p1Pass++;
       } else {
-        if(ph===5)p5Fail++;else if(ph===4)p4Fail++;else if(ph===3)p3Fail++;else if(ph===2)p2Fail++;else p1Fail++;
+        if(ph===6)p6Fail++;else if(ph===5)p5Fail++;else if(ph===4)p4Fail++;else if(ph===3)p3Fail++;else if(ph===2)p2Fail++;else p1Fail++;
       }
       const d = document.createElement('div');
       d.className = `test-result ${t.pass?'pass':'fail'}`;
@@ -2660,13 +3122,14 @@
       .addEventListener('click', () => document.getElementById('test-panel').style.display='none');
 
     const footer = document.createElement('div');
-    footer.style.cssText = 'padding:6px 14px 10px;font-size:10px;font-weight:700;color:#aac';
+    footer.style.cssText = 'padding:6px 14px 10px;font-size:10px;font-weight:700;color:#aac;line-height:1.8';
     footer.innerHTML =
-      `P1:<span style="color:#2bad6a"> ${p1Pass}✓</span><span style="color:#e86060"> ${p1Fail}✗</span> &nbsp;|&nbsp; ` +
-      `P2:<span style="color:#2bad6a"> ${p2Pass}✓</span><span style="color:#e86060"> ${p2Fail}✗</span> &nbsp;|&nbsp; ` +
-      `P3:<span style="color:#2bad6a"> ${p3Pass}✓</span><span style="color:#e86060"> ${p3Fail}✗</span> &nbsp;|&nbsp; ` +
-      `P4:<span style="color:#2bad6a"> ${p4Pass}✓</span><span style="color:#e86060"> ${p4Fail}✗</span> &nbsp;|&nbsp; ` +
-      `P5:<span style="color:#2bad6a"> ${p5Pass}✓</span><span style="color:#e86060"> ${p5Fail}✗</span>`;
+      `P1:<span style="color:#2bad6a"> ${p1Pass}✓</span><span style="color:#e86060"> ${p1Fail}✗</span> &nbsp;` +
+      `P2:<span style="color:#2bad6a"> ${p2Pass}✓</span><span style="color:#e86060"> ${p2Fail}✗</span> &nbsp;` +
+      `P3:<span style="color:#2bad6a"> ${p3Pass}✓</span><span style="color:#e86060"> ${p3Fail}✗</span><br>` +
+      `P4:<span style="color:#2bad6a"> ${p4Pass}✓</span><span style="color:#e86060"> ${p4Fail}✗</span> &nbsp;` +
+      `P5:<span style="color:#2bad6a"> ${p5Pass}✓</span><span style="color:#e86060"> ${p5Fail}✗</span> &nbsp;` +
+      `P6:<span style="color:#2bad6a"> ${p6Pass}✓</span><span style="color:#e86060"> ${p6Fail}✗</span>`;
     document.getElementById('test-panel').appendChild(footer);
   </script>
 </body>
