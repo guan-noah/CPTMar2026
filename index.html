@@ -1,0 +1,1094 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Falling Words</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Rajdhani:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    /* ── CSS Variables ───────────────────────────── */
+    :root {
+      --bg-dark:      #0a0a14;
+      --bg-panel:     #12121f;
+      --bg-card:      #1a1a2e;
+      --accent:       #00e5ff;
+      --accent-glow:  #00e5ff66;
+      --accent2:      #ff4d6d;
+      --accent3:      #ffe566;
+      --text-main:    #e8e8f0;
+      --text-dim:     #6b6b8a;
+      --border:       #2a2a45;
+      --font-pixel:   'Press Start 2P', monospace;
+      --font-body:    'Rajdhani', sans-serif;
+    }
+
+    /* ── Reset ───────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      width: 100%; height: 100%;
+      background: var(--bg-dark);
+      color: var(--text-main);
+      font-family: var(--font-body);
+      overflow: hidden;
+    }
+
+    /* ── Screen base ─────────────────────────────── */
+    .screen {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+    .screen.hidden { display: none; }
+
+    /* ══════════════════════════════════════════════
+       MENU SCREEN
+    ══════════════════════════════════════════════ */
+    #menu-screen {
+      background:
+        radial-gradient(ellipse at 20% 80%, #0d2b4e 0%, transparent 55%),
+        radial-gradient(ellipse at 80% 20%, #1a0d3d 0%, transparent 55%),
+        var(--bg-dark);
+    }
+
+    /* Scanline overlay */
+    #menu-screen::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        rgba(0,0,0,0.08) 2px,
+        rgba(0,0,0,0.08) 4px
+      );
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .menu-inner {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 28px;
+      width: 100%;
+      max-width: 520px;
+      padding: 0 24px;
+    }
+
+    /* Title */
+    .game-title {
+      font-family: var(--font-pixel);
+      font-size: clamp(18px, 4vw, 30px);
+      color: var(--accent);
+      text-align: center;
+      letter-spacing: 2px;
+      line-height: 1.6;
+      text-shadow:
+        0 0 10px var(--accent-glow),
+        0 0 30px var(--accent-glow),
+        0 0 60px #00e5ff22;
+      animation: titlePulse 3s ease-in-out infinite;
+    }
+    @keyframes titlePulse {
+      0%, 100% { text-shadow: 0 0 10px var(--accent-glow), 0 0 30px var(--accent-glow); }
+      50%       { text-shadow: 0 0 20px var(--accent), 0 0 50px var(--accent-glow), 0 0 80px #00e5ff22; }
+    }
+
+    .title-sub {
+      font-family: var(--font-body);
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-dim);
+      letter-spacing: 6px;
+      text-transform: uppercase;
+      margin-top: -16px;
+    }
+
+    /* Buttons */
+    .menu-btn {
+      font-family: var(--font-pixel);
+      font-size: 11px;
+      letter-spacing: 1px;
+      padding: 14px 48px;
+      border: 2px solid;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      text-transform: uppercase;
+      width: 260px;
+      text-align: center;
+    }
+    .menu-btn:focus { outline: 3px solid var(--accent); outline-offset: 3px; }
+
+    #btn-start {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: var(--bg-dark);
+      box-shadow: 0 0 20px var(--accent-glow), 0 4px 0 #0099bb;
+    }
+    #btn-start:hover {
+      background: #fff;
+      border-color: #fff;
+      box-shadow: 0 0 30px var(--accent), 0 4px 0 #0099bb;
+      transform: translateY(-2px);
+    }
+    #btn-start:active { transform: translateY(2px); box-shadow: none; }
+
+    #btn-instructions {
+      background: transparent;
+      border-color: var(--border);
+      color: var(--text-main);
+    }
+    #btn-instructions:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+      box-shadow: 0 0 10px var(--accent-glow);
+      transform: translateY(-2px);
+    }
+
+    /* Level selector */
+    .level-selector {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+    }
+    .level-label {
+      font-family: var(--font-pixel);
+      font-size: 9px;
+      color: var(--text-dim);
+      letter-spacing: 2px;
+    }
+    .level-arrow {
+      background: none;
+      border: 2px solid var(--border);
+      color: var(--text-main);
+      width: 34px; height: 34px;
+      font-size: 16px;
+      cursor: pointer;
+      transition: all 0.15s;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .level-arrow:hover { border-color: var(--accent); color: var(--accent); }
+    .level-arrow:focus { outline: 2px solid var(--accent); }
+    #level-display {
+      font-family: var(--font-pixel);
+      font-size: 20px;
+      color: var(--accent3);
+      min-width: 32px;
+      text-align: center;
+      text-shadow: 0 0 10px #ffe56688;
+    }
+
+    /* Corner icons */
+    .corner-icon {
+      position: fixed;
+      bottom: 24px;
+      background: var(--bg-card);
+      border: 2px solid var(--border);
+      width: 52px; height: 52px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px;
+      cursor: pointer;
+      transition: all 0.15s;
+      z-index: 1;
+    }
+    .corner-icon:hover { border-color: var(--accent); box-shadow: 0 0 12px var(--accent-glow); }
+    .corner-icon:focus { outline: 2px solid var(--accent); }
+    #icon-settings { left: 24px; }
+    #icon-scores   { right: 24px; }
+
+    /* ══════════════════════════════════════════════
+       GAME SCREEN
+    ══════════════════════════════════════════════ */
+    #game-screen {
+      flex-direction: column;
+      justify-content: flex-start;
+      background: #0b1a2e; /* Level 1 default — overridden per level later */
+      transition: background 1.5s ease;
+    }
+
+    /* Game area */
+    #game-area {
+      position: relative;
+      width: 100%;
+      flex: 1;
+      overflow: hidden;
+      /* Words will be absolutely positioned here in later phases */
+    }
+
+    /* Placeholder label (removed in later phases) */
+    #game-area-placeholder {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-pixel);
+      font-size: 10px;
+      color: var(--text-dim);
+      letter-spacing: 2px;
+      pointer-events: none;
+    }
+
+    /* HUD bar */
+    #hud {
+      width: 100%;
+      height: 64px;
+      background: var(--bg-panel);
+      border-top: 2px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 20px;
+      gap: 12px;
+      flex-shrink: 0;
+    }
+
+    /* Lives */
+    #lives-container {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      min-width: 90px;
+    }
+    .heart {
+      font-size: 22px;
+      line-height: 1;
+      filter: drop-shadow(0 0 4px #ff4d6d88);
+    }
+    .heart.lost { filter: grayscale(1) opacity(0.3); }
+
+    /* Level label */
+    #hud-level {
+      font-family: var(--font-pixel);
+      font-size: 9px;
+      color: var(--text-dim);
+      letter-spacing: 2px;
+      text-align: center;
+      flex: 1;
+    }
+
+    /* Input */
+    #word-input {
+      font-family: var(--font-body);
+      font-size: 18px;
+      font-weight: 700;
+      background: var(--bg-card);
+      border: 2px solid var(--border);
+      color: var(--text-main);
+      padding: 8px 16px;
+      width: 220px;
+      letter-spacing: 2px;
+      transition: border-color 0.15s;
+      text-align: center;
+    }
+    #word-input:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 8px var(--accent-glow);
+    }
+    #word-input::placeholder { color: var(--text-dim); font-size: 13px; letter-spacing: 1px; }
+
+    /* XP */
+    #xp-display {
+      font-family: var(--font-pixel);
+      font-size: 10px;
+      color: var(--accent3);
+      min-width: 90px;
+      text-align: right;
+      text-shadow: 0 0 8px #ffe56666;
+    }
+
+    /* Back button */
+    #btn-back {
+      position: fixed;
+      top: 12px;
+      left: 16px;
+      font-family: var(--font-pixel);
+      font-size: 8px;
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text-dim);
+      padding: 8px 12px;
+      cursor: pointer;
+      letter-spacing: 1px;
+      transition: all 0.15s;
+      z-index: 10;
+    }
+    #btn-back:hover { border-color: var(--accent2); color: var(--accent2); }
+    #btn-back:focus { outline: 2px solid var(--accent); }
+
+    /* ══════════════════════════════════════════════
+       MODALS (shared base)
+    ══════════════════════════════════════════════ */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.75);
+      backdrop-filter: blur(4px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      opacity: 1;
+      transition: opacity 0.2s;
+    }
+    .modal-overlay.hidden {
+      display: none;
+    }
+
+    .modal-box {
+      background: var(--bg-card);
+      border: 2px solid var(--border);
+      padding: 36px 40px;
+      max-width: 440px;
+      width: 90%;
+      position: relative;
+      box-shadow: 0 0 40px rgba(0,229,255,0.08);
+    }
+
+    .modal-title {
+      font-family: var(--font-pixel);
+      font-size: 12px;
+      color: var(--accent);
+      letter-spacing: 2px;
+      margin-bottom: 24px;
+      text-align: center;
+    }
+
+    .modal-close {
+      position: absolute;
+      top: 14px; right: 16px;
+      background: none;
+      border: none;
+      color: var(--text-dim);
+      font-size: 20px;
+      cursor: pointer;
+      line-height: 1;
+      transition: color 0.15s;
+    }
+    .modal-close:hover { color: var(--accent2); }
+    .modal-close:focus { outline: 2px solid var(--accent); }
+
+    /* Instructions modal */
+    .instructions-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .instructions-list li {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text-main);
+      line-height: 1.5;
+      padding-left: 20px;
+      position: relative;
+    }
+    .instructions-list li::before {
+      content: '▸';
+      position: absolute;
+      left: 0;
+      color: var(--accent);
+    }
+    .instructions-list .key {
+      font-family: var(--font-pixel);
+      font-size: 9px;
+      background: var(--bg-panel);
+      border: 1px solid var(--border);
+      padding: 2px 6px;
+      color: var(--accent3);
+    }
+
+    /* Scores modal */
+    #scores-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .score-entry {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 16px;
+      font-weight: 600;
+      padding: 10px 14px;
+      background: var(--bg-panel);
+      border-left: 3px solid var(--border);
+    }
+    .score-entry.gold   { border-left-color: #ffd700; }
+    .score-entry.silver { border-left-color: #c0c0c0; }
+    .score-entry.bronze { border-left-color: #cd7f32; }
+    .score-rank  { color: var(--text-dim); font-size: 13px; font-family: var(--font-pixel); }
+    .score-xp    { color: var(--accent3); font-family: var(--font-pixel); font-size: 11px; }
+    .score-empty {
+      text-align: center;
+      color: var(--text-dim);
+      font-size: 13px;
+      font-family: var(--font-pixel);
+      padding: 20px 0;
+      letter-spacing: 1px;
+    }
+    #btn-clear-scores {
+      margin-top: 20px;
+      width: 100%;
+      font-family: var(--font-pixel);
+      font-size: 8px;
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text-dim);
+      padding: 10px;
+      cursor: pointer;
+      letter-spacing: 1px;
+      transition: all 0.15s;
+    }
+    #btn-clear-scores:hover { border-color: var(--accent2); color: var(--accent2); }
+
+    /* Settings modal */
+    .setting-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 14px 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 16px;
+      font-weight: 600;
+    }
+    .setting-row:last-child { border-bottom: none; }
+    .setting-label { color: var(--text-main); }
+    .toggle {
+      width: 48px; height: 26px;
+      background: var(--border);
+      border-radius: 13px;
+      position: relative;
+      cursor: pointer;
+      border: none;
+      transition: background 0.2s;
+    }
+    .toggle.on { background: var(--accent); }
+    .toggle::after {
+      content: '';
+      position: absolute;
+      top: 3px; left: 3px;
+      width: 20px; height: 20px;
+      background: #fff;
+      border-radius: 50%;
+      transition: transform 0.2s;
+    }
+    .toggle.on::after { transform: translateX(22px); }
+    .toggle:focus { outline: 2px solid var(--accent); }
+
+    /* ── Test Runner UI ───────────────────────────── */
+    #test-panel {
+      position: fixed;
+      bottom: 0; right: 0;
+      width: 380px;
+      max-height: 300px;
+      background: #0a0a10ee;
+      border-top: 2px solid var(--border);
+      border-left: 2px solid var(--border);
+      overflow-y: auto;
+      z-index: 9999;
+      font-family: monospace;
+      font-size: 11px;
+    }
+    #test-panel-header {
+      background: var(--bg-panel);
+      padding: 8px 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      border-bottom: 1px solid var(--border);
+    }
+    #test-panel-title { color: var(--accent); font-weight: bold; letter-spacing: 1px; }
+    #test-summary { font-size: 10px; }
+    #test-panel-close {
+      background: none; border: none; color: var(--text-dim);
+      cursor: pointer; font-size: 14px;
+    }
+    #test-panel-close:hover { color: var(--accent2); }
+    #test-results { padding: 8px 14px; display: flex; flex-direction: column; gap: 4px; }
+    .test-result { padding: 3px 0; border-bottom: 1px solid #1a1a2e; }
+    .test-result.pass { color: #4ade80; }
+    .test-result.fail { color: var(--accent2); }
+    .test-result .icon { margin-right: 6px; }
+  </style>
+</head>
+<body>
+
+  <!-- ══════════════════════════════════════════════
+       SCREEN 1 — MENU
+  ══════════════════════════════════════════════ -->
+  <div id="menu-screen" class="screen" role="main" aria-label="Main Menu">
+
+    <div class="menu-inner">
+      <h1 class="game-title" id="game-title">FALLING<br>WORDS</h1>
+      <p class="title-sub">Type to survive</p>
+
+      <div style="display:flex; flex-direction:column; align-items:center; gap:14px; width:100%;">
+        <button class="menu-btn" id="btn-start"        aria-label="Start game">START</button>
+        <button class="menu-btn" id="btn-instructions" aria-label="View instructions">INSTRUCTIONS</button>
+      </div>
+
+      <!-- Level Selector -->
+      <div class="level-selector" aria-label="Level selector">
+        <span class="level-label">LEVEL</span>
+        <button class="level-arrow" id="btn-level-prev" aria-label="Previous level">◀</button>
+        <span id="level-display" aria-live="polite">1</span>
+        <button class="level-arrow" id="btn-level-next" aria-label="Next level">▶</button>
+      </div>
+    </div>
+
+    <!-- Corner icons -->
+    <button class="corner-icon" id="icon-settings" aria-label="Open settings">⚙️</button>
+    <button class="corner-icon" id="icon-scores"   aria-label="View best scores">🏆</button>
+  </div>
+
+  <!-- ══════════════════════════════════════════════
+       SCREEN 2 — GAME
+  ══════════════════════════════════════════════ -->
+  <div id="game-screen" class="screen hidden" aria-label="Game Screen">
+    <button id="btn-back" aria-label="Back to menu">← MENU</button>
+
+    <!-- Game area where words will fall -->
+    <div id="game-area" aria-label="Game area" role="region">
+      <div id="game-area-placeholder">[ WORDS FALL HERE — PHASE 5 ]</div>
+    </div>
+
+    <!-- HUD -->
+    <div id="hud" role="status" aria-label="Game HUD">
+      <div id="lives-container" aria-label="Lives remaining">
+        <span class="heart" id="heart-1" aria-label="Heart 1">❤️</span>
+        <span class="heart" id="heart-2" aria-label="Heart 2">❤️</span>
+        <span class="heart" id="heart-3" aria-label="Heart 3">❤️</span>
+      </div>
+
+      <span id="hud-level" aria-live="polite">LEVEL 1</span>
+
+      <input
+        type="text"
+        id="word-input"
+        autocomplete="off"
+        autocorrect="off"
+        autocapitalize="off"
+        spellcheck="false"
+        placeholder="type here..."
+        aria-label="Type the falling word"
+      />
+
+      <span id="xp-display" aria-live="polite">0 XP</span>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════
+       MODAL — INSTRUCTIONS
+  ══════════════════════════════════════════════ -->
+  <div id="modal-instructions" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="modal-inst-title">
+    <div class="modal-box">
+      <button class="modal-close" data-close="modal-instructions" aria-label="Close">✕</button>
+      <h2 class="modal-title" id="modal-inst-title">HOW TO PLAY</h2>
+      <ul class="instructions-list">
+        <li>Words fall from the top of the screen.</li>
+        <li>Type a word and press <span class="key">ENTER</span> to destroy it.</li>
+        <li>Type fast — words typed high up earn a <strong style="color:var(--accent3)">distance bonus!</strong></li>
+        <li>If a word reaches the bottom you lose a <span style="color:var(--accent2)">❤️ life</span>.</li>
+        <li>Lose all 3 lives and the game ends.</li>
+        <li>Earn enough XP to <span style="color:var(--accent)">level up</span> — new backgrounds unlock!</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════
+       MODAL — BEST SCORES
+  ══════════════════════════════════════════════ -->
+  <div id="modal-scores" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="modal-scores-title">
+    <div class="modal-box">
+      <button class="modal-close" data-close="modal-scores" aria-label="Close">✕</button>
+      <h2 class="modal-title" id="modal-scores-title">BEST SCORES</h2>
+      <ul id="scores-list" aria-label="Leaderboard"></ul>
+      <button id="btn-clear-scores">CLEAR SCORES</button>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════
+       MODAL — SETTINGS
+  ══════════════════════════════════════════════ -->
+  <div id="modal-settings" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="modal-settings-title">
+    <div class="modal-box">
+      <button class="modal-close" data-close="modal-settings" aria-label="Close">✕</button>
+      <h2 class="modal-title" id="modal-settings-title">SETTINGS</h2>
+      <div class="setting-row">
+        <span class="setting-label">Sound Effects</span>
+        <button class="toggle on" id="toggle-sfx" aria-pressed="true" aria-label="Toggle sound effects"></button>
+      </div>
+      <div class="setting-row">
+        <span class="setting-label">Music</span>
+        <button class="toggle on" id="toggle-music" aria-pressed="true" aria-label="Toggle music"></button>
+      </div>
+      <div class="setting-row">
+        <span class="setting-label">Show XP Popups</span>
+        <button class="toggle on" id="toggle-xp-popups" aria-pressed="true" aria-label="Toggle XP popups"></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════
+       TEST PANEL UI
+  ══════════════════════════════════════════════ -->
+  <div id="test-panel" role="region" aria-label="Test results">
+    <div id="test-panel-header">
+      <span id="test-panel-title">⚡ PHASE 1 TESTS</span>
+      <span id="test-summary"></span>
+      <button id="test-panel-close" aria-label="Close test panel">✕</button>
+    </div>
+    <div id="test-results"></div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════
+       JAVASCRIPT
+  ══════════════════════════════════════════════ -->
+  <script>
+    // ─────────────────────────────────────────────
+    // STATE
+    // ─────────────────────────────────────────────
+    const state = {
+      currentLevel: 1,
+      minLevel: 1,
+      maxLevel: 6,
+      settings: { sfx: true, music: true, xpPopups: true }
+    };
+
+    // ─────────────────────────────────────────────
+    // ELEMENT REFS
+    // ─────────────────────────────────────────────
+    const menuScreen       = document.getElementById('menu-screen');
+    const gameScreen       = document.getElementById('game-screen');
+    const levelDisplay     = document.getElementById('level-display');
+    const hudLevel         = document.getElementById('hud-level');
+    const wordInput        = document.getElementById('word-input');
+    const btnStart         = document.getElementById('btn-start');
+    const btnBack          = document.getElementById('btn-back');
+    const btnLevelPrev     = document.getElementById('btn-level-prev');
+    const btnLevelNext     = document.getElementById('btn-level-next');
+    const btnInstructions  = document.getElementById('btn-instructions');
+    const iconSettings     = document.getElementById('icon-settings');
+    const iconScores       = document.getElementById('icon-scores');
+    const btnClearScores   = document.getElementById('btn-clear-scores');
+    const scoresList       = document.getElementById('scores-list');
+
+    // ─────────────────────────────────────────────
+    // SCREEN SWITCHING
+    // ─────────────────────────────────────────────
+    function showScreen(screenId) {
+      document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
+      document.getElementById(screenId).classList.remove('hidden');
+      if (screenId === 'game-screen') {
+        hudLevel.textContent = `LEVEL ${state.currentLevel}`;
+        setTimeout(() => wordInput.focus(), 50);
+      }
+    }
+
+    btnStart.addEventListener('click', () => showScreen('game-screen'));
+    btnBack.addEventListener('click',  () => {
+      showScreen('menu-screen');
+      resetGameUI();
+    });
+
+    function resetGameUI() {
+      wordInput.value = '';
+      document.getElementById('xp-display').textContent = '0 XP';
+      document.querySelectorAll('.heart').forEach(h => h.classList.remove('lost'));
+    }
+
+    // Refocus input when clicking game area
+    document.getElementById('game-area').addEventListener('click', () => wordInput.focus());
+
+    // ─────────────────────────────────────────────
+    // LEVEL SELECTOR
+    // ─────────────────────────────────────────────
+    function updateLevelDisplay() {
+      levelDisplay.textContent = state.currentLevel;
+      btnLevelPrev.disabled = state.currentLevel <= state.minLevel;
+      btnLevelNext.disabled = state.currentLevel >= state.maxLevel;
+      btnLevelPrev.style.opacity = btnLevelPrev.disabled ? '0.3' : '1';
+      btnLevelNext.style.opacity = btnLevelNext.disabled ? '0.3' : '1';
+    }
+
+    btnLevelPrev.addEventListener('click', () => {
+      if (state.currentLevel > state.minLevel) {
+        state.currentLevel--;
+        updateLevelDisplay();
+      }
+    });
+
+    btnLevelNext.addEventListener('click', () => {
+      if (state.currentLevel < state.maxLevel) {
+        state.currentLevel++;
+        updateLevelDisplay();
+      }
+    });
+
+    updateLevelDisplay();
+
+    // ─────────────────────────────────────────────
+    // MODALS
+    // ─────────────────────────────────────────────
+    function openModal(id)  { document.getElementById(id).classList.remove('hidden'); }
+    function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+
+    btnInstructions.addEventListener('click', () => openModal('modal-instructions'));
+    iconSettings.addEventListener('click',    () => openModal('modal-settings'));
+    iconScores.addEventListener('click',      () => { renderScores(); openModal('modal-scores'); });
+
+    // Universal close buttons via data-close attribute
+    document.querySelectorAll('[data-close]').forEach(btn => {
+      btn.addEventListener('click', () => closeModal(btn.dataset.close));
+    });
+
+    // Close modal on overlay click
+    document.querySelectorAll('.modal-overlay').forEach(overlay => {
+      overlay.addEventListener('click', e => {
+        if (e.target === overlay) closeModal(overlay.id);
+      });
+    });
+
+    // Close modal on Escape key
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape') {
+        document.querySelectorAll('.modal-overlay:not(.hidden)').forEach(m => closeModal(m.id));
+      }
+    });
+
+    // ─────────────────────────────────────────────
+    // SETTINGS TOGGLES
+    // ─────────────────────────────────────────────
+    function setupToggle(id, key) {
+      const btn = document.getElementById(id);
+      btn.addEventListener('click', () => {
+        state.settings[key] = !state.settings[key];
+        btn.classList.toggle('on', state.settings[key]);
+        btn.setAttribute('aria-pressed', state.settings[key]);
+      });
+    }
+    setupToggle('toggle-sfx',       'sfx');
+    setupToggle('toggle-music',     'music');
+    setupToggle('toggle-xp-popups', 'xpPopups');
+
+    // ─────────────────────────────────────────────
+    // SCORES (localStorage — placeholder for Phase 12)
+    // ─────────────────────────────────────────────
+    function getScores() {
+      try { return JSON.parse(localStorage.getItem('fallingwords_scores') || '[]'); }
+      catch { return []; }
+    }
+    function saveScores(scores) {
+      localStorage.setItem('fallingwords_scores', JSON.stringify(scores));
+    }
+    function renderScores() {
+      const scores = getScores();
+      const medals = ['gold', 'silver', 'bronze'];
+      scoresList.innerHTML = scores.length
+        ? scores.slice(0, 5).map((s, i) => `
+            <li class="score-entry ${medals[i] || ''}">
+              <span class="score-rank">#${i + 1}</span>
+              <span>${s.date || '—'}</span>
+              <span class="score-xp">${s.xp} XP</span>
+            </li>`).join('')
+        : `<li class="score-empty">NO SCORES YET</li>`;
+    }
+    btnClearScores.addEventListener('click', () => {
+      saveScores([]);
+      renderScores();
+    });
+
+    // ─────────────────────────────────────────────
+    // ══════════════════════════════════════════════
+    //  PHASE 1 TEST SUITE
+    // ══════════════════════════════════════════════
+    // ─────────────────────────────────────────────
+    const tests = [];
+    let passed = 0, failed = 0;
+
+    function test(name, fn) {
+      try {
+        fn();
+        tests.push({ name, pass: true });
+        passed++;
+      } catch(e) {
+        tests.push({ name, pass: false, error: e.message });
+        failed++;
+      }
+    }
+
+    function assert(condition, msg) {
+      if (!condition) throw new Error(msg || 'Assertion failed');
+    }
+
+    function assertEqual(a, b, msg) {
+      if (a !== b) throw new Error(msg || `Expected "${b}", got "${a}"`);
+    }
+
+    // ── DOM Structure Tests ─────────────────────
+    test('menu-screen exists in DOM', () => {
+      assert(document.getElementById('menu-screen'), 'menu-screen not found');
+    });
+
+    test('game-screen exists in DOM', () => {
+      assert(document.getElementById('game-screen'), 'game-screen not found');
+    });
+
+    test('game-screen is hidden by default', () => {
+      assert(
+        document.getElementById('game-screen').classList.contains('hidden'),
+        'game-screen should start hidden'
+      );
+    });
+
+    test('menu-screen is visible by default', () => {
+      assert(
+        !document.getElementById('menu-screen').classList.contains('hidden'),
+        'menu-screen should start visible'
+      );
+    });
+
+    test('game title element exists', () => {
+      assert(document.getElementById('game-title'), 'game-title not found');
+    });
+
+    test('game title text contains FALLING WORDS', () => {
+      const t = document.getElementById('game-title').textContent.replace(/\s+/g,' ').toUpperCase();
+      assert(t.includes('FALLING') && t.includes('WORDS'), `Title text was: "${t}"`);
+    });
+
+    // ── Button Tests ────────────────────────────
+    test('Start button exists', () => {
+      assert(document.getElementById('btn-start'), 'btn-start not found');
+    });
+
+    test('Instructions button exists', () => {
+      assert(document.getElementById('btn-instructions'), 'btn-instructions not found');
+    });
+
+    test('Back button exists in game screen', () => {
+      assert(document.getElementById('btn-back'), 'btn-back not found');
+    });
+
+    test('Settings icon exists', () => {
+      assert(document.getElementById('icon-settings'), 'icon-settings not found');
+    });
+
+    test('Scores icon exists', () => {
+      assert(document.getElementById('icon-scores'), 'icon-scores not found');
+    });
+
+    // ── Level Selector Tests ────────────────────
+    test('level-display starts at 1', () => {
+      assertEqual(document.getElementById('level-display').textContent, '1', 'level should be 1');
+    });
+
+    test('level increases when next arrow clicked', () => {
+      const prev = state.currentLevel;
+      btnLevelNext.click();
+      assert(state.currentLevel === prev + 1, `Expected ${prev + 1}, got ${state.currentLevel}`);
+      state.currentLevel = prev; // reset
+      updateLevelDisplay();
+    });
+
+    test('level decreases when prev arrow clicked', () => {
+      state.currentLevel = 3;
+      updateLevelDisplay();
+      btnLevelPrev.click();
+      assertEqual(state.currentLevel, 2, 'Expected level 2');
+      state.currentLevel = 1;
+      updateLevelDisplay();
+    });
+
+    test('level cannot go below minimum (1)', () => {
+      state.currentLevel = 1;
+      updateLevelDisplay();
+      btnLevelPrev.click();
+      assertEqual(state.currentLevel, 1, 'Level should not go below 1');
+    });
+
+    test('level cannot go above maximum (6)', () => {
+      state.currentLevel = 6;
+      updateLevelDisplay();
+      btnLevelNext.click();
+      assertEqual(state.currentLevel, 6, 'Level should not exceed 6');
+      state.currentLevel = 1;
+      updateLevelDisplay();
+    });
+
+    test('prev arrow disabled at min level', () => {
+      state.currentLevel = 1;
+      updateLevelDisplay();
+      assert(btnLevelPrev.disabled, 'Prev arrow should be disabled at level 1');
+    });
+
+    test('next arrow disabled at max level', () => {
+      state.currentLevel = 6;
+      updateLevelDisplay();
+      assert(btnLevelNext.disabled, 'Next arrow should be disabled at level 6');
+      state.currentLevel = 1;
+      updateLevelDisplay();
+    });
+
+    // ── Screen Switching Tests ──────────────────
+    test('Start button shows game-screen', () => {
+      btnStart.click();
+      assert(!gameScreen.classList.contains('hidden'), 'game-screen should be visible');
+      assert(menuScreen.classList.contains('hidden'), 'menu-screen should be hidden');
+      // restore
+      showScreen('menu-screen');
+    });
+
+    test('Back button shows menu-screen', () => {
+      showScreen('game-screen');
+      btnBack.click();
+      assert(!menuScreen.classList.contains('hidden'), 'menu-screen should be visible');
+      assert(gameScreen.classList.contains('hidden'), 'game-screen should be hidden');
+    });
+
+    test('HUD level label updates on start', () => {
+      state.currentLevel = 3;
+      updateLevelDisplay();
+      showScreen('game-screen');
+      assertEqual(hudLevel.textContent, 'LEVEL 3', 'HUD should show LEVEL 3');
+      state.currentLevel = 1;
+      updateLevelDisplay();
+      showScreen('menu-screen');
+    });
+
+    // ── Modal Tests ─────────────────────────────
+    test('all modals are hidden by default', () => {
+      ['modal-instructions', 'modal-scores', 'modal-settings'].forEach(id => {
+        assert(document.getElementById(id).classList.contains('hidden'), `${id} should start hidden`);
+      });
+    });
+
+    test('Instructions button opens instructions modal', () => {
+      btnInstructions.click();
+      assert(!document.getElementById('modal-instructions').classList.contains('hidden'), 'modal-instructions should open');
+      closeModal('modal-instructions');
+    });
+
+    test('Settings icon opens settings modal', () => {
+      iconSettings.click();
+      assert(!document.getElementById('modal-settings').classList.contains('hidden'), 'modal-settings should open');
+      closeModal('modal-settings');
+    });
+
+    test('Scores icon opens scores modal', () => {
+      iconScores.click();
+      assert(!document.getElementById('modal-scores').classList.contains('hidden'), 'modal-scores should open');
+      closeModal('modal-scores');
+    });
+
+    test('close button closes modal', () => {
+      openModal('modal-instructions');
+      document.querySelector('[data-close="modal-instructions"]').click();
+      assert(document.getElementById('modal-instructions').classList.contains('hidden'), 'modal should close');
+    });
+
+    test('Escape key closes open modal', () => {
+      openModal('modal-settings');
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+      assert(document.getElementById('modal-settings').classList.contains('hidden'), 'modal should close on Escape');
+    });
+
+    // ── HUD Element Tests ───────────────────────
+    test('HUD has 3 hearts', () => {
+      const hearts = document.querySelectorAll('.heart');
+      assertEqual(hearts.length, 3, `Expected 3 hearts, found ${hearts.length}`);
+    });
+
+    test('word input exists in HUD', () => {
+      assert(document.getElementById('word-input'), 'word-input not found');
+    });
+
+    test('XP display exists in HUD', () => {
+      assert(document.getElementById('xp-display'), 'xp-display not found');
+    });
+
+    test('XP display starts at 0', () => {
+      assert(document.getElementById('xp-display').textContent.includes('0'), 'XP should start at 0');
+    });
+
+    test('game-area exists', () => {
+      assert(document.getElementById('game-area'), 'game-area not found');
+    });
+
+    // ── Settings Toggle Tests ───────────────────
+    test('settings toggle changes state', () => {
+      const before = state.settings.sfx;
+      document.getElementById('toggle-sfx').click();
+      assert(state.settings.sfx !== before, 'sfx setting should toggle');
+      document.getElementById('toggle-sfx').click(); // restore
+    });
+
+    test('toggle aria-pressed updates', () => {
+      const toggle = document.getElementById('toggle-music');
+      const before = toggle.getAttribute('aria-pressed');
+      toggle.click();
+      assert(toggle.getAttribute('aria-pressed') !== before, 'aria-pressed should update');
+      toggle.click(); // restore
+    });
+
+    // ── Scores Tests ────────────────────────────
+    test('clear scores empties score list', () => {
+      saveScores([{ xp: 500, date: '2024-01-01' }]);
+      btnClearScores.click();
+      const scores = getScores();
+      assertEqual(scores.length, 0, 'Scores should be empty after clearing');
+    });
+
+    test('scores render "no scores yet" when empty', () => {
+      saveScores([]);
+      renderScores();
+      assert(scoresList.querySelector('.score-empty'), 'Should show empty message');
+    });
+
+    test('scores render entries when data exists', () => {
+      saveScores([{ xp: 300, date: '01/01' }, { xp: 200, date: '01/02' }]);
+      renderScores();
+      assert(scoresList.querySelectorAll('.score-entry').length === 2, 'Should render 2 entries');
+      saveScores([]); // cleanup
+    });
+
+    test('reset game UI clears word input', () => {
+      wordInput.value = 'testing';
+      resetGameUI();
+      assertEqual(wordInput.value, '', 'Input should be cleared after reset');
+    });
+
+    // ─────────────────────────────────────────────
+    // RENDER TEST RESULTS
+    // ─────────────────────────────────────────────
+    const resultsEl = document.getElementById('test-results');
+    const summaryEl = document.getElementById('test-summary');
+
+    tests.forEach(t => {
+      const div = document.createElement('div');
+      div.className = `test-result ${t.pass ? 'pass' : 'fail'}`;
+      div.innerHTML = `<span class="icon">${t.pass ? '✓' : '✗'}</span>${t.name}${t.pass ? '' : `<br><span style="color:#ff6b6b;padding-left:16px;font-size:10px">${t.error}</span>`}`;
+      resultsEl.appendChild(div);
+    });
+
+    summaryEl.innerHTML = `<span style="color:#4ade80">${passed} passed</span> / <span style="color:#ff4d6d">${failed} failed</span>`;
+    summaryEl.style.color = failed === 0 ? '#4ade80' : '#ff4d6d';
+
+    document.getElementById('test-panel-close').addEventListener('click', () => {
+      document.getElementById('test-panel').style.display = 'none';
+    });
+  </script>
+</body>
+</html>
