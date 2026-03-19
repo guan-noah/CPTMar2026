@@ -315,6 +315,121 @@
     #btn-back:hover { background:var(--coral); color:#fff; border-color:var(--coral); box-shadow:0 3px 0 var(--coral-dark); transform:translateY(-1px); }
     #btn-back:focus-visible { outline:3px solid var(--sun); }
 
+    /* ── PHASE 3: Screen transitions ─────────────────
+       Screens slide+fade in from below and out upward.
+       transitionToScreen() in JS drives these classes.     */
+    @keyframes screenEnter {
+      from { opacity: 0; transform: translateY(28px) scale(.97); }
+      to   { opacity: 1; transform: translateY(0)    scale(1);   }
+    }
+    @keyframes screenExit {
+      from { opacity: 1; transform: translateY(0)     scale(1);   }
+      to   { opacity: 0; transform: translateY(-20px) scale(.97); }
+    }
+    .screen.entering { animation: screenEnter .38s cubic-bezier(.34,1.18,.64,1) forwards; }
+    .screen.exiting  { animation: screenExit  .24s ease forwards; pointer-events: none; }
+
+    /* ── PHASE 3: Countdown overlay ──────────────────
+       Sits over the game area, shows 3 → 2 → 1 → GO!    */
+    #countdown-overlay {
+      position: absolute; inset: 0; z-index: 20;
+      display: flex; align-items: center; justify-content: center;
+      background: rgba(200,235,255,.55);
+      backdrop-filter: blur(3px);
+      flex-direction: column; gap: 8px;
+    }
+    #countdown-overlay.hidden { display: none; }
+
+    #countdown-number {
+      font-family: var(--font-title);
+      font-size: clamp(80px, 20vw, 140px);
+      color: var(--coral);
+      filter: drop-shadow(4px 6px 0 #ffb3b3);
+      line-height: 1;
+      animation: countPop .5s cubic-bezier(.34,1.56,.64,1);
+    }
+    @keyframes countPop {
+      from { transform: scale(.4) rotate(-12deg); opacity: 0; }
+      to   { transform: scale(1)  rotate(0deg);   opacity: 1; }
+    }
+    #countdown-label {
+      font-family: var(--font-title); font-size: 20px;
+      color: var(--text-soft); letter-spacing: 3px;
+    }
+    #countdown-overlay.go #countdown-number {
+      color: var(--mint-dark);
+      filter: drop-shadow(4px 6px 0 #a8f0cc);
+      animation: goPop .4s cubic-bezier(.34,1.56,.64,1);
+    }
+    @keyframes goPop {
+      from { transform: scale(.6); opacity: 0; }
+      60%  { transform: scale(1.18); }
+      to   { transform: scale(1);   opacity: 1; }
+    }
+
+    /* ── PHASE 3: HUD level banner ────────────────────
+       Small level name + emoji shown next to the number    */
+    #hud-level-name {
+      font-size: 11px; font-weight: 800;
+      color: var(--text-soft); letter-spacing: 1px;
+      display: block; margin-top: 1px;
+    }
+    #hud-level { flex-direction: column; gap: 1px; }
+
+    /* ── PHASE 3: Pause button replaces plain back btn ─ */
+    #btn-back {
+      position: fixed; top: 14px; left: 16px;
+      font-family: var(--font-title); font-size: 14px;
+      background: var(--white-card); border: 2px solid #c8e8ff;
+      border-radius: 50px; color: var(--text-soft);
+      padding: 6px 16px; cursor: pointer;
+      transition: all .12s; z-index: 10;
+      box-shadow: 0 3px 0 #c0d8ee;
+      display: flex; align-items: center; gap: 6px;
+    }
+    #btn-back:hover {
+      background: var(--coral); color: #fff;
+      border-color: var(--coral); box-shadow: 0 3px 0 var(--coral-dark);
+      transform: translateY(-1px);
+    }
+    #btn-back:focus-visible { outline: 3px solid var(--sun); }
+
+    /* Pause modal specifics */
+    .pause-emoji {
+      font-size: 52px; text-align: center; display: block;
+      margin-bottom: 4px;
+      animation: pauseWobble 1.2s ease-in-out infinite;
+    }
+    @keyframes pauseWobble {
+      0%,100% { transform: rotate(-6deg) scale(1);    }
+      50%     { transform: rotate(6deg)  scale(1.12); }
+    }
+    .pause-message {
+      font-size: 15px; font-weight: 700; color: var(--text-soft);
+      text-align: center; margin-bottom: 22px; line-height: 1.5;
+    }
+    .pause-btns {
+      display: flex; flex-direction: column; gap: 12px;
+    }
+    .pause-btn {
+      font-family: var(--font-title); font-size: 18px;
+      border: none; border-radius: 50px; padding: 13px;
+      cursor: pointer; width: 100%;
+      transition: transform .1s, box-shadow .1s, filter .1s;
+    }
+    .pause-btn:active { transform: translateY(2px) !important; box-shadow: none !important; }
+    .pause-btn:focus-visible { outline: 3px solid var(--sun); }
+    #btn-resume {
+      background: linear-gradient(160deg,#82e6b8,var(--mint-dark));
+      color: #fff; box-shadow: 0 5px 0 #2e9967;
+    }
+    #btn-resume:hover { transform: translateY(-2px); filter: brightness(1.07); box-shadow: 0 8px 0 #2e9967; }
+    #btn-quit-confirm {
+      background: linear-gradient(160deg,#ffaaaa,var(--coral-dark));
+      color: #fff; box-shadow: 0 5px 0 #c94040;
+    }
+    #btn-quit-confirm:hover { transform: translateY(-2px); filter: brightness(1.07); box-shadow: 0 8px 0 #c94040; }
+
     /* ── MODALS ───────────────────────────────────── */
     .modal-overlay {
       position:fixed; inset:0;
@@ -494,12 +609,22 @@
 
   <!-- ── GAME SCREEN ──────────────────────────────── -->
   <div id="game-screen" class="screen hidden" aria-label="Game Screen">
-    <button id="btn-back" aria-label="Back to menu">← Back</button>
+
+    <!-- Phase 3: pause / back button -->
+    <button id="btn-back" aria-label="Pause / back to menu">
+      <span>⏸</span> Pause
+    </button>
 
     <div id="game-area" aria-label="Game area" role="region">
       <div id="game-area-placeholder">
         <span class="ph-emoji">🌤️</span>
         <span>Words will fall here in Phase 5!</span>
+      </div>
+
+      <!-- Phase 3: countdown overlay (shown before round starts) -->
+      <div id="countdown-overlay" class="hidden" aria-live="assertive" aria-label="Countdown">
+        <span id="countdown-number">3</span>
+        <span id="countdown-label">get ready!</span>
       </div>
     </div>
 
@@ -509,7 +634,13 @@
         <span class="heart" id="heart-2" aria-label="Life 2">❤️</span>
         <span class="heart" id="heart-3" aria-label="Life 3">❤️</span>
       </div>
-      <span id="hud-level" aria-live="polite">Level 1 ⭐</span>
+
+      <!-- Phase 3: HUD level now shows level number + level name -->
+      <span id="hud-level" aria-live="polite">
+        Level 1 ⭐
+        <span id="hud-level-name">Breezy Meadow</span>
+      </span>
+
       <input type="text" id="word-input"
         autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
         placeholder="type here! ✏️" aria-label="Type the falling word"/>
@@ -563,10 +694,25 @@
     </div>
   </div>
 
+  <!-- ── MODAL: PAUSE / QUIT (Phase 3) ───────────── -->
+  <div id="modal-pause" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="pause-title">
+    <div class="modal-box">
+      <span class="pause-emoji" aria-hidden="true">😴</span>
+      <h2 class="modal-title" id="pause-title">Game Paused!</h2>
+      <p class="pause-message">
+        Want to quit? Your current progress will be lost 😢
+      </p>
+      <div class="pause-btns">
+        <button class="pause-btn" id="btn-resume"      aria-label="Resume game">💪 Keep Playing!</button>
+        <button class="pause-btn" id="btn-quit-confirm" aria-label="Quit to menu">🏠 Quit to Menu</button>
+      </div>
+    </div>
+  </div>
+
   <!-- ── TEST PANEL ───────────────────────────────── -->
   <div id="test-panel" role="region" aria-label="Test results">
     <div id="test-panel-header">
-      <span id="test-panel-title">🧪 Phase 1 Tests</span>
+      <span id="test-panel-title">🧪 Phase 1–3 Tests</span>
       <span id="test-summary"></span>
       <button id="test-panel-close" aria-label="Close test panel">✕</button>
     </div>
@@ -618,24 +764,172 @@
     const levelStars      = document.getElementById('level-stars');
     const menuBgTint      = document.getElementById('menu-bg-tint');
 
-    // ── Screen switching ───────────────────────────
+    // ════════════════════════════════════════════════
+    //  PHASE 3: GAME SESSION STATE
+    //  Tracks what's happening inside the game screen.
+    // ════════════════════════════════════════════════
+    const gameSession = {
+      level:  1,       // the level passed in when Start was pressed
+      status: 'idle',  // idle | countdown | playing | paused | over
+    };
+
+    // Phase 3 refs
+    const countdownOverlay = document.getElementById('countdown-overlay');
+    const countdownNumber  = document.getElementById('countdown-number');
+    const countdownLabel   = document.getElementById('countdown-label');
+    const hudLevelName     = document.getElementById('hud-level-name');
+    const modalPause       = document.getElementById('modal-pause');
+    const btnResume        = document.getElementById('btn-resume');
+    const btnQuitConfirm   = document.getElementById('btn-quit-confirm');
+
+    // ── showScreen — instant, synchronous (used by tests) ─
     function showScreen(id) {
       document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
       document.getElementById(id).classList.remove('hidden');
       if (id === 'game-screen') {
-        hudLevel.textContent = `Level ${state.currentLevel} ⭐`;
+        const data = LEVEL_DATA[gameSession.level - 1];
+        hudLevel.innerHTML = `Level ${gameSession.level} ${data.emoji}
+          <span id="hud-level-name">${data.name}</span>`;
         setTimeout(() => wordInput.focus(), 50);
       }
     }
-    btnStart.addEventListener('click', () => showScreen('game-screen'));
-    btnBack.addEventListener('click',  () => { showScreen('menu-screen'); resetGameUI(); });
 
+    // ── transitionToScreen — animated version (used by buttons) ─
+    function transitionToScreen(toId, onComplete) {
+      const from = document.querySelector('.screen:not(.hidden)');
+      const to   = document.getElementById(toId);
+
+      // Nothing to do if already on that screen
+      if (!from || from.id === toId) {
+        onComplete?.();
+        return;
+      }
+
+      // Lock to prevent double-clicks during animation
+      from.style.pointerEvents = 'none';
+
+      from.classList.add('exiting');
+      from.addEventListener('animationend', function exitDone() {
+        from.removeEventListener('animationend', exitDone);
+        from.classList.add('hidden');
+        from.classList.remove('exiting');
+        from.style.pointerEvents = '';
+
+        to.classList.remove('hidden');
+        to.classList.add('entering');
+        to.addEventListener('animationend', function enterDone() {
+          to.removeEventListener('animationend', enterDone);
+          to.classList.remove('entering');
+          onComplete?.();
+        }, { once: true });
+      }, { once: true });
+    }
+
+    // ── resetGameUI ────────────────────────────────
     function resetGameUI() {
       wordInput.value = '';
       document.getElementById('xp-display').textContent = '0 ✨';
       document.querySelectorAll('.heart').forEach(h => h.classList.remove('lost'));
+      hideCountdown();
+      gameSession.status = 'idle';
     }
-    document.getElementById('game-area').addEventListener('click', () => wordInput.focus());
+
+    // ── Countdown helpers ──────────────────────────
+    function showCountdown() { countdownOverlay.classList.remove('hidden'); }
+    function hideCountdown() {
+      countdownOverlay.classList.add('hidden');
+      countdownOverlay.classList.remove('go');
+    }
+
+    function runCountdown(onDone) {
+      gameSession.status = 'countdown';
+      showCountdown();
+      countdownOverlay.classList.remove('go');
+
+      const steps = [
+        { num: '3', label: 'get ready!',  delay: 0    },
+        { num: '2', label: 'almost...',   delay: 900  },
+        { num: '1', label: 'fingers up!', delay: 1800 },
+        { num: 'GO!', label: '✨ type! ✨', delay: 2700, go: true },
+      ];
+
+      steps.forEach(({ num, label, delay, go }) => {
+        setTimeout(() => {
+          // Restart pop animation by removing and re-adding
+          countdownNumber.style.animation = 'none';
+          void countdownNumber.offsetWidth;
+          countdownNumber.style.animation = '';
+
+          countdownNumber.textContent = num;
+          countdownLabel.textContent  = label;
+          if (go) countdownOverlay.classList.add('go');
+        }, delay);
+      });
+
+      // After GO is shown, hide overlay and start playing
+      setTimeout(() => {
+        hideCountdown();
+        gameSession.status = 'playing';
+        wordInput.focus();
+        onDone?.();
+      }, 3550);
+    }
+
+    // ── startGame — called when Start button pressed ─
+    function startGame() {
+      gameSession.level  = state.currentLevel;
+      gameSession.status = 'idle';
+
+      transitionToScreen('game-screen', () => {
+        // Update HUD with the chosen level's info
+        const data = LEVEL_DATA[gameSession.level - 1];
+        hudLevel.innerHTML = `Level ${gameSession.level} ${data.emoji}
+          <span id="hud-level-name">${data.name}</span>`;
+
+        resetGameUI();
+        runCountdown();
+      });
+    }
+
+    // ── returnToMenu — animated quit back to menu ──
+    function returnToMenu() {
+      closeModal('modal-pause');
+      resetGameUI();
+      transitionToScreen('menu-screen', () => {
+        // Re-sync level selector in case they changed mind
+        updateLevelDisplay();
+      });
+    }
+
+    // ── Button wiring ──────────────────────────────
+    btnStart.addEventListener('click', startGame);
+
+    btnBack.addEventListener('click', () => {
+      if (gameSession.status === 'playing' || gameSession.status === 'paused') {
+        // Pause and ask for confirmation
+        gameSession.status = 'paused';
+        openModal('modal-pause');
+      } else if (gameSession.status === 'countdown') {
+        // Interrupt countdown and go back immediately
+        hideCountdown();
+        returnToMenu();
+      } else {
+        // idle / over — just go back
+        returnToMenu();
+      }
+    });
+
+    btnResume.addEventListener('click', () => {
+      closeModal('modal-pause');
+      gameSession.status = 'playing';
+      setTimeout(() => wordInput.focus(), 60);
+    });
+
+    btnQuitConfirm.addEventListener('click', returnToMenu);
+
+    document.getElementById('game-area').addEventListener('click', () => {
+      if (gameSession.status === 'playing') wordInput.focus();
+    });
 
     // ── Level selector ─────────────────────────────
     // Phase 2: updateLevelDisplay now also updates the info card + bg tint
@@ -1036,15 +1330,172 @@
       state.currentLevel = 1; updateLevelDisplay();
     }));
 
+    // ── Phase 3 tests ──────────────────────────────
+    const p3 = fn => { fn._phase = 3; return fn; };
+
+    test('gameSession object exists', p3(() =>
+      assert(typeof gameSession === 'object', 'gameSession not defined')));
+
+    test('gameSession has level, status fields', p3(() => {
+      assert('level'  in gameSession, 'gameSession missing level');
+      assert('status' in gameSession, 'gameSession missing status');
+    }));
+
+    test('gameSession.status starts as idle', p3(() =>
+      assertEqual(gameSession.status, 'idle')));
+
+    test('countdown-overlay exists in DOM', p3(() =>
+      assert(document.getElementById('countdown-overlay'))));
+
+    test('countdown-overlay is hidden by default', p3(() =>
+      assert(document.getElementById('countdown-overlay').classList.contains('hidden'))));
+
+    test('countdown-number element exists', p3(() =>
+      assert(document.getElementById('countdown-number'))));
+
+    test('countdown-label element exists', p3(() =>
+      assert(document.getElementById('countdown-label'))));
+
+    test('modal-pause exists in DOM', p3(() =>
+      assert(document.getElementById('modal-pause'))));
+
+    test('modal-pause is hidden by default', p3(() =>
+      assert(document.getElementById('modal-pause').classList.contains('hidden'))));
+
+    test('btn-resume exists', p3(() =>
+      assert(document.getElementById('btn-resume'))));
+
+    test('btn-quit-confirm exists', p3(() =>
+      assert(document.getElementById('btn-quit-confirm'))));
+
+    test('showCountdown removes hidden class', p3(() => {
+      showCountdown();
+      assert(!countdownOverlay.classList.contains('hidden'), 'overlay should be visible');
+      hideCountdown(); // cleanup
+    }));
+
+    test('hideCountdown adds hidden class', p3(() => {
+      showCountdown();
+      hideCountdown();
+      assert(countdownOverlay.classList.contains('hidden'), 'overlay should be hidden');
+    }));
+
+    test('hideCountdown removes go class', p3(() => {
+      countdownOverlay.classList.add('go');
+      hideCountdown();
+      assert(!countdownOverlay.classList.contains('go'), '.go should be removed');
+    }));
+
+    test('resetGameUI sets status to idle', p3(() => {
+      gameSession.status = 'playing';
+      resetGameUI();
+      assertEqual(gameSession.status, 'idle');
+    }));
+
+    test('resetGameUI hides countdown overlay', p3(() => {
+      showCountdown();
+      resetGameUI();
+      assert(countdownOverlay.classList.contains('hidden'), 'countdown should hide on reset');
+    }));
+
+    test('transitionToScreen is a function', p3(() =>
+      assert(typeof transitionToScreen === 'function')));
+
+    test('startGame is a function', p3(() =>
+      assert(typeof startGame === 'function')));
+
+    test('returnToMenu is a function', p3(() =>
+      assert(typeof returnToMenu === 'function')));
+
+    test('startGame copies state.currentLevel to gameSession.level', p3(() => {
+      state.currentLevel = 4;
+      updateLevelDisplay();
+      // Call showScreen (sync) to mimic what startGame does without animation
+      gameSession.level = state.currentLevel;
+      assertEqual(gameSession.level, 4);
+      state.currentLevel = 1; updateLevelDisplay();
+      gameSession.level = 1;
+    }));
+
+    test('showScreen(game-screen) updates hudLevel with level data', p3(() => {
+      gameSession.level = 3;
+      showScreen('game-screen');
+      assert(hudLevel.textContent.includes('3'), 'HUD should show level number');
+      assert(hudLevel.textContent.includes(LEVEL_DATA[2].emoji), 'HUD should show level emoji');
+      // cleanup
+      showScreen('menu-screen');
+      gameSession.level = 1;
+      gameSession.status = 'idle';
+    }));
+
+    test('btn-back click shows pause modal when status is playing', p3(() => {
+      gameSession.status = 'playing';
+      showScreen('game-screen');
+      btnBack.click();
+      assert(!modalPause.classList.contains('hidden'), 'pause modal should open');
+      closeModal('modal-pause');
+      gameSession.status = 'idle';
+      showScreen('menu-screen');
+    }));
+
+    test('gameSession.status becomes paused when back clicked mid-game', p3(() => {
+      gameSession.status = 'playing';
+      showScreen('game-screen');
+      btnBack.click();
+      assertEqual(gameSession.status, 'paused');
+      closeModal('modal-pause');
+      gameSession.status = 'idle';
+      showScreen('menu-screen');
+    }));
+
+    test('btn-resume closes pause modal', p3(() => {
+      gameSession.status = 'paused';
+      openModal('modal-pause');
+      btnResume.click();
+      assert(modalPause.classList.contains('hidden'), 'pause modal should close on resume');
+    }));
+
+    test('btn-resume restores playing status', p3(() => {
+      gameSession.status = 'paused';
+      openModal('modal-pause');
+      btnResume.click();
+      assertEqual(gameSession.status, 'playing');
+      // cleanup
+      gameSession.status = 'idle';
+    }));
+
+    test('btn-quit-confirm resets game UI', p3(() => {
+      gameSession.status = 'paused';
+      openModal('modal-pause');
+      wordInput.value = 'testing';
+      document.getElementById('xp-display').textContent = '999 ✨';
+      btnQuitConfirm.click();
+      assertEqual(wordInput.value, '', 'input should be cleared');
+      assert(document.getElementById('xp-display').textContent.includes('0'), 'XP should reset');
+    }));
+
+    test('btn-back during countdown interrupts it', p3(() => {
+      gameSession.status = 'countdown';
+      showScreen('game-screen');
+      showCountdown();
+      btnBack.click();
+      assert(countdownOverlay.classList.contains('hidden'), 'countdown should be hidden after back');
+    }));
+
+    test('all 3 modals still hidden independently of pause modal', p3(() => {
+      ['modal-instructions','modal-scores','modal-settings'].forEach(id =>
+        assert(document.getElementById(id).classList.contains('hidden'), `${id} not hidden`));
+    }));
+
     // ── Render results ─────────────────────────────
     const resultsEl = document.getElementById('test-results');
     const summaryEl = document.getElementById('test-summary');
 
-    let p1Pass=0, p1Fail=0, p2Pass=0, p2Fail=0;
+    let p1Pass=0, p1Fail=0, p2Pass=0, p2Fail=0, p3Pass=0, p3Fail=0;
     tests.forEach(t => {
       const ph = t.phase || 1;
-      if (t.pass) { ph===2 ? p2Pass++ : p1Pass++; }
-      else        { ph===2 ? p2Fail++ : p1Fail++; }
+      if (t.pass) { if(ph===3) p3Pass++; else if(ph===2) p2Pass++; else p1Pass++; }
+      else        { if(ph===3) p3Fail++; else if(ph===2) p2Fail++; else p1Fail++; }
       const d = document.createElement('div');
       d.className = `test-result ${t.pass?'pass':'fail'}`;
       d.innerHTML = `<span style="font-size:9px;opacity:.55;margin-right:4px">P${ph}</span><span class="icon">${t.pass?'✓':'✗'}</span>${t.name}${t.pass?'':`<span class="test-err">↳ ${t.error}</span>`}`;
@@ -1057,10 +1508,13 @@
     document.getElementById('test-panel-close')
       .addEventListener('click', () => document.getElementById('test-panel').style.display='none');
 
-    // Add phase breakdown footer
+    // Phase breakdown footer
     const footer = document.createElement('div');
     footer.style.cssText = 'padding:6px 14px 10px;font-size:10px;font-weight:700;color:#aac';
-    footer.innerHTML = `Phase 1: <span style="color:#2bad6a">${p1Pass}✓</span> <span style="color:#e86060">${p1Fail}✗</span> &nbsp;|&nbsp; Phase 2: <span style="color:#2bad6a">${p2Pass}✓</span> <span style="color:#e86060">${p2Fail}✗</span>`;
+    footer.innerHTML =
+      `P1: <span style="color:#2bad6a">${p1Pass}✓</span><span style="color:#e86060"> ${p1Fail}✗</span> &nbsp;|&nbsp; ` +
+      `P2: <span style="color:#2bad6a">${p2Pass}✓</span><span style="color:#e86060"> ${p2Fail}✗</span> &nbsp;|&nbsp; ` +
+      `P3: <span style="color:#2bad6a">${p3Pass}✓</span><span style="color:#e86060"> ${p3Fail}✗</span>`;
     document.getElementById('test-panel').appendChild(footer);
   </script>
 </body>
