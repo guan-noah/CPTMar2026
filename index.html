@@ -146,25 +146,106 @@
       min-width:38px; text-align:center; filter:drop-shadow(1px 2px 0 #ffb3b3);
     }
 
+    /* ── PHASE 2: Entrance animations ────────────────
+       Each menu child animates in with a staggered delay.
+       .menu-ready is added to .menu-cloud by JS on load.   */
+    .menu-cloud > * {
+      opacity: 0;
+      transform: translateY(24px);
+      transition: opacity .45s ease, transform .45s cubic-bezier(.34,1.38,.64,1);
+    }
+    .menu-cloud.menu-ready > *:nth-child(1) { transition-delay: .05s; }
+    .menu-cloud.menu-ready > *:nth-child(2) { transition-delay: .15s; }
+    .menu-cloud.menu-ready > *:nth-child(3) { transition-delay: .27s; }
+    .menu-cloud.menu-ready > *:nth-child(4) { transition-delay: .38s; }
+    .menu-cloud.menu-ready > *:nth-child(5) { transition-delay: .48s; }
+    .menu-cloud.menu-ready > * {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* ── PHASE 2: Level number pop on change ─────── */
+    @keyframes levelPop {
+      0%   { transform: scale(1);    }
+      40%  { transform: scale(1.45) rotate(-6deg); }
+      70%  { transform: scale(0.92) rotate(3deg);  }
+      100% { transform: scale(1);    }
+    }
+    #level-display.popping { animation: levelPop .35s cubic-bezier(.34,1.56,.64,1); }
+
+    /* ── PHASE 2: Level info card ─────────────────── */
+    #level-info-card {
+      width: 100%;
+      background: linear-gradient(135deg, var(--level-color-a, #e8f8ff), var(--level-color-b, #d4f0ff));
+      border-radius: 20px;
+      padding: 14px 20px;
+      display: flex; align-items: center; gap: 14px;
+      transition: background .4s ease;
+      border: 2px solid var(--level-border, #c8e8ff);
+    }
+    .level-swatch {
+      width: 44px; height: 44px; border-radius: 14px; flex-shrink: 0;
+      background: linear-gradient(135deg, var(--level-color-a, #b8e4ff), var(--level-color-b, #c3e8f8));
+      box-shadow: 0 3px 8px rgba(0,0,0,.12);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px;
+      transition: background .4s ease;
+    }
+    .level-info-text { display: flex; flex-direction: column; gap: 3px; flex: 1; }
+    .level-name {
+      font-family: var(--font-title); font-size: 17px;
+      color: var(--text); line-height: 1;
+    }
+    .level-desc {
+      font-size: 12px; font-weight: 700;
+      color: var(--text-soft); letter-spacing: .5px;
+    }
+    .level-stars { font-size: 14px; letter-spacing: 1px; }
+
+    /* ── PHASE 2: Background tint overlay ────────── */
+    #menu-bg-tint {
+      position: fixed; inset: 0; pointer-events: none; z-index: 0;
+      background: var(--tint-color, transparent);
+      transition: background .6s ease;
+    }
+
+    /* ── PHASE 2: Corner icons with labels ───────── */
+    .corner-wrap {
+      position: fixed; bottom: 16px;
+      display: flex; flex-direction: column; align-items: center; gap: 5px;
+      z-index: 2;
+    }
+    #wrap-settings { left: 16px; }
+    #wrap-scores   { right: 16px; }
+
     .corner-icon {
-      position:fixed; bottom:22px;
       width:56px; height:56px;
       border:none; border-radius:50%; font-size:24px;
       cursor:pointer; transition: transform .12s, box-shadow .12s;
-      z-index:2; display:flex; align-items:center; justify-content:center;
+      display:flex; align-items:center; justify-content:center;
     }
     .corner-icon:focus-visible { outline:3px solid var(--coral); outline-offset:3px; }
     .corner-icon:hover  { transform:scale(1.15) rotate(-8deg); }
     .corner-icon:active { transform:scale(0.92); }
     #icon-settings {
-      left:22px;
       background:linear-gradient(135deg,#ffeaa7,var(--sun));
       box-shadow:0 5px 0 var(--sun-dark), 0 6px 18px #ffd85c44;
     }
     #icon-scores {
-      right:22px;
       background:linear-gradient(135deg,#d6b3ff,var(--lilac-dark));
       box-shadow:0 5px 0 #8050d0, 0 6px 18px #c9aaff44;
+    }
+    .corner-label {
+      font-size: 10px; font-weight: 800;
+      color: var(--text-soft); letter-spacing: 1px;
+      text-transform: uppercase;
+      opacity: 0; transform: translateY(-4px);
+      transition: opacity .15s, transform .15s;
+      white-space: nowrap;
+      pointer-events: none;
+    }
+    .corner-wrap:hover .corner-label {
+      opacity: 1; transform: translateY(0);
     }
 
     /* ── GAME SCREEN ──────────────────────────────── */
@@ -386,11 +467,30 @@
         <span id="level-display" aria-live="polite">1</span>
         <button class="level-arrow" id="btn-level-next" aria-label="Next level">▶</button>
       </div>
+
+      <!-- Phase 2: Level info card -->
+      <div id="level-info-card" aria-label="Level preview" aria-live="polite">
+        <div class="level-swatch" id="level-swatch" aria-hidden="true">🌤️</div>
+        <div class="level-info-text">
+          <span class="level-name" id="level-name">Breezy Meadow</span>
+          <span class="level-desc" id="level-desc">Perfect for beginners!</span>
+          <span class="level-stars" id="level-stars">⭐☆☆☆☆☆</span>
+        </div>
+      </div>
     </div>
 
-    <button class="corner-icon" id="icon-settings" aria-label="Settings" title="Settings">⚙️</button>
-    <button class="corner-icon" id="icon-scores"   aria-label="Best Scores" title="Best Scores">🏆</button>
+    <div class="corner-wrap" id="wrap-settings">
+      <button class="corner-icon" id="icon-settings" aria-label="Settings">⚙️</button>
+      <span class="corner-label" aria-hidden="true">Settings</span>
+    </div>
+    <div class="corner-wrap" id="wrap-scores">
+      <button class="corner-icon" id="icon-scores" aria-label="Best Scores">🏆</button>
+      <span class="corner-label" aria-hidden="true">Best Scores</span>
+    </div>
   </div>
+
+  <!-- Phase 2: subtle bg tint that shifts per level -->
+  <div id="menu-bg-tint" aria-hidden="true"></div>
 
   <!-- ── GAME SCREEN ──────────────────────────────── -->
   <div id="game-screen" class="screen hidden" aria-label="Game Screen">
@@ -474,6 +574,20 @@
   </div>
 
   <script>
+    // ════════════════════════════════════════════════
+    //  PHASE 2: LEVEL DATA
+    //  Each level has a name, description, star rating,
+    //  emoji, and colour theme for the info card & bg tint.
+    // ════════════════════════════════════════════════
+    const LEVEL_DATA = [
+      { name: 'Breezy Meadow',  desc: 'Perfect for beginners!',   stars: 1, emoji: '🌤️',  colorA: '#e8f8ff', colorB: '#d4f0ff', border: '#c8e8ff', tint: 'rgba(180,230,255,0.18)' },
+      { name: 'Sunny Garden',   desc: 'Words pick up the pace!',   stars: 2, emoji: '🌻',  colorA: '#fff8e0', colorB: '#ffeeb8', border: '#ffd85c', tint: 'rgba(255,220,80,0.12)'  },
+      { name: 'Twilight Forest',desc: 'Things get a little spicy!',stars: 3, emoji: '🌲',  colorA: '#e4f5ec', colorB: '#c8eeda', border: '#6ddba8', tint: 'rgba(80,200,140,0.12)'  },
+      { name: 'Frosty Peaks',   desc: 'Brrr! Speed is key.',       stars: 4, emoji: '❄️',  colorA: '#eaf4ff', colorB: '#cce8ff', border: '#a8d8ff', tint: 'rgba(100,180,255,0.15)' },
+      { name: 'Desert Rush',    desc: 'Hot and fast — watch out!', stars: 5, emoji: '🌵',  colorA: '#fff0e0', colorB: '#ffd8b0', border: '#ffaa60', tint: 'rgba(255,150,60,0.12)'  },
+      { name: 'Outer Space',    desc: 'Legendary word wizard!',    stars: 6, emoji: '🚀',  colorA: '#e8e0ff', colorB: '#d0c0ff', border: '#a980f5', tint: 'rgba(160,100,255,0.14)' },
+    ];
+
     // ── State ──────────────────────────────────────
     const state = {
       currentLevel: 1, minLevel: 1, maxLevel: 6,
@@ -495,6 +609,14 @@
     const iconScores      = document.getElementById('icon-scores');
     const btnClearScores  = document.getElementById('btn-clear-scores');
     const scoresList      = document.getElementById('scores-list');
+    // Phase 2 refs
+    const menuCloud       = document.querySelector('.menu-cloud');
+    const levelInfoCard   = document.getElementById('level-info-card');
+    const levelSwatch     = document.getElementById('level-swatch');
+    const levelName       = document.getElementById('level-name');
+    const levelDesc       = document.getElementById('level-desc');
+    const levelStars      = document.getElementById('level-stars');
+    const menuBgTint      = document.getElementById('menu-bg-tint');
 
     // ── Screen switching ───────────────────────────
     function showScreen(id) {
@@ -516,17 +638,59 @@
     document.getElementById('game-area').addEventListener('click', () => wordInput.focus());
 
     // ── Level selector ─────────────────────────────
+    // Phase 2: updateLevelDisplay now also updates the info card + bg tint
     function updateLevelDisplay() {
+      const idx  = state.currentLevel - 1;
+      const data = LEVEL_DATA[idx];
+
+      // Number display
       levelDisplay.textContent = state.currentLevel;
       btnLevelPrev.disabled = state.currentLevel <= state.minLevel;
       btnLevelNext.disabled = state.currentLevel >= state.maxLevel;
+
+      // Pop animation on the number
+      levelDisplay.classList.remove('popping');
+      void levelDisplay.offsetWidth; // reflow to restart animation
+      levelDisplay.classList.add('popping');
+
+      // Info card text
+      levelName.textContent  = data.name;
+      levelDesc.textContent  = data.desc;
+      levelSwatch.textContent = data.emoji;
+      const filled = '⭐'.repeat(data.stars);
+      const empty  = '☆'.repeat(LEVEL_DATA.length - data.stars);
+      levelStars.textContent = filled + empty;
+
+      // Info card colours (CSS custom properties)
+      levelInfoCard.style.setProperty('--level-color-a', data.colorA);
+      levelInfoCard.style.setProperty('--level-color-b', data.colorB);
+      levelInfoCard.style.setProperty('--level-border',  data.border);
+      levelInfoCard.style.background = `linear-gradient(135deg, ${data.colorA}, ${data.colorB})`;
+      levelInfoCard.style.borderColor = data.border;
+      levelSwatch.style.background    = `linear-gradient(135deg, ${data.colorA}, ${data.colorB})`;
+
+      // Background tint
+      menuBgTint.style.background = data.tint;
+
+      // Console log (Phase 2 spec: "just logs to console for now")
+      console.log(`[Level Selector] Level ${state.currentLevel} selected — ${data.name}`);
     }
+
     btnLevelPrev.addEventListener('click', () => {
       if (state.currentLevel > state.minLevel) { state.currentLevel--; updateLevelDisplay(); }
     });
     btnLevelNext.addEventListener('click', () => {
       if (state.currentLevel < state.maxLevel) { state.currentLevel++; updateLevelDisplay(); }
     });
+
+    // Phase 2: staggered entrance animation — add .menu-ready after a short delay
+    window.addEventListener('load', () => {
+      requestAnimationFrame(() => {
+        setTimeout(() => menuCloud.classList.add('menu-ready'), 60);
+      });
+    });
+
+    // Initialise level display (runs once on load)
     updateLevelDisplay();
 
     // ── Modals ─────────────────────────────────────
@@ -575,177 +739,329 @@
     btnClearScores.addEventListener('click', () => { saveScores([]); renderScores(); });
 
     // ════════════════════════════════════════════════
-    //  PHASE 1 TEST SUITE
+    //  TEST SUITE — PHASE 1 + PHASE 2
     // ════════════════════════════════════════════════
     const tests = []; let passed = 0, failed = 0;
     const test = (name, fn) => {
-      try { fn(); tests.push({name,pass:true}); passed++; }
-      catch(e) { tests.push({name,pass:false,error:e.message}); failed++; }
+      try { fn(); tests.push({name,pass:true,phase:fn._phase||1}); passed++; }
+      catch(e) { tests.push({name,pass:false,error:e.message,phase:fn._phase||1}); failed++; }
     };
-    const assert     = (c,m)   => { if(!c)   throw new Error(m||'Assertion failed'); };
+    const p2 = fn => { fn._phase = 2; return fn; };
+    const assert     = (c,m)   => { if(!c)    throw new Error(m||'Assertion failed'); };
     const assertEqual= (a,b,m) => { if(a!==b) throw new Error(m||`Expected "${b}", got "${a}"`); };
 
-    // DOM Structure
-    test('menu-screen exists',          () => assert(document.getElementById('menu-screen')));
-    test('game-screen exists',          () => assert(document.getElementById('game-screen')));
-    test('game-screen hidden by default',()=> assert(gameScreen.classList.contains('hidden')));
-    test('menu-screen visible by default',()=> assert(!menuScreen.classList.contains('hidden')));
-    test('game title element exists',   () => assert(document.getElementById('game-title')));
-    test('title contains "Falling Words"',()=> {
+    // ── Phase 1 tests ──────────────────────────────
+    test('menu-screen exists',            () => assert(document.getElementById('menu-screen')));
+    test('game-screen exists',            () => assert(document.getElementById('game-screen')));
+    test('game-screen hidden by default', () => assert(gameScreen.classList.contains('hidden')));
+    test('menu-screen visible by default',() => assert(!menuScreen.classList.contains('hidden')));
+    test('game title element exists',     () => assert(document.getElementById('game-title')));
+    test('title contains "Falling Words"',() => {
       const t = document.getElementById('game-title').textContent.toLowerCase();
       assert(t.includes('falling') && t.includes('words'));
     });
-
-    // Buttons
-    test('Start button exists',         () => assert(document.getElementById('btn-start')));
-    test('Instructions button exists',  () => assert(document.getElementById('btn-instructions')));
-    test('Back button exists',          () => assert(document.getElementById('btn-back')));
-    test('Settings icon exists',        () => assert(document.getElementById('icon-settings')));
-    test('Scores icon exists',          () => assert(document.getElementById('icon-scores')));
-
-    // Level selector
-    test('level-display starts at 1',   () => assertEqual(levelDisplay.textContent,'1'));
-    test('level increments on next',    () => {
+    test('Start button exists',           () => assert(document.getElementById('btn-start')));
+    test('Instructions button exists',    () => assert(document.getElementById('btn-instructions')));
+    test('Back button exists',            () => assert(document.getElementById('btn-back')));
+    test('Settings icon exists',          () => assert(document.getElementById('icon-settings')));
+    test('Scores icon exists',            () => assert(document.getElementById('icon-scores')));
+    test('level-display starts at 1',     () => assertEqual(levelDisplay.textContent,'1'));
+    test('level increments on next',      () => {
       const p = state.currentLevel; btnLevelNext.click();
       assert(state.currentLevel === p+1); state.currentLevel=p; updateLevelDisplay();
     });
-    test('level decrements on prev',    () => {
+    test('level decrements on prev',      () => {
       state.currentLevel=3; updateLevelDisplay(); btnLevelPrev.click();
       assertEqual(state.currentLevel,2); state.currentLevel=1; updateLevelDisplay();
     });
-    test('level floor is 1',            () => {
+    test('level floor is 1',              () => {
       state.currentLevel=1; updateLevelDisplay(); btnLevelPrev.click();
       assertEqual(state.currentLevel,1);
     });
-    test('level ceiling is maxLevel',   () => {
+    test('level ceiling is maxLevel',     () => {
       state.currentLevel=6; updateLevelDisplay(); btnLevelNext.click();
       assertEqual(state.currentLevel,6); state.currentLevel=1; updateLevelDisplay();
     });
-    test('prev arrow disabled at min',  () => {
-      state.currentLevel=1; updateLevelDisplay(); assert(btnLevelPrev.disabled);
-    });
-    test('next arrow disabled at max',  () => {
+    test('prev arrow disabled at min',    () => { state.currentLevel=1; updateLevelDisplay(); assert(btnLevelPrev.disabled); });
+    test('next arrow disabled at max',    () => {
       state.currentLevel=6; updateLevelDisplay();
       assert(btnLevelNext.disabled); state.currentLevel=1; updateLevelDisplay();
     });
-
-    // Screen switching
-    test('Start shows game-screen',     () => {
+    test('Start shows game-screen',       () => {
       btnStart.click();
       assert(!gameScreen.classList.contains('hidden'));
       assert(menuScreen.classList.contains('hidden'));
       showScreen('menu-screen');
     });
-    test('Back shows menu-screen',      () => {
+    test('Back shows menu-screen',        () => {
       showScreen('game-screen'); btnBack.click();
       assert(!menuScreen.classList.contains('hidden'));
       assert(gameScreen.classList.contains('hidden'));
     });
-    test('HUD level updates on start',  () => {
+    test('HUD level updates on start',    () => {
       state.currentLevel=4; updateLevelDisplay(); showScreen('game-screen');
-      assert(hudLevel.textContent.includes('4'), `HUD: "${hudLevel.textContent}"`);
+      assert(hudLevel.textContent.includes('4'));
       state.currentLevel=1; updateLevelDisplay(); showScreen('menu-screen');
     });
-
-    // Modals
-    test('all modals hidden by default',() =>
+    test('all modals hidden by default',  () =>
       ['modal-instructions','modal-scores','modal-settings'].forEach(id =>
         assert(document.getElementById(id).classList.contains('hidden'),`${id} not hidden`)));
-    test('Instructions button opens modal',()=> {
+    test('Instructions button opens modal',() => {
       btnInstructions.click();
       assert(!document.getElementById('modal-instructions').classList.contains('hidden'));
       closeModal('modal-instructions');
     });
-    test('Settings icon opens modal',   () => {
+    test('Settings icon opens modal',     () => {
       iconSettings.click();
       assert(!document.getElementById('modal-settings').classList.contains('hidden'));
       closeModal('modal-settings');
     });
-    test('Scores icon opens modal',     () => {
+    test('Scores icon opens modal',       () => {
       iconScores.click();
       assert(!document.getElementById('modal-scores').classList.contains('hidden'));
       closeModal('modal-scores');
     });
-    test('data-close button closes modal',()=> {
+    test('data-close button closes modal',() => {
       openModal('modal-instructions');
       document.querySelector('[data-close="modal-instructions"]').click();
       assert(document.getElementById('modal-instructions').classList.contains('hidden'));
     });
-    test('Escape closes open modal',    () => {
+    test('Escape closes open modal',      () => {
       openModal('modal-settings');
       document.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',bubbles:true}));
       assert(document.getElementById('modal-settings').classList.contains('hidden'));
     });
-    test('Overlay click closes modal',  () => {
+    test('Overlay click closes modal',    () => {
       openModal('modal-scores');
       document.getElementById('modal-scores').click();
       assert(document.getElementById('modal-scores').classList.contains('hidden'));
     });
-
-    // HUD
-    test('HUD has 3 hearts',            () => assertEqual(document.querySelectorAll('.heart').length,3));
-    test('word input exists',           () => assert(document.getElementById('word-input')));
-    test('XP display exists',           () => assert(document.getElementById('xp-display')));
-    test('XP display starts at 0',      () => assert(document.getElementById('xp-display').textContent.includes('0')));
-    test('game-area div exists',        () => assert(document.getElementById('game-area')));
-
-    // Settings toggles
-    test('toggle changes state value',  () => {
+    test('HUD has 3 hearts',              () => assertEqual(document.querySelectorAll('.heart').length,3));
+    test('word input exists',             () => assert(document.getElementById('word-input')));
+    test('XP display exists',             () => assert(document.getElementById('xp-display')));
+    test('XP display starts at 0',        () => assert(document.getElementById('xp-display').textContent.includes('0')));
+    test('game-area div exists',          () => assert(document.getElementById('game-area')));
+    test('toggle changes state value',    () => {
       const b = state.settings.sfx;
       document.getElementById('toggle-sfx').click();
       assert(state.settings.sfx !== b);
       document.getElementById('toggle-sfx').click();
     });
-    test('toggle updates aria-pressed', () => {
+    test('toggle updates aria-pressed',   () => {
       const t = document.getElementById('toggle-music'), b = t.getAttribute('aria-pressed');
       t.click(); assert(t.getAttribute('aria-pressed') !== b); t.click();
     });
-    test('toggle adds/removes .on',     () => {
+    test('toggle adds/removes .on',       () => {
       const t = document.getElementById('toggle-xp-popups'), had = t.classList.contains('on');
       t.click(); assertEqual(t.classList.contains('on'), !had); t.click();
     });
-
-    // Scores
-    test('clear scores empties storage',() => {
+    test('clear scores empties storage',  () => {
       saveScores([{xp:100,date:'01/01'}]); btnClearScores.click();
       assertEqual(getScores().length,0);
     });
-    test('empty scores shows message',  () => {
-      saveScores([]); renderScores();
-      assert(scoresList.querySelector('.score-empty'));
-    });
-    test('scores render correct count', () => {
+    test('empty scores shows message',    () => { saveScores([]); renderScores(); assert(scoresList.querySelector('.score-empty')); });
+    test('scores render correct count',   () => {
       saveScores([{xp:300,date:'01/01'},{xp:200,date:'01/02'},{xp:100,date:'01/03'}]);
-      renderScores();
-      assertEqual(scoresList.querySelectorAll('.score-entry').length,3);
-      saveScores([]);
+      renderScores(); assertEqual(scoresList.querySelectorAll('.score-entry').length,3); saveScores([]);
     });
-    test('resetGameUI clears input',    () => {
-      wordInput.value='hello'; resetGameUI(); assertEqual(wordInput.value,'');
-    });
-    test('resetGameUI resets XP',       () => {
+    test('resetGameUI clears input',      () => { wordInput.value='hello'; resetGameUI(); assertEqual(wordInput.value,''); });
+    test('resetGameUI resets XP',         () => {
       document.getElementById('xp-display').textContent='500 ✨';
-      resetGameUI();
-      assert(document.getElementById('xp-display').textContent.includes('0'));
+      resetGameUI(); assert(document.getElementById('xp-display').textContent.includes('0'));
     });
-    test('resetGameUI restores hearts', () => {
+    test('resetGameUI restores hearts',   () => {
       document.querySelectorAll('.heart').forEach(h=>h.classList.add('lost'));
-      resetGameUI();
-      assertEqual(document.querySelectorAll('.heart.lost').length,0);
+      resetGameUI(); assertEqual(document.querySelectorAll('.heart.lost').length,0);
     });
+
+    // ── Phase 2 tests ──────────────────────────────
+
+    test('LEVEL_DATA has 6 entries', p2(() =>
+      assertEqual(LEVEL_DATA.length, 6, 'Expected 6 level entries')));
+
+    test('every level has required fields', p2(() => {
+      LEVEL_DATA.forEach((d,i) => {
+        assert(d.name,   `Level ${i+1} missing name`);
+        assert(d.desc,   `Level ${i+1} missing desc`);
+        assert(d.emoji,  `Level ${i+1} missing emoji`);
+        assert(d.colorA, `Level ${i+1} missing colorA`);
+        assert(d.tint,   `Level ${i+1} missing tint`);
+        assert(d.stars >= 1 && d.stars <= 6, `Level ${i+1} stars out of range`);
+      });
+    }));
+
+    test('level-info-card exists in DOM', p2(() =>
+      assert(document.getElementById('level-info-card'))));
+
+    test('level-name element exists', p2(() =>
+      assert(document.getElementById('level-name'))));
+
+    test('level-desc element exists', p2(() =>
+      assert(document.getElementById('level-desc'))));
+
+    test('level-stars element exists', p2(() =>
+      assert(document.getElementById('level-stars'))));
+
+    test('level-swatch element exists', p2(() =>
+      assert(document.getElementById('level-swatch'))));
+
+    test('menu-bg-tint element exists', p2(() =>
+      assert(document.getElementById('menu-bg-tint'))));
+
+    test('level-name shows correct name for level 1', p2(() => {
+      state.currentLevel = 1; updateLevelDisplay();
+      assertEqual(levelName.textContent, LEVEL_DATA[0].name);
+    }));
+
+    test('level-desc shows correct desc for level 1', p2(() => {
+      state.currentLevel = 1; updateLevelDisplay();
+      assertEqual(levelDesc.textContent, LEVEL_DATA[0].desc);
+    }));
+
+    test('level-swatch shows correct emoji for level 1', p2(() => {
+      state.currentLevel = 1; updateLevelDisplay();
+      assertEqual(levelSwatch.textContent, LEVEL_DATA[0].emoji);
+    }));
+
+    test('level-name updates when level changes to 3', p2(() => {
+      state.currentLevel = 3; updateLevelDisplay();
+      assertEqual(levelName.textContent, LEVEL_DATA[2].name);
+      state.currentLevel = 1; updateLevelDisplay();
+    }));
+
+    test('level-swatch updates emoji when level changes', p2(() => {
+      state.currentLevel = 5; updateLevelDisplay();
+      assertEqual(levelSwatch.textContent, LEVEL_DATA[4].emoji);
+      state.currentLevel = 1; updateLevelDisplay();
+    }));
+
+    test('level-stars shows correct filled count for level 1', p2(() => {
+      state.currentLevel = 1; updateLevelDisplay();
+      const starText = levelStars.textContent;
+      assertEqual(starText.split('⭐').length - 1, 1, `Expected 1 filled star, got: ${starText}`);
+    }));
+
+    test('level-stars shows correct filled count for level 6', p2(() => {
+      state.currentLevel = 6; updateLevelDisplay();
+      const starText = levelStars.textContent;
+      assertEqual(starText.split('⭐').length - 1, 6, `Expected 6 filled stars, got: ${starText}`);
+      state.currentLevel = 1; updateLevelDisplay();
+    }));
+
+    test('level-stars total length is always 6 characters', p2(() => {
+      for (let l = 1; l <= 6; l++) {
+        state.currentLevel = l; updateLevelDisplay();
+        const len = [...levelStars.textContent].filter(c => c==='⭐'||c==='☆').length;
+        assertEqual(len, 6, `Level ${l} star row has ${len} chars, expected 6`);
+      }
+      state.currentLevel = 1; updateLevelDisplay();
+    }));
+
+    test('bg tint updates when level changes', p2(() => {
+      state.currentLevel = 1; updateLevelDisplay();
+      const tint1 = menuBgTint.style.background;
+      state.currentLevel = 6; updateLevelDisplay();
+      const tint6 = menuBgTint.style.background;
+      assert(tint1 !== tint6, 'Tint should differ between level 1 and 6');
+      state.currentLevel = 1; updateLevelDisplay();
+    }));
+
+    test('bg tint matches LEVEL_DATA for each level', p2(() => {
+      for (let l = 1; l <= 6; l++) {
+        state.currentLevel = l; updateLevelDisplay();
+        assert(menuBgTint.style.background.length > 0, `Level ${l} tint should not be empty`);
+      }
+      state.currentLevel = 1; updateLevelDisplay();
+    }));
+
+    test('level-info-card border changes between levels', p2(() => {
+      state.currentLevel = 1; updateLevelDisplay();
+      const b1 = levelInfoCard.style.borderColor;
+      state.currentLevel = 5; updateLevelDisplay();
+      const b5 = levelInfoCard.style.borderColor;
+      assert(b1 !== b5, 'Border color should differ between levels');
+      state.currentLevel = 1; updateLevelDisplay();
+    }));
+
+    test('corner labels exist in DOM', p2(() => {
+      const labels = document.querySelectorAll('.corner-label');
+      assert(labels.length >= 2, `Expected at least 2 corner labels, found ${labels.length}`);
+    }));
+
+    test('Settings label text is correct', p2(() => {
+      const label = document.querySelector('#wrap-settings .corner-label');
+      assert(label, 'Settings label not found');
+      assert(label.textContent.toLowerCase().includes('setting'), `Got: "${label.textContent}"`);
+    }));
+
+    test('Scores label text is correct', p2(() => {
+      const label = document.querySelector('#wrap-scores .corner-label');
+      assert(label, 'Scores label not found');
+      assert(
+        label.textContent.toLowerCase().includes('score') || label.textContent.toLowerCase().includes('best'),
+        `Got: "${label.textContent}"`
+      );
+    }));
+
+    test('Settings icon is inside wrap-settings', p2(() => {
+      const wrap = document.getElementById('wrap-settings');
+      assert(wrap, 'wrap-settings not found');
+      assert(wrap.contains(document.getElementById('icon-settings')), 'icon-settings should be inside wrap-settings');
+    }));
+
+    test('Scores icon is inside wrap-scores', p2(() => {
+      const wrap = document.getElementById('wrap-scores');
+      assert(wrap, 'wrap-scores not found');
+      assert(wrap.contains(document.getElementById('icon-scores')), 'icon-scores should be inside wrap-scores');
+    }));
+
+    test('console.log fires on level change', p2(() => {
+      const logged = [];
+      const orig = console.log;
+      console.log = (...a) => { logged.push(a.join(' ')); orig(...a); };
+      state.currentLevel = 3; updateLevelDisplay();
+      console.log = orig;
+      assert(logged.some(m => m.includes('Level 3')), 'Expected console.log with "Level 3"');
+      state.currentLevel = 1; updateLevelDisplay();
+    }));
+
+    test('menu-cloud element exists', p2(() =>
+      assert(document.querySelector('.menu-cloud'), '.menu-cloud not found')));
+
+    test('level display text matches state.currentLevel', p2(() => {
+      for (let l = 1; l <= 6; l++) {
+        state.currentLevel = l; updateLevelDisplay();
+        assertEqual(levelDisplay.textContent, String(l), `Display should show ${l}`);
+      }
+      state.currentLevel = 1; updateLevelDisplay();
+    }));
 
     // ── Render results ─────────────────────────────
     const resultsEl = document.getElementById('test-results');
     const summaryEl = document.getElementById('test-summary');
+
+    let p1Pass=0, p1Fail=0, p2Pass=0, p2Fail=0;
     tests.forEach(t => {
+      const ph = t.phase || 1;
+      if (t.pass) { ph===2 ? p2Pass++ : p1Pass++; }
+      else        { ph===2 ? p2Fail++ : p1Fail++; }
       const d = document.createElement('div');
       d.className = `test-result ${t.pass?'pass':'fail'}`;
-      d.innerHTML = `<span class="icon">${t.pass?'✓':'✗'}</span>${t.name}${t.pass?'': `<span class="test-err">↳ ${t.error}</span>`}`;
+      d.innerHTML = `<span style="font-size:9px;opacity:.55;margin-right:4px">P${ph}</span><span class="icon">${t.pass?'✓':'✗'}</span>${t.name}${t.pass?'':`<span class="test-err">↳ ${t.error}</span>`}`;
       resultsEl.appendChild(d);
     });
-    summaryEl.innerHTML = `<span style="color:#2bad6a">${passed} passed</span> · <span style="color:#e86060">${failed} failed</span>`;
+
+    summaryEl.innerHTML =
+      `<span style="color:#2bad6a">${passed} ✓</span> · <span style="color:#e86060">${failed} ✗</span>`;
+
     document.getElementById('test-panel-close')
       .addEventListener('click', () => document.getElementById('test-panel').style.display='none');
+
+    // Add phase breakdown footer
+    const footer = document.createElement('div');
+    footer.style.cssText = 'padding:6px 14px 10px;font-size:10px;font-weight:700;color:#aac';
+    footer.innerHTML = `Phase 1: <span style="color:#2bad6a">${p1Pass}✓</span> <span style="color:#e86060">${p1Fail}✗</span> &nbsp;|&nbsp; Phase 2: <span style="color:#2bad6a">${p2Pass}✓</span> <span style="color:#e86060">${p2Fail}✗</span>`;
+    document.getElementById('test-panel').appendChild(footer);
   </script>
 </body>
 </html>
