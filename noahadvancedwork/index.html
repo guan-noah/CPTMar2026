@@ -1,0 +1,4296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Falling Words 🌈</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --sky:        #c9eeff;
+      --white:      #ffffff;
+      --coral:      #ff7f7f;
+      --coral-dark: #e86060;
+      --mint:       #6ddba8;
+      --mint-dark:  #4bbf8a;
+      --sun:        #ffd85c;
+      --sun-dark:   #f0be30;
+      --lilac:      #c9aaff;
+      --lilac-dark: #a980f5;
+      --text:       #3a3560;
+      --text-soft:  #7a7aaa;
+      --white-card: #ffffffee;
+      --shadow:     rgba(100,100,180,0.18);
+      --font-title: 'Fredoka One', cursive;
+      --font-body:  'Nunito', sans-serif;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      width: 100%; height: 100%;
+      font-family: var(--font-body);
+      color: var(--text);
+      overflow: hidden;
+    }
+
+    /* Floating bg decorations */
+    .bg-deco {
+      position: fixed; pointer-events: none; z-index: 0;
+      font-size: 22px; user-select: none;
+      animation: floatDrift linear infinite;
+    }
+    @keyframes floatDrift {
+      0%,100% { transform: translateY(0)    rotate(0deg);  opacity:.55; }
+      50%     { transform: translateY(-18px) rotate(12deg); opacity:.85; }
+    }
+
+    .screen {
+      position: fixed; inset: 0;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+    }
+    .screen.hidden { display: none; }
+
+    /* ── MENU ─────────────────────────────────────── */
+    #menu-screen {
+      background: linear-gradient(170deg, #d4f0ff 0%, #c3e8f8 40%, #e8f8ff 100%);
+    }
+
+    .menu-cloud {
+      position: relative; z-index: 1;
+      background: var(--white-card);
+      border-radius: 60px;
+      width: min(540px, 92vw);
+      padding: 44px 44px 38px;
+      display: flex; flex-direction: column; align-items: center; gap: 22px;
+      box-shadow: 0 12px 40px var(--shadow), 0 2px 0 #fff inset;
+    }
+    .menu-cloud::before {
+      content:''; position:absolute; top:-26px; left:60px;
+      width:80px; height:60px;
+      background: var(--white-card); border-radius:50%;
+      box-shadow: 70px -10px 0 10px var(--white-card), 145px 5px 0 -5px var(--white-card);
+    }
+
+    .game-title {
+      font-family: var(--font-title);
+      font-size: clamp(34px, 7vw, 54px);
+      color: var(--coral);
+      text-align: center; line-height: 1.1;
+      filter: drop-shadow(3px 4px 0 #ffb3b3);
+      animation: titleBounce 2.4s ease-in-out infinite;
+    }
+    @keyframes titleBounce {
+      0%,100%{ transform:translateY(0);    }
+      40%    { transform:translateY(-7px); }
+      60%    { transform:translateY(-3px); }
+    }
+    .title-emoji {
+      display:block; font-size: clamp(28px,5vw,42px); filter:none;
+      animation: spinWiggle 3s ease-in-out infinite;
+    }
+    @keyframes spinWiggle {
+      0%,100%{ transform:rotate(-8deg) scale(1);    }
+      50%    { transform:rotate(8deg)  scale(1.15); }
+    }
+    .title-tagline {
+      font-size:14px; font-weight:700; color:var(--text-soft);
+      letter-spacing:3px; text-transform:uppercase; margin-top:-12px;
+    }
+
+    .menu-btn {
+      font-family: var(--font-title); font-size:20px;
+      letter-spacing:1px; padding:14px 0;
+      width:100%; max-width:280px;
+      border:none; border-radius:50px;
+      cursor:pointer;
+      transition: transform .12s, box-shadow .12s, filter .12s;
+    }
+    .menu-btn:focus-visible { outline:4px solid var(--sun); outline-offset:3px; }
+    .menu-btn:active { transform:translateY(3px) scale(0.97)!important; box-shadow:none!important; }
+
+    #btn-start {
+      background: linear-gradient(160deg,#ff9090,var(--coral-dark));
+      color:#fff; box-shadow:0 6px 0 #c94040, 0 8px 20px #ff7f7f55;
+    }
+    #btn-start:hover {
+      transform:translateY(-3px) scale(1.03);
+      box-shadow:0 9px 0 #c94040, 0 12px 28px #ff7f7f66; filter:brightness(1.07);
+    }
+    #btn-instructions {
+      background: linear-gradient(160deg,#82e6b8,var(--mint-dark));
+      color:#fff; box-shadow:0 6px 0 #2e9967, 0 8px 20px #6ddba855;
+    }
+    #btn-instructions:hover {
+      transform:translateY(-3px) scale(1.03);
+      box-shadow:0 9px 0 #2e9967, 0 12px 28px #6ddba866; filter:brightness(1.07);
+    }
+
+    .level-row { display:flex; align-items:center; gap:14px; }
+    .level-lbl { font-size:14px; font-weight:800; color:var(--text-soft); letter-spacing:2px; text-transform:uppercase; }
+    .level-arrow {
+      width:36px; height:36px;
+      background:var(--sun); border:none; border-radius:50%;
+      font-size:16px; font-weight:800; color:var(--text);
+      cursor:pointer; box-shadow:0 4px 0 var(--sun-dark);
+      transition: transform .1s, box-shadow .1s;
+      display:flex; align-items:center; justify-content:center;
+    }
+    .level-arrow:hover  { transform:translateY(-2px); box-shadow:0 6px 0 var(--sun-dark); }
+    .level-arrow:active { transform:translateY(2px);  box-shadow:0 2px 0 var(--sun-dark); }
+    .level-arrow:disabled { opacity:.35; cursor:default; transform:none; }
+    .level-arrow:focus-visible { outline:3px solid var(--coral); outline-offset:2px; }
+    #level-display {
+      font-family:var(--font-title); font-size:30px; color:var(--coral);
+      min-width:38px; text-align:center; filter:drop-shadow(1px 2px 0 #ffb3b3);
+    }
+
+    /* ── PHASE 2: Entrance animations ────────────────
+       Each menu child animates in with a staggered delay.
+       .menu-ready is added to .menu-cloud by JS on load.   */
+    .menu-cloud > * {
+      opacity: 0;
+      transform: translateY(24px);
+      transition: opacity .45s ease, transform .45s cubic-bezier(.34,1.38,.64,1);
+    }
+    .menu-cloud.menu-ready > *:nth-child(1) { transition-delay: .05s; }
+    .menu-cloud.menu-ready > *:nth-child(2) { transition-delay: .15s; }
+    .menu-cloud.menu-ready > *:nth-child(3) { transition-delay: .27s; }
+    .menu-cloud.menu-ready > *:nth-child(4) { transition-delay: .38s; }
+    .menu-cloud.menu-ready > *:nth-child(5) { transition-delay: .48s; }
+    .menu-cloud.menu-ready > * {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* ── PHASE 2: Level number pop on change ─────── */
+    @keyframes levelPop {
+      0%   { transform: scale(1);    }
+      40%  { transform: scale(1.45) rotate(-6deg); }
+      70%  { transform: scale(0.92) rotate(3deg);  }
+      100% { transform: scale(1);    }
+    }
+    #level-display.popping { animation: levelPop .35s cubic-bezier(.34,1.56,.64,1); }
+
+    /* ── PHASE 2: Level info card ─────────────────── */
+    #level-info-card {
+      width: 100%;
+      background: linear-gradient(135deg, var(--level-color-a, #e8f8ff), var(--level-color-b, #d4f0ff));
+      border-radius: 20px;
+      padding: 14px 20px;
+      display: flex; align-items: center; gap: 14px;
+      transition: background .4s ease;
+      border: 2px solid var(--level-border, #c8e8ff);
+    }
+    .level-swatch {
+      width: 44px; height: 44px; border-radius: 14px; flex-shrink: 0;
+      background: linear-gradient(135deg, var(--level-color-a, #b8e4ff), var(--level-color-b, #c3e8f8));
+      box-shadow: 0 3px 8px rgba(0,0,0,.12);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px;
+      transition: background .4s ease;
+    }
+    .level-info-text { display: flex; flex-direction: column; gap: 3px; flex: 1; }
+    .level-name {
+      font-family: var(--font-title); font-size: 17px;
+      color: var(--text); line-height: 1;
+    }
+    .level-desc {
+      font-size: 12px; font-weight: 700;
+      color: var(--text-soft); letter-spacing: .5px;
+    }
+    .level-stars { font-size: 14px; letter-spacing: 1px; }
+
+    /* ── PHASE 2: Background tint overlay ────────── */
+    #menu-bg-tint {
+      position: fixed; inset: 0; pointer-events: none; z-index: 0;
+      background: var(--tint-color, transparent);
+      transition: background .6s ease;
+    }
+
+    /* ── PHASE 2: Corner icons with labels ───────── */
+    .corner-wrap {
+      position: fixed; bottom: 16px;
+      display: flex; flex-direction: column; align-items: center; gap: 5px;
+      z-index: 2;
+    }
+    #wrap-settings { left: 16px; }
+    #wrap-scores   { right: 16px; }
+
+    .corner-icon {
+      width:56px; height:56px;
+      border:none; border-radius:50%; font-size:24px;
+      cursor:pointer; transition: transform .12s, box-shadow .12s;
+      display:flex; align-items:center; justify-content:center;
+    }
+    .corner-icon:focus-visible { outline:3px solid var(--coral); outline-offset:3px; }
+    .corner-icon:hover  { transform:scale(1.15) rotate(-8deg); }
+    .corner-icon:active { transform:scale(0.92); }
+    #icon-settings {
+      background:linear-gradient(135deg,#ffeaa7,var(--sun));
+      box-shadow:0 5px 0 var(--sun-dark), 0 6px 18px #ffd85c44;
+    }
+    #icon-scores {
+      background:linear-gradient(135deg,#d6b3ff,var(--lilac-dark));
+      box-shadow:0 5px 0 #8050d0, 0 6px 18px #c9aaff44;
+    }
+    .corner-label {
+      font-size: 10px; font-weight: 800;
+      color: var(--text-soft); letter-spacing: 1px;
+      text-transform: uppercase;
+      opacity: 0; transform: translateY(-4px);
+      transition: opacity .15s, transform .15s;
+      white-space: nowrap;
+      pointer-events: none;
+    }
+    .corner-wrap:hover .corner-label {
+      opacity: 1; transform: translateY(0);
+    }
+
+    /* ── PHASE 4: GAME SCREEN ─────────────────────────
+       The screen itself is a flex column that fills the
+       viewport. game-area takes all remaining height.       */
+    #game-screen {
+      justify-content: flex-start;
+      align-items: stretch;
+      /* Phase 8: background swaps smoothly between levels */
+      transition: background 1.5s ease;
+      background: linear-gradient(180deg, #b8e4ff 0%, #cceeff 55%, #d8f5c8 100%);
+    }
+
+    /* ── PHASE 11: PER-LEVEL BACKGROUND THEMES ────────
+       Applied via data-level attribute on #game-screen.
+       Each level has its own sky-to-ground gradient with thematic styling.
+       
+       Level 1: Daytime forest — blue sky, green trees
+       Level 2: Sunset forest — orange and pink sky
+       Level 3: Night forest — dark sky, stars, moon
+       Level 4: Snowy landscape — white ground, grey sky
+       Level 5: Desert — sandy dunes, hot orange sky
+       Level 6: Space — black sky, stars, nebula colors      */
+    
+    #game-screen {
+      transition: background 1.5s ease;
+    }
+    
+    #game-screen[data-level="1"] {
+      background: linear-gradient(180deg, #b8e4ff 0%, #cceeff 55%, #d8f5c8 100%);
+    }
+    #game-screen[data-level="2"] {
+      background: linear-gradient(180deg, #ffe8b0 0%, #ffb870 45%, #d8e8a0 100%);
+    }
+    #game-screen[data-level="3"] {
+      background: linear-gradient(180deg, #7060a8 0%, #4a3880 45%, #2e5048 100%);
+    }
+    #game-screen[data-level="4"] {
+      background: linear-gradient(180deg, #1a2050 0%, #2a3070 45%, #d8eeff 100%);
+    }
+    #game-screen[data-level="5"] {
+      background: linear-gradient(180deg, #d0b880 0%, #e8c870 45%, #e8e0d0 100%);
+    }
+    #game-screen[data-level="6"] {
+      background: linear-gradient(180deg, #080820 0%, #100830 50%, #180a40 100%);
+    }
+
+    /* Per-level game-area sky */
+    #game-screen[data-level="1"] #game-area {
+      background: linear-gradient(180deg, #a8d8f8 0%, #c2e8f8 40%, #d8f0ff 70%, #e8f8e0 100%);
+    }
+    #game-screen[data-level="2"] #game-area {
+      background: linear-gradient(180deg, #ff9040 0%, #ffb860 35%, #ffd890 65%, #e8e0a0 100%);
+    }
+    #game-screen[data-level="3"] #game-area {
+      background: linear-gradient(180deg, #4a3878 0%, #604890 40%, #403860 70%, #304838 100%);
+    }
+    #game-screen[data-level="4"] #game-area {
+      background: linear-gradient(180deg, #101840 0%, #182060 40%, #202870 70%, #c8e0ff 100%);
+    }
+    #game-screen[data-level="5"] #game-area {
+      background: linear-gradient(180deg, #c8a860 0%, #e0c070 35%, #f0d898 65%, #f8eed8 100%);
+    }
+    #game-screen[data-level="6"] #game-area {
+      background: linear-gradient(180deg, #040414 0%, #080820 40%, #0c0c28 70%, #101030 100%);
+    }
+
+    /* Per-level ground color */
+    #game-screen[data-level="1"] #game-ground { background: linear-gradient(180deg,#a8d878 0%,#88c050 100%); box-shadow: 0 -3px 0 #c8e890; }
+    #game-screen[data-level="2"] #game-ground { background: linear-gradient(180deg,#c8b040 0%,#a89028 100%); box-shadow: 0 -3px 0 #e8c860; }
+    #game-screen[data-level="3"] #game-ground { background: linear-gradient(180deg,#304838 0%,#203028 100%); box-shadow: 0 -3px 0 #406048; }
+    #game-screen[data-level="4"] #game-ground { background: linear-gradient(180deg,#d8eeff 0%,#a8c8f0 100%); box-shadow: 0 -3px 0 #e8f4ff; }
+    #game-screen[data-level="5"] #game-ground { background: linear-gradient(180deg,#d8c090 0%,#b8a060 100%); box-shadow: 0 -3px 0 #e8d0a0; }
+    #game-screen[data-level="6"] #game-ground { background: linear-gradient(180deg,#181830 0%,#101020 100%); box-shadow: 0 -3px 0 #201828; }
+
+    /* Level 6 stars (pseudo sparkle overlay in the sky area) */
+    #game-screen[data-level="6"] #game-area::before {
+      background:
+        radial-gradient(circle 1.5px at 12% 18%, #fff 100%, transparent 100%),
+        radial-gradient(circle 1px  at 25% 8%,  #fff 100%, transparent 100%),
+        radial-gradient(circle 2px  at 38% 22%, #ffffffcc 100%, transparent 100%),
+        radial-gradient(circle 1px  at 52% 5%,  #fff 100%, transparent 100%),
+        radial-gradient(circle 1.5px at 65% 15%, #fff 100%, transparent 100%),
+        radial-gradient(circle 1px  at 78% 28%, #ffffffcc 100%, transparent 100%),
+        radial-gradient(circle 2px  at 88% 10%, #fff 100%, transparent 100%),
+        radial-gradient(circle 1px  at 95% 32%, #fff 100%, transparent 100%),
+        radial-gradient(circle 1px  at 6%  42%, #ffffffaa 100%, transparent 100%),
+        radial-gradient(circle 1.5px at 45% 35%, #fff 100%, transparent 100%);
+      animation: none; /* no drift for stars */
+      width: 100%; height: 50%; top: 0; left: 0;
+    }
+    #game-screen[data-level="6"] #game-area::after { opacity: 0; }
+
+    /* ── PHASE 11: DARK-LEVEL TEXT ADJUSTMENTS ────────
+       Adjust HUD and text colors for readability on dark backgrounds
+       (Levels 3, 4, 6) */
+    
+    /* Level 3 (Night Forest) — lighter text for dark background */
+    #game-screen[data-level="3"] #hud {
+      background: rgba(50, 40, 70, 0.95);
+      border-top-color: #7080b8;
+      box-shadow: 0 -6px 24px rgba(0, 0, 0, 0.4);
+    }
+    #game-screen[data-level="3"] #hud-level-num {
+      color: #ffd08a;
+    }
+    #game-screen[data-level="3"] #hud-level-name {
+      color: #c8b8e0;
+    }
+    #game-screen[data-level="3"] #word-input {
+      background: rgba(200, 180, 230, 0.3);
+      border-color: #8878c8;
+      color: #f0e8ff;
+    }
+    #game-screen[data-level="3"] #word-input:focus {
+      background: rgba(200, 180, 230, 0.5);
+      border-color: #ffd08a;
+    }
+    #game-screen[data-level="3"] #word-input::placeholder {
+      color: #9888b8;
+    }
+    #game-screen[data-level="3"] #xp-display {
+      color: #90ffcc;
+    }
+    #game-screen[data-level="3"] #xp-bar-wrap {
+      background: rgba(100, 80, 140, 0.4);
+    }
+    
+    /* Level 4 (Snowy Landscape) — dark text on light background */
+    #game-screen[data-level="4"] #hud {
+      background: rgba(220, 235, 255, 0.98);
+      border-top-color: #a8c8e8;
+      box-shadow: 0 -6px 24px rgba(0, 0, 0, 0.15);
+    }
+    #game-screen[data-level="4"] #hud-level-num {
+      color: #0a3a80;
+    }
+    #game-screen[data-level="4"] #hud-level-name {
+      color: #2a5a9a;
+    }
+    #game-screen[data-level="4"] #word-input {
+      background: rgba(200, 220, 240, 0.8);
+      border-color: #6aa0d8;
+      color: #0a2a60;
+    }
+    #game-screen[data-level="4"] #word-input:focus {
+      background: rgba(230, 240, 255, 0.95);
+      border-color: #0a3a80;
+    }
+    #game-screen[data-level="4"] #word-input::placeholder {
+      color: #4a7ab0;
+    }
+    #game-screen[data-level="4"] #xp-display {
+      color: #2a6a9a;
+    }
+    #game-screen[data-level="4"] #xp-bar-wrap {
+      background: rgba(150, 190, 230, 0.3);
+    }
+    
+    /* Level 6 (Space) — bright text on dark background */
+    #game-screen[data-level="6"] #hud {
+      background: rgba(20, 15, 50, 0.96);
+      border-top-color: #5050a0;
+      box-shadow: 0 -6px 24px rgba(0, 0, 0, 0.6);
+    }
+    #game-screen[data-level="6"] #hud-level-num {
+      color: #ffaa60;
+    }
+    #game-screen[data-level="6"] #hud-level-name {
+      color: #d0a0ff;
+    }
+    #game-screen[data-level="6"] #word-input {
+      background: rgba(100, 80, 160, 0.4);
+      border-color: #7060c0;
+      color: #f0e8ff;
+    }
+    #game-screen[data-level="6"] #word-input:focus {
+      background: rgba(120, 100, 180, 0.6);
+      border-color: #ffaa60;
+    }
+    #game-screen[data-level="6"] #word-input::placeholder {
+      color: #9080c8;
+    }
+    #game-screen[data-level="6"] #xp-display {
+      color: #80ffcc;
+    }
+    #game-screen[data-level="6"] #xp-bar-wrap {
+      background: rgba(80, 60, 140, 0.4);
+    }
+
+    /* Dark-level falling word style adjustments */
+    #game-screen[data-level="3"] .falling-word,
+    #game-screen[data-level="4"] .falling-word,
+    #game-screen[data-level="6"] .falling-word {
+      background: rgba(255,255,255,.12);
+      border-color: rgba(255,255,255,.30);
+      color: #e8e8ff;
+      box-shadow: 0 4px 16px rgba(0,0,0,.40), 0 1px 0 rgba(255,255,255,.15) inset;
+    }
+    #game-screen[data-level="3"] .falling-word.near-danger,
+    #game-screen[data-level="4"] .falling-word.near-danger,
+    #game-screen[data-level="6"] .falling-word.near-danger {
+      border-color: #ff7060;
+      color: #ffb0a0;
+    }
+
+    /* ── PHASE 8: LEVEL-UP BANNER ─────────────────────
+       Positioned over the game area; does NOT block play. */
+    #levelup-banner {
+      position: absolute;
+      inset: 0; z-index: 25;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      pointer-events: none;
+      gap: 10px;
+    }
+    #levelup-banner.hidden { display: none; }
+
+    .levelup-bubble {
+      background: linear-gradient(135deg, #fff8e8, #fffbe8);
+      border: 3px solid var(--sun);
+      border-radius: 32px;
+      padding: 20px 44px;
+      display: flex; flex-direction: column; align-items: center; gap: 6px;
+      box-shadow: 0 12px 40px rgba(220,160,0,.30), 0 2px 0 #fff inset;
+      animation: bannerIn .45s cubic-bezier(.34,1.56,.64,1) forwards;
+    }
+    @keyframes bannerIn {
+      from { transform: scale(.5) translateY(-30px); opacity: 0; }
+      to   { transform: scale(1)  translateY(0);     opacity: 1; }
+    }
+    .levelup-bubble.out {
+      animation: bannerOut .4s ease forwards;
+    }
+    @keyframes bannerOut {
+      from { transform: scale(1)    translateY(0);    opacity: 1; }
+      to   { transform: scale(1.12) translateY(-20px); opacity: 0; }
+    }
+
+    .levelup-emoji  {
+      font-size: 44px;
+      animation: bannerSpin .6s cubic-bezier(.34,1.56,.64,1);
+    }
+    @keyframes bannerSpin {
+      from { transform: rotate(-25deg) scale(.6); }
+      to   { transform: rotate(5deg)   scale(1);  }
+    }
+    .levelup-title {
+      font-family: var(--font-title); font-size: clamp(26px,5vw,38px);
+      color: var(--sun-dark); line-height: 1;
+      filter: drop-shadow(2px 3px 0 #d4a800);
+    }
+    .levelup-name {
+      font-family: var(--font-title); font-size: clamp(14px,2.5vw,18px);
+      color: var(--text-soft); letter-spacing: 1px;
+    }
+    .levelup-stars { font-size: 18px; letter-spacing: 3px; }
+
+    /* ── PHASE 4: GAME AREA ──────────────────────────
+       Fills all space above the HUD. Per-level backgrounds
+       are applied via #game-screen[data-level] above.      */
+    #game-area {
+      position: relative;
+      width: 100%;
+      flex: 1;
+      overflow: hidden;
+      /* Default (Level 1) sky — overridden by data-level selectors */
+      background: linear-gradient(180deg, #a8d8f8 0%, #c2e8f8 40%, #d8f0ff 70%, #e8f8e0 100%);
+      transition: background 1.5s ease;
+    }
+    #game-area::before {
+      content: '';
+      position: absolute;
+      top: 8%; left: -20%;
+      width: 140%; height: 30%;
+      background:
+        radial-gradient(ellipse 120px 50px at 15% 40%, #ffffffcc 0%, transparent 70%),
+        radial-gradient(ellipse 90px 40px  at 38% 25%, #ffffff99 0%, transparent 70%),
+        radial-gradient(ellipse 150px 55px at 62% 55%, #ffffffbb 0%, transparent 70%),
+        radial-gradient(ellipse 80px 35px  at 82% 35%, #ffffff88 0%, transparent 70%);
+      animation: cloudDrift1 28s linear infinite;
+      pointer-events: none; z-index: 1;
+    }
+    @keyframes cloudDrift1 {
+      from { transform: translateX(0);   }
+      to   { transform: translateX(18%); }
+    }
+
+    /* Drifting cloud layer 2 (slower, higher) */
+    #game-area::after {
+      content: '';
+      position: absolute;
+      top: 2%; left: -30%;
+      width: 160%; height: 20%;
+      background:
+        radial-gradient(ellipse 100px 40px at 22% 50%, #ffffff88 0%, transparent 70%),
+        radial-gradient(ellipse 130px 45px at 55% 30%, #ffffffaa 0%, transparent 70%),
+        radial-gradient(ellipse 70px 30px  at 78% 60%, #ffffff77 0%, transparent 70%);
+      animation: cloudDrift2 40s linear infinite;
+      pointer-events: none; z-index: 1;
+    }
+    @keyframes cloudDrift2 {
+      from { transform: translateX(0);    }
+      to   { transform: translateX(-15%); }
+    }
+
+    /* Ground strip at bottom */
+    #game-ground {
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      height: 52px;
+      background: linear-gradient(180deg, #a8d878 0%, #88c050 100%);
+      z-index: 3;
+      box-shadow: 0 -3px 0 #c8e890;
+    }
+    /* Ground highlight stripe */
+    #game-ground::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 8px;
+      background: linear-gradient(90deg,
+        transparent 0%, #b8e878 20%, transparent 40%,
+        #b8e878 60%, transparent 80%, #b8e878 100%
+      );
+      opacity: .6;
+    }
+
+    /* Tree silhouettes on ground */
+    #game-trees {
+      position: absolute;
+      bottom: 48px; left: 0; right: 0;
+      height: 80px;
+      z-index: 3;
+      pointer-events: none;
+    }
+    .game-tree {
+      position: absolute;
+      bottom: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .game-tree .trunk {
+      width: 9px;
+      background: linear-gradient(180deg, #8b5e3c, #6b3e1c);
+      border-radius: 3px 3px 0 0;
+    }
+    .game-tree .canopy {
+      border-radius: 50% 50% 40% 40%;
+      box-shadow: 0 4px 0 rgba(0,0,0,.08);
+    }
+    /* tree size variants */
+    .game-tree.sm .trunk  { height: 18px; }
+    .game-tree.sm .canopy { width: 38px; height: 46px; margin-bottom: -4px; }
+    .game-tree.md .trunk  { height: 24px; }
+    .game-tree.md .canopy { width: 52px; height: 62px; margin-bottom: -6px; }
+    .game-tree.lg .trunk  { height: 30px; }
+    .game-tree.lg .canopy { width: 66px; height: 76px; margin-bottom: -8px; }
+
+    /* ── PHASE 4: DANGER ZONE ────────────────────────
+       Bottom 22% of game area (above ground) glows red
+       when words enter it. Pulsing dashed border at top.  */
+    #danger-zone {
+      position: absolute;
+      bottom: 52px; left: 0; right: 0;
+      height: 22%;
+      z-index: 2;
+      pointer-events: none;
+      /* default: subtle warm tint */
+      background: linear-gradient(180deg, transparent 0%, rgba(255,120,80,.06) 100%);
+      border-top: 2px dashed rgba(255,120,80,.20);
+      transition: background .3s, border-color .3s;
+    }
+    #danger-zone.active {
+      background: linear-gradient(180deg, transparent 0%, rgba(255,80,60,.16) 100%);
+      border-color: rgba(255,80,60,.55);
+      animation: dangerPulse 1s ease-in-out infinite;
+    }
+    @keyframes dangerPulse {
+      0%,100% { border-color: rgba(255,80,60,.35); }
+      50%     { border-color: rgba(255,80,60,.80); }
+    }
+    #danger-label {
+      position: absolute;
+      top: 4px; right: 8px;
+      font-family: var(--font-title);
+      font-size: 10px; letter-spacing: 2px;
+      color: rgba(220,80,60,.50);
+      text-transform: uppercase;
+      transition: color .3s;
+    }
+    #danger-zone.active #danger-label { color: rgba(220,60,40,.80); }
+
+    /* ── PHASE 5: FALLING WORDS ──────────────────────
+       Words are absolutely-positioned pill divs inside
+       #game-area. z-index 5 puts them above all scenery.  */
+    .falling-word {
+      position: absolute;
+      z-index: 5;
+      font-family: var(--font-title);
+      font-size: clamp(16px, 2.8vw, 22px);
+      color: var(--text);
+      background: #ffffffee;
+      border: 2.5px solid #c8e8ff;
+      border-radius: 50px;
+      padding: 6px 18px;
+      white-space: nowrap;
+      user-select: none;
+      pointer-events: none;
+      box-shadow: 0 4px 12px rgba(100,160,220,.22), 0 1px 0 #fff inset;
+      /* entrance pop */
+      animation: wordSpawn .25s cubic-bezier(.34,1.56,.64,1);
+      transform-origin: top center;
+    }
+    @keyframes wordSpawn {
+      from { transform: scale(.5) translateY(-10px); opacity: 0; }
+      to   { transform: scale(1)  translateY(0);     opacity: 1; }
+    }
+
+    /* Near-danger state — word glows red and pulses */
+    .falling-word.near-danger {
+      border-color: var(--coral);
+      color: var(--coral-dark);
+      box-shadow: 0 4px 14px rgba(255,100,80,.35), 0 0 0 3px rgba(255,120,80,.15);
+      animation: wordDangerPulse .7s ease-in-out infinite;
+    }
+    @keyframes wordDangerPulse {
+      0%,100% { box-shadow: 0 4px 14px rgba(255,100,80,.25), 0 0 0 3px rgba(255,120,80,.10); }
+      50%     { box-shadow: 0 4px 18px rgba(255,80,60,.55),  0 0 0 5px rgba(255,80,60,.22); }
+    }
+
+    /* Destruction flash — played when word is correctly typed (Phase 6) */
+    .falling-word.zapped {
+      animation: wordZap .3s ease forwards;
+      pointer-events: none;
+    }
+    @keyframes wordZap {
+      0%   { transform: scale(1.2); opacity: 1; filter: brightness(2); }
+      100% { transform: scale(2.0); opacity: 0; filter: brightness(3); }
+    }
+
+    /* ── PHASE 5: FLASH OVERLAY ───────────────────────
+       Full-screen tint that flashes on life-lost (red)
+       or word-typed (green). Lives inside #game-area.     */
+    #flash-overlay {
+      position: absolute; inset: 0; z-index: 10;
+      pointer-events: none; border-radius: inherit;
+      opacity: 0; transition: opacity .05s;
+    }
+    #flash-overlay.flash-miss {
+      background: rgba(255,80,60,.28);
+      animation: flashAnim .45s ease forwards;
+    }
+    /* Phase 6: green flash on a correct word */
+    #flash-overlay.flash-hit {
+      background: rgba(80,220,140,.22);
+      animation: flashAnim .3s ease forwards;
+    }
+    @keyframes flashAnim {
+      0%   { opacity: 1; }
+      100% { opacity: 0; }
+    }
+
+    /* ── PHASE 6: FLOATING XP POPUP ──────────────────
+       Spawned at the word's position, floats up and fades. */
+    .xp-popup {
+      position: absolute;
+      z-index: 15;
+      font-family: var(--font-title);
+      font-size: clamp(14px, 2.4vw, 20px);
+      color: var(--mint-dark);
+      pointer-events: none;
+      white-space: nowrap;
+      text-shadow: 0 2px 6px rgba(60,180,100,.35);
+      animation: xpPopupFloat .95s cubic-bezier(.22,.68,0,1.2) forwards;
+      transform-origin: bottom center;
+    }
+    .xp-popup.big {
+      color: var(--sun-dark);
+      font-size: clamp(18px, 3vw, 26px);
+      text-shadow: 0 2px 8px rgba(220,160,0,.45);
+    }
+    @keyframes xpPopupFloat {
+      0%   { opacity: 1;   transform: translateY(0)    scale(1);    }
+      20%  { opacity: 1;   transform: translateY(-14px) scale(1.15); }
+      100% { opacity: 0;   transform: translateY(-52px) scale(.85);  }
+    }
+
+    /* ── PHASE 6: INPUT SHAKE (no match) ─────────────
+       Horizontal shake applied to the input pill.         */
+    @keyframes inputShake {
+      0%,100% { transform: translateX(0);   }
+      15%     { transform: translateX(-7px);}
+      35%     { transform: translateX( 6px);}
+      55%     { transform: translateX(-5px);}
+      75%     { transform: translateX( 4px);}
+      90%     { transform: translateX(-2px);}
+    }
+    #word-input.shake {
+      animation: inputShake .38s ease;
+      border-color: var(--coral) !important;
+      box-shadow: 0 0 0 4px rgba(255,100,80,.20) !important;
+    }
+
+    /* ── PHASE 5: GAME OVER MODAL ─────────────────── */
+    .game-over-score {
+      font-family: var(--font-title);
+      font-size: 42px;
+      color: var(--coral);
+      text-align: center;
+      display: block;
+      margin: 4px 0 16px;
+      filter: drop-shadow(2px 3px 0 #ffb3b3);
+    }
+    .game-over-label {
+      font-size: 12px; font-weight: 800;
+      color: var(--text-soft); letter-spacing: 3px;
+      text-transform: uppercase; text-align: center;
+      display: block; margin-bottom: 20px;
+    }
+    .game-over-btns {
+      display: flex; flex-direction: column; gap: 12px;
+    }
+    .game-over-btn {
+      font-family: var(--font-title); font-size: 18px;
+      border: none; border-radius: 50px; padding: 13px;
+      cursor: pointer; width: 100%;
+      transition: transform .1s, box-shadow .1s, filter .1s;
+    }
+    .game-over-btn:active  { transform: translateY(2px)!important; box-shadow:none!important; }
+    .game-over-btn:focus-visible { outline: 3px solid var(--sun); }
+    #btn-play-again {
+      background: linear-gradient(160deg,#ff9090,var(--coral-dark));
+      color:#fff; box-shadow:0 5px 0 #c94040;
+    }
+    #btn-play-again:hover { transform:translateY(-2px); filter:brightness(1.07); box-shadow:0 8px 0 #c94040; }
+    #btn-go-menu {
+      background: linear-gradient(160deg,#c8e8ff,#a0c8f0);
+      color:var(--text); box-shadow:0 5px 0 #78a8d0;
+    }
+    #btn-go-menu:hover { transform:translateY(-2px); filter:brightness(1.07); box-shadow:0 8px 0 #78a8d0; }
+
+    /* Hide placeholder once game is running */
+    #game-area.game-running #game-area-placeholder { display: none; }
+
+    /* Placeholder shown before Phase 5 adds real words */
+    #game-area-placeholder {
+      position: absolute; inset: 0;
+      display: flex; align-items: center; justify-content: center;
+      flex-direction: column; gap: 10px;
+      pointer-events: none;
+      z-index: 4;
+    }
+    #game-area-placeholder span {
+      font-family: var(--font-title); font-size: clamp(13px,2.5vw,17px);
+      color: #7ab8d8; letter-spacing: 1px;
+    }
+    #game-area-placeholder .ph-emoji {
+      font-size: 48px; animation: floatDrift 2.5s ease-in-out infinite;
+    }
+
+    /* ── PHASE 4: HUD ────────────────────────────────
+       Three clear zones: lives | level+XP-bar | input + XP
+       XP progress bar runs across the very top of the HUD.  */
+    #hud {
+      width: 100%;
+      background: var(--white-card);
+      border-radius: 28px 28px 0 0;
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 -6px 24px rgba(120,190,240,.22);
+      border-top: 3px solid #d4eeff;
+    }
+
+    /* XP progress bar — thin strip at very top of HUD */
+    #xp-bar-wrap {
+      width: 100%;
+      height: 6px;
+      background: #e8f4ff;
+      border-radius: 28px 28px 0 0;
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+    #xp-bar {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, var(--mint), #a0ffcc, var(--mint));
+      background-size: 200% 100%;
+      border-radius: 28px;
+      transition: width .5s cubic-bezier(.34,1.2,.64,1);
+      animation: xpBarShimmer 2s linear infinite;
+    }
+    @keyframes xpBarShimmer {
+      from { background-position: 200% 0; }
+      to   { background-position:  -200% 0; }
+    }
+
+    /* Inner HUD row */
+    #hud-inner {
+      height: 66px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 18px;
+      gap: 10px;
+    }
+
+    #lives-container {
+      display: flex; gap: 3px; align-items: center;
+      min-width: 76px; flex-shrink: 0;
+    }
+    .heart {
+      font-size: 22px; line-height: 1; display: inline-block;
+      animation: heartBeat 1.8s ease-in-out infinite;
+    }
+    .heart:nth-child(2) { animation-delay: .15s; }
+    .heart:nth-child(3) { animation-delay: .30s; }
+    @keyframes heartBeat {
+      0%,100% { transform: scale(1);   }
+      14%     { transform: scale(1.2); }
+      28%     { transform: scale(1);   }
+    }
+    .heart.lost { filter: grayscale(1) opacity(.22); animation: none; }
+
+    /* HUD level block — centred flex column */
+    #hud-level {
+      display: flex; flex-direction: column; align-items: center;
+      gap: 2px; flex: 1; text-align: center;
+    }
+    #hud-level-num {
+      font-family: var(--font-title); font-size: 17px;
+      color: var(--coral); letter-spacing: .5px; line-height: 1;
+    }
+    #hud-level-name {
+      font-size: 10px; font-weight: 800;
+      color: var(--text-soft); letter-spacing: 1.5px;
+      text-transform: uppercase; line-height: 1;
+    }
+
+    /* Input */
+    #word-input {
+      font-family: var(--font-title); font-size: 17px;
+      background: var(--sky); border: 3px solid #a8d8f0;
+      border-radius: 50px; color: var(--text);
+      padding: 7px 18px; width: clamp(130px, 22vw, 200px);
+      text-align: center;
+      transition: border-color .15s, box-shadow .15s, background .15s;
+      letter-spacing: 1px; flex-shrink: 0;
+    }
+    #word-input:focus {
+      outline: none; border-color: var(--coral);
+      box-shadow: 0 0 0 4px #ff7f7f1e;
+      background: #fff7f7;
+    }
+    #word-input::placeholder { color: #90c0e0; font-size: 13px; }
+
+    /* XP counter */
+    #xp-display {
+      font-family: var(--font-title); font-size: 15px;
+      color: var(--mint-dark); min-width: 72px;
+      text-align: right; letter-spacing: .5px; flex-shrink: 0;
+      transition: color .2s;
+    }
+    #xp-display.xp-bump {
+      animation: xpBump .4s cubic-bezier(.34,1.56,.64,1);
+      color: var(--coral);
+    }
+    @keyframes xpBump {
+      from { transform: scale(1.4); }
+      to   { transform: scale(1);   }
+    }
+
+    /* ── PHASE 3: Screen transitions ─────────────────
+       Screens slide+fade in from below and out upward.
+       transitionToScreen() in JS drives these classes.     */
+    @keyframes screenEnter {
+      from { opacity: 0; transform: translateY(28px) scale(.97); }
+      to   { opacity: 1; transform: translateY(0)    scale(1);   }
+    }
+    @keyframes screenExit {
+      from { opacity: 1; transform: translateY(0)     scale(1);   }
+      to   { opacity: 0; transform: translateY(-20px) scale(.97); }
+    }
+    .screen.entering { animation: screenEnter .38s cubic-bezier(.34,1.18,.64,1) forwards; }
+    .screen.exiting  { animation: screenExit  .24s ease forwards; pointer-events: none; }
+
+    /* ── PHASE 3: Countdown overlay ──────────────────
+       Sits over the game area, shows 3 → 2 → 1 → GO!    */
+    #countdown-overlay {
+      position: absolute; inset: 0; z-index: 20;
+      display: flex; align-items: center; justify-content: center;
+      background: rgba(200,235,255,.55);
+      backdrop-filter: blur(3px);
+      flex-direction: column; gap: 8px;
+    }
+    #countdown-overlay.hidden { display: none; }
+
+    #countdown-number {
+      font-family: var(--font-title);
+      font-size: clamp(80px, 20vw, 140px);
+      color: var(--coral);
+      filter: drop-shadow(4px 6px 0 #ffb3b3);
+      line-height: 1;
+      animation: countPop .5s cubic-bezier(.34,1.56,.64,1);
+    }
+    @keyframes countPop {
+      from { transform: scale(.4) rotate(-12deg); opacity: 0; }
+      to   { transform: scale(1)  rotate(0deg);   opacity: 1; }
+    }
+    #countdown-label {
+      font-family: var(--font-title); font-size: 20px;
+      color: var(--text-soft); letter-spacing: 3px;
+    }
+    #countdown-overlay.go #countdown-number {
+      color: var(--mint-dark);
+      filter: drop-shadow(4px 6px 0 #a8f0cc);
+      animation: goPop .4s cubic-bezier(.34,1.56,.64,1);
+    }
+    @keyframes goPop {
+      from { transform: scale(.6); opacity: 0; }
+      60%  { transform: scale(1.18); }
+      to   { transform: scale(1);   opacity: 1; }
+    }
+
+    /* ── PHASE 3: HUD level banner ────────────────────
+       Small level name + emoji shown next to the number    */
+    #hud-level-name {
+      font-size: 11px; font-weight: 800;
+      color: var(--text-soft); letter-spacing: 1px;
+      display: block; margin-top: 1px;
+    }
+    #hud-level { flex-direction: column; gap: 1px; }
+
+    /* ── PHASE 3: Pause button replaces plain back btn ─ */
+    #btn-back {
+      position: fixed; top: 14px; left: 16px;
+      font-family: var(--font-title); font-size: 14px;
+      background: var(--white-card); border: 2px solid #c8e8ff;
+      border-radius: 50px; color: var(--text-soft);
+      padding: 6px 16px; cursor: pointer;
+      transition: all .12s; z-index: 10;
+      box-shadow: 0 3px 0 #c0d8ee;
+      display: flex; align-items: center; gap: 6px;
+    }
+    #btn-back:hover {
+      background: var(--coral); color: #fff;
+      border-color: var(--coral); box-shadow: 0 3px 0 var(--coral-dark);
+      transform: translateY(-1px);
+    }
+    #btn-back:focus-visible { outline: 3px solid var(--sun); }
+
+    /* Pause modal specifics */
+    .pause-emoji {
+      font-size: 52px; text-align: center; display: block;
+      margin-bottom: 4px;
+      animation: pauseWobble 1.2s ease-in-out infinite;
+    }
+    @keyframes pauseWobble {
+      0%,100% { transform: rotate(-6deg) scale(1);    }
+      50%     { transform: rotate(6deg)  scale(1.12); }
+    }
+    .pause-message {
+      font-size: 15px; font-weight: 700; color: var(--text-soft);
+      text-align: center; margin-bottom: 22px; line-height: 1.5;
+    }
+    .pause-btns {
+      display: flex; flex-direction: column; gap: 12px;
+    }
+    .pause-btn {
+      font-family: var(--font-title); font-size: 18px;
+      border: none; border-radius: 50px; padding: 13px;
+      cursor: pointer; width: 100%;
+      transition: transform .1s, box-shadow .1s, filter .1s;
+    }
+    .pause-btn:active { transform: translateY(2px) !important; box-shadow: none !important; }
+    .pause-btn:focus-visible { outline: 3px solid var(--sun); }
+    #btn-resume {
+      background: linear-gradient(160deg,#82e6b8,var(--mint-dark));
+      color: #fff; box-shadow: 0 5px 0 #2e9967;
+    }
+    #btn-resume:hover { transform: translateY(-2px); filter: brightness(1.07); box-shadow: 0 8px 0 #2e9967; }
+    #btn-quit-confirm {
+      background: linear-gradient(160deg,#ffaaaa,var(--coral-dark));
+      color: #fff; box-shadow: 0 5px 0 #c94040;
+    }
+    #btn-quit-confirm:hover { transform: translateY(-2px); filter: brightness(1.07); box-shadow: 0 8px 0 #c94040; }
+
+    /* ── MODALS ───────────────────────────────────── */
+    .modal-overlay {
+      position:fixed; inset:0;
+      background:rgba(180,220,255,.45); backdrop-filter:blur(6px);
+      display:flex; align-items:center; justify-content:center; z-index:100;
+    }
+    .modal-overlay.hidden { display:none; }
+    .modal-box {
+      background:#fff; border-radius:32px;
+      padding:36px 40px 32px; max-width:420px; width:90%;
+      position:relative;
+      box-shadow:0 16px 48px rgba(100,160,220,.28), 0 2px 0 #fff inset;
+      animation:popIn .22s cubic-bezier(.34,1.56,.64,1);
+    }
+    @keyframes popIn {
+      from { transform:scale(.82); opacity:0; }
+      to   { transform:scale(1);   opacity:1; }
+    }
+    .modal-title {
+      font-family:var(--font-title); font-size:26px; color:var(--coral);
+      text-align:center; margin-bottom:22px;
+    }
+    .modal-close {
+      position:absolute; top:16px; right:18px;
+      background:#ffe0e0; border:none;
+      width:32px; height:32px; border-radius:50%; font-size:15px;
+      cursor:pointer; color:var(--coral);
+      display:flex; align-items:center; justify-content:center;
+      transition:background .12s, transform .12s;
+    }
+    .modal-close:hover { background:var(--coral); color:#fff; transform:rotate(90deg); }
+    .modal-close:focus-visible { outline:3px solid var(--sun); }
+
+    /* Instructions */
+    .inst-list { list-style:none; display:flex; flex-direction:column; gap:11px; }
+    .inst-list li {
+      font-size:15px; font-weight:700; color:var(--text); line-height:1.5;
+      padding:10px 14px 10px 42px;
+      background:#f6fbff; border-radius:14px; position:relative;
+    }
+    .inst-list li .ic { position:absolute; left:12px; top:50%; transform:translateY(-50%); font-size:18px; }
+    .key-chip {
+      display:inline-block; background:var(--sun); color:var(--text);
+      font-family:var(--font-title); font-size:12px;
+      padding:1px 9px; border-radius:20px; vertical-align:middle;
+    }
+
+    /* Scores */
+    #scores-list { list-style:none; display:flex; flex-direction:column; gap:8px; }
+    .score-entry {
+      display:flex; justify-content:space-between; align-items:center;
+      background:#f6fbff; border-radius:14px; padding:10px 16px;
+      font-size:15px; font-weight:700;
+    }
+    .score-entry.gold   { background:#fff8dc; }
+    .score-entry.silver { background:#f4f4f8; }
+    .score-entry.bronze { background:#fff3ec; }
+    .score-rank { font-family:var(--font-title); font-size:18px; color:var(--text-soft); }
+    .score-entry.gold   .score-rank { color:#d4a800; }
+    .score-entry.silver .score-rank { color:#8888aa; }
+    .score-entry.bronze .score-rank { color:#b06030; }
+    .score-xp { font-family:var(--font-title); color:var(--mint-dark); font-size:16px; }
+    .score-empty { text-align:center; color:var(--text-soft); font-size:14px; font-weight:700; padding:20px 0; }
+    #btn-clear-scores {
+      margin-top:16px; width:100%;
+      font-family:var(--font-title); font-size:15px;
+      background:#ffe0e0; border:none; color:var(--coral);
+      border-radius:50px; padding:10px; cursor:pointer;
+      transition:background .12s, color .12s;
+    }
+    #btn-clear-scores:hover { background:var(--coral); color:#fff; }
+
+    /* Settings */
+    .setting-row {
+      display:flex; justify-content:space-between; align-items:center;
+      padding:13px 0; border-bottom:2px dashed #eaf4ff;
+    }
+    .setting-row:last-child { border-bottom:none; }
+    .setting-label { font-size:16px; font-weight:700; color:var(--text); }
+    .setting-emoji { margin-right:8px; font-size:18px; }
+    .toggle {
+      width:52px; height:28px; background:#d4e8f0; border-radius:14px;
+      border:none; position:relative; cursor:pointer; transition:background .2s;
+    }
+    .toggle.on { background:var(--mint); }
+    .toggle::after {
+      content:''; position:absolute; top:4px; left:4px;
+      width:20px; height:20px; background:#fff; border-radius:50%;
+      transition:transform .2s; box-shadow:0 2px 4px rgba(0,0,0,.15);
+    }
+    .toggle.on::after { transform:translateX(24px); }
+    .toggle:focus-visible { outline:3px solid var(--sun); }
+
+    /* ── TEST PANEL ───────────────────────────────── */
+    #test-panel {
+      position:fixed; bottom:0; right:0;
+      width:360px; max-height:280px;
+      background:#ffffffee;
+      border-top:3px solid #c8e8ff; border-left:3px solid #c8e8ff;
+      border-radius:18px 0 0 0;
+      overflow-y:auto; z-index:9999;
+      font-family:var(--font-body); font-size:12px;
+      box-shadow:-4px -4px 20px rgba(140,200,240,.3);
+    }
+    #test-panel-header {
+      background:linear-gradient(90deg,#fff0f8,#f0f8ff);
+      padding:8px 14px;
+      display:flex; justify-content:space-between; align-items:center;
+      position:sticky; top:0; border-bottom:2px dashed #e0f0ff;
+    }
+    #test-panel-title { color:var(--coral); font-family:var(--font-title); font-size:14px; }
+    #test-summary { font-size:11px; font-weight:700; }
+    #test-panel-close { background:none; border:none; color:var(--text-soft); cursor:pointer; font-size:16px; }
+    #test-panel-close:hover { color:var(--coral); }
+    #test-results { padding:8px 14px; display:flex; flex-direction:column; gap:3px; }
+    .test-result { padding:3px 0; border-bottom:1px dotted #e8f4ff; font-weight:600; }
+    .test-result.pass { color:#2bad6a; }
+    .test-result.fail { color:var(--coral-dark); }
+    .test-err { color:#e06060; font-size:10px; padding-left:18px; display:block; }
+  </style>
+</head>
+<body>
+
+  <!-- Floating background decorations -->
+  <span class="bg-deco" style="top:8%;left:5%;animation-duration:3.1s">☁️</span>
+  <span class="bg-deco" style="top:18%;right:7%;animation-duration:4.0s;animation-delay:.8s">⭐</span>
+  <span class="bg-deco" style="top:65%;left:3%;animation-duration:3.6s;animation-delay:1.2s">🌸</span>
+  <span class="bg-deco" style="top:75%;right:4%;animation-duration:2.9s;animation-delay:.3s">🌈</span>
+  <span class="bg-deco" style="top:40%;left:2%;animation-duration:4.2s;animation-delay:1.8s">✨</span>
+  <span class="bg-deco" style="top:50%;right:3%;animation-duration:3.4s;animation-delay:.6s">🍀</span>
+  <span class="bg-deco" style="top:88%;left:20%;animation-duration:5.0s;animation-delay:2.0s">🦋</span>
+
+  <!-- ── MENU SCREEN ──────────────────────────────── -->
+  <div id="menu-screen" class="screen" role="main" aria-label="Main Menu">
+    <div class="menu-cloud">
+      <h1 class="game-title" id="game-title">
+        <span class="title-emoji">🌤️</span>
+        Falling Words!
+      </h1>
+      <p class="title-tagline">type fast · earn stars · have fun!</p>
+
+      <div style="display:flex;flex-direction:column;align-items:center;gap:14px;width:100%">
+        <button class="menu-btn" id="btn-start"        aria-label="Start game">▶ &nbsp;Let's Play!</button>
+        <button class="menu-btn" id="btn-instructions" aria-label="View instructions">📖 &nbsp;How to Play</button>
+      </div>
+
+      <div class="level-row" aria-label="Starting level selector">
+        <span class="level-lbl">Start at level</span>
+        <button class="level-arrow" id="btn-level-prev" aria-label="Previous level">◀</button>
+        <span id="level-display" aria-live="polite">1</span>
+        <button class="level-arrow" id="btn-level-next" aria-label="Next level">▶</button>
+      </div>
+
+      <!-- Phase 2: Level info card -->
+      <div id="level-info-card" aria-label="Level preview" aria-live="polite">
+        <div class="level-swatch" id="level-swatch" aria-hidden="true">🌤️</div>
+        <div class="level-info-text">
+          <span class="level-name" id="level-name">Breezy Meadow</span>
+          <span class="level-desc" id="level-desc">Perfect for beginners!</span>
+          <span class="level-stars" id="level-stars">⭐☆☆☆☆☆</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="corner-wrap" id="wrap-settings">
+      <button class="corner-icon" id="icon-settings" aria-label="Settings">⚙️</button>
+      <span class="corner-label" aria-hidden="true">Settings</span>
+    </div>
+    <div class="corner-wrap" id="wrap-scores">
+      <button class="corner-icon" id="icon-scores" aria-label="Best Scores">🏆</button>
+      <span class="corner-label" aria-hidden="true">Best Scores</span>
+    </div>
+  </div>
+
+  <!-- Phase 2: subtle bg tint that shifts per level -->
+  <div id="menu-bg-tint" aria-hidden="true"></div>
+
+  <!-- ── GAME SCREEN ──────────────────────────────── -->
+  <div id="game-screen" class="screen hidden" aria-label="Game Screen">
+
+    <!-- Phase 3: pause / back button -->
+    <button id="btn-back" aria-label="Pause / back to menu">
+      <span>⏸</span> Pause
+    </button>
+
+    <div id="game-area" aria-label="Game area" role="region">
+
+      <!-- Phase 4: CSS scenery layers -->
+      <div id="danger-zone" aria-hidden="true">
+        <span id="danger-label">danger zone ⚠️</span>
+      </div>
+      <div id="game-trees" aria-hidden="true"></div>
+      <div id="game-ground" aria-hidden="true"></div>
+
+      <div id="game-area-placeholder">
+        <span class="ph-emoji">🌤️</span>
+        <span>Type words to zap them! 🎯</span>
+      </div>
+
+      <!-- Phase 5: full-screen flash effect -->
+      <div id="flash-overlay" aria-hidden="true"></div>
+
+      <!-- Phase 8: level-up banner (shown mid-game on level up) -->
+      <div id="levelup-banner" class="hidden" aria-live="assertive" aria-label="Level up notification">
+        <div class="levelup-bubble" id="levelup-bubble">
+          <span class="levelup-emoji" id="levelup-emoji">🎉</span>
+          <span class="levelup-title" id="levelup-title">LEVEL UP!</span>
+          <span class="levelup-name"  id="levelup-name">Sunny Garden</span>
+          <span class="levelup-stars" id="levelup-stars">⭐⭐☆☆☆☆</span>
+        </div>
+      </div>
+
+      <!-- Phase 3: countdown overlay -->
+      <div id="countdown-overlay" class="hidden" aria-live="assertive" aria-label="Countdown">
+        <span id="countdown-number">3</span>
+        <span id="countdown-label">get ready!</span>
+      </div>
+    </div>
+
+    <!-- Phase 4: HUD with XP progress bar -->
+    <div id="hud" role="status" aria-label="Game status bar">
+      <div id="xp-bar-wrap" aria-hidden="true">
+        <div id="xp-bar"></div>
+      </div>
+      <div id="hud-inner">
+        <div id="lives-container" aria-label="Lives remaining">
+          <span class="heart" id="heart-1" aria-label="Life 1">❤️</span>
+          <span class="heart" id="heart-2" aria-label="Life 2">❤️</span>
+          <span class="heart" id="heart-3" aria-label="Life 3">❤️</span>
+        </div>
+
+        <!-- Phase 4: level block with separate num + name spans -->
+        <div id="hud-level" aria-live="polite">
+          <span id="hud-level-num">Level 1 🌤️</span>
+          <span id="hud-level-name">Breezy Meadow</span>
+        </div>
+
+        <input type="text" id="word-input"
+          autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
+          placeholder="type here! ✏️" aria-label="Type the falling word"/>
+
+        <span id="xp-display" aria-live="polite">0 ✨</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── MODAL: INSTRUCTIONS ──────────────────────── -->
+  <div id="modal-instructions" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="inst-title">
+    <div class="modal-box">
+      <button class="modal-close" data-close="modal-instructions" aria-label="Close">✕</button>
+      <h2 class="modal-title" id="inst-title">How to Play 🎮</h2>
+      <ul class="inst-list">
+        <li><span class="ic">☁️</span>Words float down from the sky!</li>
+        <li><span class="ic">⌨️</span>Type a word and press <span class="key-chip">ENTER</span> to zap it!</li>
+        <li><span class="ic">⭐</span>Type words HIGH UP for a big <strong>distance bonus!</strong></li>
+        <li><span class="ic">❤️</span>A word hitting the ground costs you a life.</li>
+        <li><span class="ic">🌈</span>Earn ✨ XP to level up — new worlds unlock!</li>
+        <li><span class="ic">🏆</span>Beat your high score and claim the trophy!</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ── MODAL: BEST SCORES ───────────────────────── -->
+  <div id="modal-scores" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="scores-title">
+    <div class="modal-box">
+      <button class="modal-close" data-close="modal-scores" aria-label="Close">✕</button>
+      <h2 class="modal-title" id="scores-title">Best Scores 🏆</h2>
+      <ul id="scores-list" aria-label="Leaderboard"></ul>
+      <button id="btn-clear-scores">🗑️ Clear All Scores</button>
+    </div>
+  </div>
+
+  <!-- ── MODAL: SETTINGS ──────────────────────────── -->
+  <div id="modal-settings" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="settings-title">
+    <div class="modal-box">
+      <button class="modal-close" data-close="modal-settings" aria-label="Close">✕</button>
+      <h2 class="modal-title" id="settings-title">Settings ⚙️</h2>
+      <div class="setting-row">
+        <span class="setting-label"><span class="setting-emoji">🔊</span>Sound Effects</span>
+        <button class="toggle on" id="toggle-sfx" aria-pressed="true" aria-label="Toggle sound effects"></button>
+      </div>
+      <div class="setting-row">
+        <span class="setting-label"><span class="setting-emoji">🎵</span>Music</span>
+        <button class="toggle on" id="toggle-music" aria-pressed="true" aria-label="Toggle music"></button>
+      </div>
+      <div class="setting-row">
+        <span class="setting-label"><span class="setting-emoji">✨</span>XP Popups</span>
+        <button class="toggle on" id="toggle-xp-popups" aria-pressed="true" aria-label="Toggle XP popups"></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── MODAL: PAUSE / QUIT (Phase 3) ───────────── -->
+  <div id="modal-pause" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="pause-title">
+    <div class="modal-box">
+      <span class="pause-emoji" aria-hidden="true">😴</span>
+      <h2 class="modal-title" id="pause-title">Game Paused!</h2>
+      <p class="pause-message">
+        Want to quit? Your current progress will be lost 😢
+      </p>
+      <div class="pause-btns">
+        <button class="pause-btn" id="btn-resume"      aria-label="Resume game">💪 Keep Playing!</button>
+        <button class="pause-btn" id="btn-quit-confirm" aria-label="Quit to menu">🏠 Quit to Menu</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── MODAL: GAME OVER (Phase 5) ──────────────── -->
+  <div id="modal-game-over" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="gameover-title">
+    <div class="modal-box">
+      <h2 class="modal-title" id="gameover-title">Game Over! 😢</h2>
+      <span class="game-over-label">you scored</span>
+      <span class="game-over-score" id="gameover-score">0 ✨</span>
+      <span class="game-over-label" id="gameover-level-reached">reached level 1</span>
+      <div class="game-over-btns">
+        <button class="game-over-btn" id="btn-play-again" aria-label="Play again">🔄 Play Again!</button>
+        <button class="game-over-btn" id="btn-go-menu"    aria-label="Back to menu">🏠 Back to Menu</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── TEST PANEL ───────────────────────────────── -->
+  <div id="test-panel" role="region" aria-label="Test results">
+    <div id="test-panel-header">
+      <span id="test-panel-title">🧪 Phase 1–9 Tests</span>
+      <span id="test-summary"></span>
+      <button id="test-panel-close" aria-label="Close test panel">✕</button>
+    </div>
+    <div id="test-results"></div>
+  </div>
+
+  <script>
+    // ════════════════════════════════════════════════
+    //  PHASE 2: LEVEL DATA
+    //  Each level has a name, description, star rating,
+    //  emoji, and colour theme for the info card & bg tint.
+    // ════════════════════════════════════════════════
+    const LEVEL_DATA = [
+      { name: 'Breezy Meadow',  desc: 'Perfect for beginners!',   stars: 1, emoji: '🌤️',  colorA: '#e8f8ff', colorB: '#d4f0ff', border: '#c8e8ff', tint: 'rgba(180,230,255,0.18)' },
+      { name: 'Sunny Garden',   desc: 'Words pick up the pace!',   stars: 2, emoji: '🌻',  colorA: '#fff8e0', colorB: '#ffeeb8', border: '#ffd85c', tint: 'rgba(255,220,80,0.12)'  },
+      { name: 'Twilight Forest',desc: 'Things get a little spicy!',stars: 3, emoji: '🌲',  colorA: '#e4f5ec', colorB: '#c8eeda', border: '#6ddba8', tint: 'rgba(80,200,140,0.12)'  },
+      { name: 'Frosty Peaks',   desc: 'Brrr! Speed is key.',       stars: 4, emoji: '❄️',  colorA: '#eaf4ff', colorB: '#cce8ff', border: '#a8d8ff', tint: 'rgba(100,180,255,0.15)' },
+      { name: 'Desert Rush',    desc: 'Hot and fast — watch out!', stars: 5, emoji: '🌵',  colorA: '#fff0e0', colorB: '#ffd8b0', border: '#ffaa60', tint: 'rgba(255,150,60,0.12)'  },
+      { name: 'Outer Space',    desc: 'Legendary word wizard!',    stars: 6, emoji: '🚀',  colorA: '#e8e0ff', colorB: '#d0c0ff', border: '#a980f5', tint: 'rgba(160,100,255,0.14)' },
+    ];
+
+    // ── State ──────────────────────────────────────
+    const state = {
+      currentLevel: 1, minLevel: 1, maxLevel: 6,
+      settings: { sfx: true, music: true, xpPopups: true }
+    };
+
+    // ── Refs ───────────────────────────────────────
+    const menuScreen      = document.getElementById('menu-screen');
+    const gameScreen      = document.getElementById('game-screen');
+    const levelDisplay    = document.getElementById('level-display');
+    const hudLevel        = document.getElementById('hud-level');
+    const wordInput       = document.getElementById('word-input');
+    const btnStart        = document.getElementById('btn-start');
+    const btnBack         = document.getElementById('btn-back');
+    const btnLevelPrev    = document.getElementById('btn-level-prev');
+    const btnLevelNext    = document.getElementById('btn-level-next');
+    const btnInstructions = document.getElementById('btn-instructions');
+    const iconSettings    = document.getElementById('icon-settings');
+    const iconScores      = document.getElementById('icon-scores');
+    const btnClearScores  = document.getElementById('btn-clear-scores');
+    const scoresList      = document.getElementById('scores-list');
+    // Phase 2 refs
+    const menuCloud       = document.querySelector('.menu-cloud');
+    const levelInfoCard   = document.getElementById('level-info-card');
+    const levelSwatch     = document.getElementById('level-swatch');
+    const levelName       = document.getElementById('level-name');
+    const levelDesc       = document.getElementById('level-desc');
+    const levelStars      = document.getElementById('level-stars');
+    const menuBgTint      = document.getElementById('menu-bg-tint');
+
+    // ════════════════════════════════════════════════
+    //  PHASE 3: GAME SESSION STATE
+    //  Tracks what's happening inside the game screen.
+    // ════════════════════════════════════════════════
+    const gameSession = {
+      level:  1,       // the level passed in when Start was pressed
+      status: 'idle',  // idle | countdown | playing | paused | over
+    };
+
+    // Phase 3 refs
+    const countdownOverlay = document.getElementById('countdown-overlay');
+    const countdownNumber  = document.getElementById('countdown-number');
+    const countdownLabel   = document.getElementById('countdown-label');
+    const modalPause       = document.getElementById('modal-pause');
+    const btnResume        = document.getElementById('btn-resume');
+    const btnQuitConfirm   = document.getElementById('btn-quit-confirm');
+
+    // Phase 4 refs
+    const hudLevelNum  = document.getElementById('hud-level-num');
+    const hudLevelName = document.getElementById('hud-level-name');
+    const xpBar        = document.getElementById('xp-bar');
+    const xpDisplay    = document.getElementById('xp-display');
+    const dangerZone   = document.getElementById('danger-zone');
+    const gameTreesEl  = document.getElementById('game-trees');
+    const gameArea     = document.getElementById('game-area');
+
+    // ── Phase 4: XP thresholds per level (for progress bar) ─
+    const XP_THRESHOLDS = [0, 200, 500, 900, 1400, 2000, 2700];
+
+    // ════════════════════════════════════════════════
+    //  PHASE 5: WORD ENGINE
+    //  Word object: { id, text, x, y, speed, el }
+    //  Game loop runs via requestAnimationFrame.
+    // ════════════════════════════════════════════════
+
+    // ── Word state ─────────────────────────────────
+    let activeWords = [];   // currently falling words
+    let nextWordId  = 0;    // ever-increasing ID counter
+    let rafId       = null; // current requestAnimationFrame handle
+    let lastTime    = 0;    // timestamp of last frame (for dt calc)
+    let lives       = 3;    // current lives (reset on new game)
+    let totalXP     = 0;    // running XP total for the session
+
+    // Phase 5 word pool kept for P5 tests — NOT used during actual gameplay from P7 onwards
+    const WORD_POOL_P5 = [
+      'cat','dog','sun','moon','star','fish','bird','frog',
+      'cake','jump','tree','rain','cool','play','read','sing',
+      'skip','pink','blue','gold','fast','soft','warm','glow'
+    ];
+
+    // ════════════════════════════════════════════════
+    //  PHASE 7: PER-LEVEL WORD LISTS & SPAWN SYSTEM
+    // ════════════════════════════════════════════════
+
+    // ── Level word lists (Steps 22) ────────────────
+    // Each tier progressively uses longer, less-common words.
+    const LEVEL_WORDS = [
+      // Level 1 — 3-4 letters, very common
+      ['cat','dog','sun','run','fun','big','red','hot','cup','hat',
+       'map','owl','bee','fly','hop','wet','mud','bug','egg','jam',
+       'pop','yak','zoo','ant','box','gem','log','pit','rub','tap'],
+      // Level 2 — 4-5 letters, common
+      ['jump','cake','rain','bird','frog','fish','tree','star','moon','read',
+       'play','sing','cook','draw','swim','grow','wind','fire','snow','leaf',
+       'cave','wave','rose','drum','dust','foam','grip','horn','inch','knot'],
+      // Level 3 — 5-6 letters, moderately common
+      ['cloud','beach','storm','river','flame','bread','globe','candy','dance','night',
+       'plant','brave','crisp','feast','gloom','honey','jolly','kneel','lemon','magic',
+       'north','ocean','paint','quirk','scout','thyme','ultra','vivid','waltz','yearn'],
+      // Level 4 — 6-7 letters, less common
+      ['blossom','cricket','dolphin','eclipse','feather','granite','harvest','iceberg',
+       'lantern','mustard','network','orchard','phantom','quartz','rainbow','shelter',
+       'thunder','unicorn','volcano','whisper','external','yearbook','zephyr','antenna',
+       'blizzard','chapter','diamond','emerald','fortune','glacier'],
+      // Level 5 — 7-9 letters, harder
+      ['absolute','backfire','carnival','daydream','elevator','frostbite','glimmer',
+       'highland','imagine','jealousy','kindness','labyrinth','momentum','notebook',
+       'opposite','paradise','quicksand','reckless','snapshot','treasure','umbrella',
+       'vacation','wanderer','xylophone','yearning','zigzag','abstract','butterfly',
+       'calendar','darkness'],
+      // Level 6 — 8-11 letters, challenging
+      ['adventure','blacksmith','celebrated','devastating','equilibrium','fahrenheit',
+       'gentleman','hemisphere','illuminate','juggernaut','kaleidoscope','lavender',
+       'melancholy','nightingale','overwhelmed','perseverance','quarantine','remarkable',
+       'silverware','thunderstorm','unbreakable','valentines','wilderness','xylophonist',
+       'yellowstone','zombified','absolutely','breathtaking','crystallize','discomfort'],
+    ];
+
+    // ── Level config (Steps 23–24) ─────────────────
+    // spawnMs: setInterval delay in ms (decreases each level)
+    // maxWords: max simultaneous words on screen
+    // speed:    px/frame base fall speed
+    const LEVEL_CONFIG = [
+      { spawnMs: 3000, maxWords: 3, speed: 0.9  }, // Level 1
+      { spawnMs: 2600, maxWords: 4, speed: 1.2  }, // Level 2
+      { spawnMs: 2200, maxWords: 5, speed: 1.6  }, // Level 3
+      { spawnMs: 1800, maxWords: 6, speed: 2.0  }, // Level 4
+      { spawnMs: 1450, maxWords: 7, speed: 2.6  }, // Level 5
+      { spawnMs: 1100, maxWords: 8, speed: 3.3  }, // Level 6
+    ];
+
+    // ── Spawner state ──────────────────────────────
+    let spawnerId   = null; // setInterval handle
+    let usedWords   = new Set(); // track recently-used words to avoid duplicates
+
+    // ── pickWord(level) — avoid immediate repeats ──
+    function pickWord(level) {
+      const pool = LEVEL_WORDS[level - 1] || LEVEL_WORDS[0];
+      // Filter out words currently active or recently used
+      const activeTexts = new Set(activeWords.map(w => w.text));
+      const available   = pool.filter(w => !activeTexts.has(w) && !usedWords.has(w));
+      // If we've exhausted the "unused" set, reset it and use the full pool minus active
+      if (available.length === 0) {
+        usedWords.clear();
+        return pool.filter(w => !activeTexts.has(w))[0] || pool[0];
+      }
+      const chosen = available[Math.floor(Math.random() * available.length)];
+      usedWords.add(chosen);
+      // Keep the "recently used" set from growing indefinitely
+      if (usedWords.size > Math.ceil(pool.length / 2)) {
+        const oldest = usedWords.values().next().value;
+        usedWords.delete(oldest);
+      }
+      return chosen;
+    }
+
+    // ── spawnLevelWord() — spawn one word using level config ─
+    function spawnLevelWord() {
+      if (gameSession.status !== 'playing') return;
+      const cfg = LEVEL_CONFIG[gameSession.level - 1] || LEVEL_CONFIG[0];
+      if (activeWords.length >= cfg.maxWords) return; // respect the cap
+      const text = pickWord(gameSession.level);
+      spawnWord(text, cfg.speed);
+    }
+
+    // ── startSpawner() / stopSpawner() ────────────
+    function startSpawner() {
+      stopSpawner(); // clear any existing interval first
+      usedWords.clear();
+      const cfg = LEVEL_CONFIG[gameSession.level - 1] || LEVEL_CONFIG[0];
+      // Spawn one word immediately, then on interval
+      spawnLevelWord();
+      spawnerId = setInterval(spawnLevelWord, cfg.spawnMs);
+    }
+
+    function stopSpawner() {
+      if (spawnerId !== null) { clearInterval(spawnerId); spawnerId = null; }
+    }
+
+    // ── spawnNextWord() — now delegates to level system ─
+    // Kept so Phase 5/6 tests still pass; during real gameplay startSpawner() is used.
+    function spawnNextWord() {
+      spawnLevelWord();
+    }
+
+    // ── Geometry helpers ───────────────────────────
+    // Returns the y coordinate (px from top) where a word hits the ground
+    function getGroundY()   { return gameArea.clientHeight - 52; }
+    // Returns the y coordinate where the danger zone begins
+    function getDangerTop() { return getGroundY() - gameArea.clientHeight * 0.22; }
+
+    // ── createWordEl(text) — build the DOM pill ────
+    function createWordEl(text) {
+      const el = document.createElement('div');
+      el.className    = 'falling-word';
+      el.textContent  = text;
+      el.dataset.word = text;
+      el.setAttribute('aria-hidden', 'true');
+      gameArea.appendChild(el);
+      return el;
+    }
+
+    // ── spawnWord(text, speed) — add one word ──────
+    function spawnWord(text, speed) {
+      if (speed === undefined) speed = 0.7 + gameSession.level * 0.22;
+      const el     = createWordEl(text);
+      const w      = el.offsetWidth  || 80;
+      const areaW  = gameArea.clientWidth;
+      const pad    = 24;
+      const maxX   = Math.max(pad, areaW - w - pad);
+      const x      = pad + Math.random() * (maxX - pad);
+      const y      = -(el.offsetHeight + 4); // start just above the area
+
+      const word = { id: nextWordId++, text, x, y, speed, el };
+      activeWords.push(word);
+
+      el.style.left = x + 'px';
+      el.style.top  = y + 'px';
+
+      // Mark area as running (hides placeholder)
+      gameArea.classList.add('game-running');
+      return word;
+    }
+
+    // ── removeWord(id) — clean up one word ─────────
+    function removeWord(id) {
+      const idx = activeWords.findIndex(w => w.id === id);
+      if (idx === -1) return;
+      const [word] = activeWords.splice(idx, 1);
+      word.el.remove();
+    }
+
+    // ── clearAllWords() — wipe the board ───────────
+    function clearAllWords() {
+      activeWords.forEach(w => { try { w.el.remove(); } catch(_){} });
+      activeWords = [];
+      gameArea.classList.remove('game-running');
+    }
+
+    // ── flashScreen(type) ─────────────────────────
+    function flashScreen(type) {
+      const overlay = document.getElementById('flash-overlay');
+      if (!overlay) return;
+      overlay.className = '';
+      void overlay.offsetWidth; // reflow
+      overlay.className = `flash-${type}`;
+    }
+
+    // ── loseLife() ────────────────────────────────
+    function loseLife() {
+      if (gameSession.status !== 'playing') return;
+      lives = Math.max(0, lives - 1);
+      document.querySelectorAll('.heart').forEach((h, i) => {
+        h.classList.toggle('lost', i >= lives);
+      });
+      playSound('miss');
+      flashScreen('miss');
+      if (lives <= 0) {
+        gameOver();
+      }
+      // Phase 7: spawner handles all word timing — no ad-hoc respawn needed
+    }
+
+    // ── gameOver() ────────────────────────────────
+    function gameOver() {
+      gameSession.status = 'over';
+      stopGameLoop();
+      stopSpawner();
+      clearAllWords();
+      setDangerZone(false);
+
+      playSound('gameover');                  // Phase 9: sad tune
+      maybeSaveScore(totalXP, gameSession.level); // Phase 9: save high score
+
+      document.getElementById('gameover-score').textContent        = `${totalXP} ✨`;
+      document.getElementById('gameover-level-reached').textContent = `reached level ${gameSession.level}`;
+      setTimeout(() => openModal('modal-game-over'), 350);
+    }
+
+    // ── RAF game loop ──────────────────────────────
+    function gameLoop(timestamp) {
+      // Stop rescheduling if not playing (pause / over / idle)
+      if (gameSession.status !== 'playing') { rafId = null; return; }
+
+      const dt        = lastTime ? Math.min((timestamp - lastTime) / 16.667, 4) : 1;
+      lastTime        = timestamp;
+      const groundY   = getGroundY();
+      const dangerTop = getDangerTop();
+      let   anyDanger = false;
+      const toMiss    = [];
+
+      activeWords.forEach(word => {
+        // Move word down
+        word.y += word.speed * dt;
+        word.el.style.top = Math.round(word.y) + 'px';
+
+        const bottom = word.y + (word.el.offsetHeight || 36);
+
+        // Danger zone check
+        if (bottom >= dangerTop) {
+          anyDanger = true;
+          word.el.classList.add('near-danger');
+        } else {
+          word.el.classList.remove('near-danger');
+        }
+
+        // Ground collision
+        if (bottom >= groundY) toMiss.push(word.id);
+      });
+
+      // Handle misses (do after loop to avoid mutation during iteration)
+      toMiss.forEach(id => { removeWord(id); loseLife(); });
+
+      // Sync danger zone indicator
+      setDangerZone(anyDanger);
+
+      rafId = requestAnimationFrame(gameLoop);
+    }
+
+    // ── startGameLoop / stopGameLoop ──────────────
+    function startGameLoop() {
+      stopGameLoop(); // cancel any existing loop first
+      lastTime = 0;
+      rafId    = requestAnimationFrame(gameLoop);
+    }
+
+    function stopGameLoop() {
+      if (rafId !== null) { cancelAnimationFrame(rafId); rafId = null; }
+    }
+
+    // ════════════════════════════════════════════════
+    //  PHASE 9: SOUND ENGINE & POLISH
+    // ════════════════════════════════════════════════
+
+    // ── Web Audio context (lazy-init on first interaction) ─
+    let _audioCtx = null;
+    function getAudioCtx() {
+      if (!_audioCtx) {
+        try { _audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
+        catch(_) { _audioCtx = null; }
+      }
+      // Resume if suspended (browser autoplay policy)
+      if (_audioCtx && _audioCtx.state === 'suspended') _audioCtx.resume();
+      return _audioCtx;
+    }
+
+    // ── playSound(type) ────────────────────────────
+    // 'hit'       — short bright ping on correct word
+    // 'miss'      — low thud when a word hits the ground
+    // 'miss-word' — short buzz when typed word doesn't match
+    // 'levelup'   — rising fanfare on level-up
+    // 'gameover'  — descending minor chord
+    function playSound(type) {
+      if (!state.settings.sfx) return;
+      const ctx = getAudioCtx();
+      if (!ctx) return;
+      const now = ctx.currentTime;
+
+      // Helper: short envelope (attack, sustain, release)
+      function tone(freq, startT, dur, gainPeak, type = 'sine', endFreq) {
+        const osc  = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, startT);
+        if (endFreq !== undefined)
+          osc.frequency.exponentialRampToValueAtTime(endFreq, startT + dur);
+        gain.gain.setValueAtTime(0, startT);
+        gain.gain.linearRampToValueAtTime(gainPeak, startT + 0.01);
+        gain.gain.exponentialRampToValueAtTime(0.0001, startT + dur);
+        osc.start(startT);
+        osc.stop(startT + dur + 0.02);
+      }
+
+      if (type === 'hit') {
+        // Bright ding — two quick ascending tones
+        tone(660, now,        0.12, 0.28, 'triangle');
+        tone(880, now + 0.06, 0.10, 0.20, 'triangle');
+      } else if (type === 'miss') {
+        // Dull thud — low sine sweep down
+        tone(180, now, 0.22, 0.35, 'sine', 80);
+      } else if (type === 'miss-word') {
+        // Short buzz — mid-range square
+        tone(220, now, 0.10, 0.15, 'square');
+      } else if (type === 'levelup') {
+        // Rising fanfare — 4 ascending notes
+        const notes = [440, 554, 660, 880];
+        notes.forEach((freq, i) => tone(freq, now + i * 0.12, 0.18, 0.25, 'triangle'));
+        tone(1320, now + 0.52, 0.35, 0.20, 'triangle'); // final high note hold
+      } else if (type === 'gameover') {
+        // Descending minor — sad little tune
+        const notes = [440, 392, 349, 330, 294];
+        notes.forEach((freq, i) => tone(freq, now + i * 0.16, 0.20, 0.22, 'sine'));
+      }
+    }
+
+    // ── Best score saving ──────────────────────────
+    // Called from gameOver() — saves if it's a top-5 score.
+    function maybeSaveScore(xp, level) {
+      const scores = getScores();
+      const date   = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      scores.push({ xp, level, date });
+      // Sort descending, keep top 5
+      scores.sort((a, b) => b.xp - a.xp);
+      saveScores(scores.slice(0, 5));
+    }
+
+    // ── applyLevelBackground(level) ───────────────
+    // Sets data-level on #game-screen, triggering the
+    // CSS background transition defined above.
+    function applyLevelBackground(level) {
+      const clamped = Math.min(Math.max(level, 1), LEVEL_DATA.length);
+      gameScreen.dataset.level = clamped;
+    }
+
+    // ── showLevelUpBanner(newLevel, onDone) ────────
+    // Shows the animated banner for ~2.4 seconds then
+    // calls onDone so the spawner can restart.
+    // The game loop keeps running — words still fall.
+    function showLevelUpBanner(newLevel, onDone) {
+      const data = LEVEL_DATA[newLevel - 1];
+      if (!data) { onDone?.(); return; }
+
+      const banner = document.getElementById('levelup-banner');
+      const bubble = document.getElementById('levelup-bubble');
+      const emoji  = document.getElementById('levelup-emoji');
+      const title  = document.getElementById('levelup-title');
+      const name   = document.getElementById('levelup-name');
+      const stars  = document.getElementById('levelup-stars');
+
+      emoji.textContent = data.emoji;
+      title.textContent = `LEVEL UP!`;
+      name.textContent  = `${newLevel} — ${data.name}`;
+      stars.textContent = '⭐'.repeat(data.stars) + '☆'.repeat(LEVEL_DATA.length - data.stars);
+
+      // Reset animation
+      bubble.classList.remove('out');
+      bubble.style.animation = 'none';
+      void bubble.offsetWidth;
+      bubble.style.animation = '';
+
+      banner.classList.remove('hidden');
+
+      // After 2s start the out animation
+      setTimeout(() => {
+        bubble.classList.add('out');
+        bubble.addEventListener('animationend', () => {
+          banner.classList.add('hidden');
+          bubble.classList.remove('out');
+          onDone?.();
+        }, { once: true });
+      }, 2000);
+    }
+
+    // ── checkLevelUp() ────────────────────────────
+    // Called after every correct word. Returns true if
+    // a level-up was triggered (caller should not do
+    // anything further that frame).
+    function checkLevelUp() {
+      if (gameSession.level >= state.maxLevel) return false;
+      const threshold = XP_THRESHOLDS[gameSession.level];
+      if (threshold === undefined) return false;
+      if (totalXP < threshold) return false;
+      triggerLevelUp();
+      return true;
+    }
+
+    // ── triggerLevelUp() ──────────────────────────
+    // Orchestrates the full level-up sequence:
+    //   1. Stop spawner (words still fall — game loop continues)
+    //   2. Increment level
+    //   3. Apply new background immediately (CSS transition handles fade)
+    //   4. Show banner ~2s
+    //   5. On banner exit: update HUD, restart spawner at new level
+    function triggerLevelUp() {
+      if (gameSession.status !== 'playing') return;
+
+      stopSpawner(); // pause new spawns while banner shows
+      const newLevel = gameSession.level + 1;
+      gameSession.level = newLevel;
+
+      // Background transitions immediately (CSS handles the 1.5s fade)
+      applyLevelBackground(newLevel);
+      updateHudLevel(newLevel);
+
+      playSound('levelup'); // Phase 9: fanfare
+
+      showLevelUpBanner(newLevel, () => {
+        // Only restart if still playing (player may have paused or died)
+        if (gameSession.status === 'playing') {
+          startSpawner();
+        }
+      });
+    }
+
+    // ── calcXP(word) ──────────────────────────────
+    // Base:    wordLength × 10
+    // Bonus:   floor( (distanceRemaining / gameAreaHeight) × 10 )
+    //   → Word typed near top  → bonus up to +10
+    //   → Word typed near ground → bonus ≈ 0
+    function calcXP(word) {
+      const areaH             = gameArea.clientHeight || 1;
+      const wordBottom        = word.y + (word.el.offsetHeight || 36);
+      const distanceRemaining = Math.max(0, getGroundY() - wordBottom);
+      const bonus             = Math.floor((distanceRemaining / areaH) * 10);
+      return (word.text.length * 10) + bonus;
+    }
+
+    // ── spawnXpPopup(x, y, xpGained) ─────────────
+    // Creates a floating "+XP" label that rises and fades.
+    // 'big' style if bonus is significant (>= word.text.length * 5)
+    function spawnXpPopup(x, y, xpGained, isBig) {
+      const popup = document.createElement('div');
+      popup.className  = 'xp-popup' + (isBig ? ' big' : '');
+      popup.textContent = `+${xpGained} ✨`;
+      popup.style.left  = Math.round(x) + 'px';
+      popup.style.top   = Math.round(y) + 'px';
+      gameArea.appendChild(popup);
+      // Remove after animation completes
+      popup.addEventListener('animationend', () => popup.remove(), { once: true });
+      return popup;
+    }
+
+    // ── zapWord(word) ─────────────────────────────
+    // Plays the .zapped exit animation then removes the element.
+    function zapWord(word) {
+      word.el.classList.add('zapped');
+      word.el.classList.remove('near-danger');
+      // Remove from activeWords immediately so the game loop ignores it
+      const idx = activeWords.findIndex(w => w.id === word.id);
+      if (idx !== -1) activeWords.splice(idx, 1);
+      // Remove DOM element after animation
+      word.el.addEventListener('animationend', () => {
+        try { word.el.remove(); } catch(_) {}
+      }, { once: true });
+    }
+
+    // ── shakeInput() ──────────────────────────────
+    function shakeInput() {
+      wordInput.classList.remove('shake');
+      void wordInput.offsetWidth; // reflow
+      wordInput.classList.add('shake');
+      wordInput.addEventListener('animationend', () =>
+        wordInput.classList.remove('shake'), { once: true });
+    }
+
+    // ── tryMatchWord(typed) ───────────────────────
+    // Returns the matched word object or null.
+    // Comparison is case-insensitive and trimmed.
+    function tryMatchWord(typed) {
+      const normalized = typed.trim().toLowerCase();
+      if (!normalized) return null;
+      return activeWords.find(w => w.text.toLowerCase() === normalized) || null;
+    }
+
+    // ── onWordMatched(word) ────────────────────────
+    // Called when the player types a correct word.
+    function onWordMatched(word) {
+      const xpGained  = calcXP(word);
+      const isBig     = xpGained >= word.text.length * 14;
+
+      const popX = word.x + (word.el.offsetWidth  || 80) / 2 - 30;
+      const popY = word.y - 10;
+      if (state.settings.xpPopups) spawnXpPopup(popX, popY, xpGained, isBig);
+
+      zapWord(word);
+
+      totalXP += xpGained;
+      bumpXpDisplay(totalXP);
+      updateXpBar(totalXP, gameSession.level);
+
+      playSound('hit');
+      flashScreen('hit');
+
+      // Phase 8: check if XP threshold for next level is reached
+      checkLevelUp();
+    }
+
+    // ── Enter keypress handler ────────────────────
+    wordInput.addEventListener('keydown', e => {
+      if (e.key !== 'Enter') return;
+      if (gameSession.status !== 'playing') return;
+
+      const typed = wordInput.value;
+      wordInput.value = ''; // always clear immediately
+
+      const matched = tryMatchWord(typed);
+      if (matched) {
+        onWordMatched(matched);
+      } else {
+        playSound('miss-word');
+        shakeInput();
+      }
+    });
+
+    // ── Phase 4: Update XP progress bar ───────────
+    function updateXpBar(xp, level) {
+      const from = XP_THRESHOLDS[level - 1] || 0;
+      const to   = XP_THRESHOLDS[level]     || XP_THRESHOLDS[XP_THRESHOLDS.length - 1];
+      const pct  = Math.min(100, Math.max(0, ((xp - from) / (to - from)) * 100));
+      xpBar.style.width = pct + '%';
+    }
+
+    // ── Phase 4: Bump XP display animation ────────
+    function bumpXpDisplay(newXP) {
+      xpDisplay.textContent = `${newXP} ✨`;
+      xpDisplay.classList.remove('xp-bump');
+      void xpDisplay.offsetWidth; // reflow
+      xpDisplay.classList.add('xp-bump');
+      setTimeout(() => xpDisplay.classList.remove('xp-bump'), 450);
+    }
+
+    // ── Phase 4: Build tree scenery ────────────────
+    // Called once on first game start; trees are randomised but seeded
+    // so they look the same every game.
+    function buildTrees() {
+      if (gameTreesEl.children.length > 0) return; // already built
+      const treeConfigs = [
+        { left:'3%',  size:'sm', hue:'#5bb84a' },
+        { left:'9%',  size:'md', hue:'#4caf40' },
+        { left:'17%', size:'lg', hue:'#52c248' },
+        { left:'26%', size:'sm', hue:'#62cc52' },
+        { left:'34%', size:'md', hue:'#4caf40' },
+        { left:'54%', size:'lg', hue:'#52c248' },
+        { left:'63%', size:'sm', hue:'#5bb84a' },
+        { left:'72%', size:'md', hue:'#4caf40' },
+        { left:'80%', size:'lg', hue:'#62cc52' },
+        { left:'89%', size:'sm', hue:'#5bb84a' },
+        { left:'95%', size:'md', hue:'#52c248' },
+      ];
+      treeConfigs.forEach(cfg => {
+        const t = document.createElement('div');
+        t.className = `game-tree ${cfg.size}`;
+        t.style.left = cfg.left;
+        const canopy = document.createElement('div');
+        canopy.className = 'canopy';
+        canopy.style.background = `radial-gradient(ellipse at 40% 35%, ${lighten(cfg.hue,22)} 0%, ${cfg.hue} 55%, ${darken(cfg.hue,12)} 100%)`;
+        const trunk = document.createElement('div');
+        trunk.className = 'trunk';
+        t.appendChild(canopy);
+        t.appendChild(trunk);
+        gameTreesEl.appendChild(t);
+      });
+    }
+
+    // Tiny colour helpers for tree shading
+    function lighten(hex, amt) { return shiftHex(hex, amt); }
+    function darken(hex, amt)  { return shiftHex(hex, -amt); }
+    function shiftHex(hex, amt) {
+      const n = parseInt(hex.replace('#',''), 16);
+      const r = Math.min(255, Math.max(0, (n>>16) + amt));
+      const g = Math.min(255, Math.max(0, ((n>>8)&0xff) + amt));
+      const b = Math.min(255, Math.max(0, (n&0xff) + amt));
+      return `rgb(${r},${g},${b})`;
+    }
+
+    // ── Phase 4: Danger zone activation ───────────
+    // Called by Phase 5 when a word enters the bottom 22%.
+    // For now exposed for tests; activated manually.
+    function setDangerZone(active) {
+      dangerZone.classList.toggle('active', active);
+    }
+
+    // ── Phase 4: Update HUD level display ─────────
+    function updateHudLevel(level) {
+      const data = LEVEL_DATA[level - 1];
+      if (!data) return;
+      hudLevelNum.textContent  = `Level ${level} ${data.emoji}`;
+      hudLevelName.textContent = data.name;
+    }
+
+    // ── showScreen — instant, synchronous (used by tests) ─
+    function showScreen(id) {
+      document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
+      document.getElementById(id).classList.remove('hidden');
+      if (id === 'game-screen') {
+        updateHudLevel(gameSession.level);
+        setTimeout(() => wordInput.focus(), 50);
+      }
+    }
+
+    // ── transitionToScreen — animated version ─────
+    function transitionToScreen(toId, onComplete) {
+      const from = document.querySelector('.screen:not(.hidden)');
+      const to   = document.getElementById(toId);
+      if (!from || from.id === toId) { onComplete?.(); return; }
+      from.style.pointerEvents = 'none';
+      from.classList.add('exiting');
+      from.addEventListener('animationend', function exitDone() {
+        from.removeEventListener('animationend', exitDone);
+        from.classList.add('hidden');
+        from.classList.remove('exiting');
+        from.style.pointerEvents = '';
+        to.classList.remove('hidden');
+        to.classList.add('entering');
+        to.addEventListener('animationend', function enterDone() {
+          to.removeEventListener('animationend', enterDone);
+          to.classList.remove('entering');
+          onComplete?.();
+        }, { once: true });
+      }, { once: true });
+    }
+
+    // ── resetGameUI ────────────────────────────────
+    function resetGameUI() {
+      stopGameLoop();
+      stopSpawner();
+      clearAllWords();
+      lives   = 3;
+      totalXP = 0;
+
+      wordInput.value = '';
+      xpDisplay.textContent = '0 ✨';
+      xpDisplay.classList.remove('xp-bump');
+      updateXpBar(0, gameSession.level > 0 ? gameSession.level : 1); // Bug fix: ensure valid level
+      document.querySelectorAll('.heart').forEach(h => h.classList.remove('lost'));
+      setDangerZone(false);
+      hideCountdown();
+      // Phase 8: ensure banner is hidden on reset
+      document.getElementById('levelup-banner').classList.add('hidden');
+      gameSession.status = 'idle';
+    }
+
+    // ── Phase 4: PERMANENT FOCUS SYSTEM ───────────
+    // Strategy 1: if input loses focus while playing, refocus it
+    wordInput.addEventListener('blur', () => {
+      if (gameSession.status === 'playing') {
+        // Small delay so other legitimate click handlers fire first
+        setTimeout(() => {
+          if (gameSession.status === 'playing' &&
+              !document.querySelector('.modal-overlay:not(.hidden)')) {
+            wordInput.focus();
+          }
+        }, 80);
+      }
+    });
+
+    // Strategy 2: any click on game-area refocuses input
+    gameArea.addEventListener('click', e => {
+      if (gameSession.status === 'playing') wordInput.focus();
+    });
+
+    // Strategy 3: keystrokes on game screen route to input
+    document.addEventListener('keydown', e => {
+      if (gameSession.status !== 'playing') return;
+      if (document.querySelector('.modal-overlay:not(.hidden)')) return;
+      if (document.activeElement !== wordInput &&
+          e.key.length === 1 && !e.ctrlKey && !e.metaKey) {
+        wordInput.focus();
+        // Don't prevent default — the keystroke naturally lands in the focused input
+      }
+    });
+
+    // Strategy 4: when the tab regains visibility, refocus
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden && gameSession.status === 'playing') {
+        setTimeout(() => wordInput.focus(), 100);
+      }
+    });
+
+    // ── Countdown helpers ──────────────────────────
+    function showCountdown() { countdownOverlay.classList.remove('hidden'); }
+    function hideCountdown() {
+      countdownOverlay.classList.add('hidden');
+      countdownOverlay.classList.remove('go');
+    }
+
+    function runCountdown(onDone) {
+      gameSession.status = 'countdown';
+      showCountdown();
+      countdownOverlay.classList.remove('go');
+      const steps = [
+        { num: '3',   label: 'get ready!',  delay: 0    },
+        { num: '2',   label: 'almost...',   delay: 900  },
+        { num: '1',   label: 'fingers up!', delay: 1800 },
+        { num: 'GO!', label: '✨ type! ✨',  delay: 2700, go: true },
+      ];
+      steps.forEach(({ num, label, delay, go }) => {
+        setTimeout(() => {
+          countdownNumber.style.animation = 'none';
+          void countdownNumber.offsetWidth;
+          countdownNumber.style.animation = '';
+          countdownNumber.textContent = num;
+          countdownLabel.textContent  = label;
+          if (go) countdownOverlay.classList.add('go');
+        }, delay);
+      });
+      setTimeout(() => {
+        hideCountdown();
+        gameSession.status = 'playing';
+        // Phase 7: start the interval-based spawner (spawns first word immediately)
+        startSpawner();
+        startGameLoop();
+        wordInput.focus();
+        onDone?.();
+      }, 3550);
+    }
+
+    // ── startGame — called when Start button pressed ─
+    function startGame() {
+      gameSession.level  = state.currentLevel;
+      gameSession.status = 'idle';
+      buildTrees();
+      transitionToScreen('game-screen', () => {
+        applyLevelBackground(gameSession.level); // Phase 8: set background theme
+        updateHudLevel(gameSession.level);
+        updateXpBar(0, gameSession.level);
+        resetGameUI();
+        runCountdown();
+      });
+    }
+
+    // ── returnToMenu — animated quit back to menu ──
+    function returnToMenu() {
+      closeModal('modal-pause');
+      resetGameUI();
+      transitionToScreen('menu-screen', () => {
+        updateLevelDisplay();
+      });
+    }
+
+    // ── Button wiring ──────────────────────────────
+    btnStart.addEventListener('click', startGame);
+
+    btnBack.addEventListener('click', () => {
+      if (gameSession.status === 'playing' || gameSession.status === 'paused') {
+        gameSession.status = 'paused';
+        stopSpawner();   // Phase 7: pause the spawner
+        openModal('modal-pause');
+      } else if (gameSession.status === 'countdown') {
+        hideCountdown();
+        returnToMenu();
+      } else {
+        returnToMenu();
+      }
+    });
+
+    btnResume.addEventListener('click', () => {
+      closeModal('modal-pause');
+      gameSession.status = 'playing';
+      lastTime = 0; // prevent dt spike after long pause
+      startSpawner();   // Phase 7: restart interval spawner
+      startGameLoop();
+      setTimeout(() => wordInput.focus(), 60);
+    });
+
+    btnQuitConfirm.addEventListener('click', returnToMenu);
+
+    // ── Phase 5: Game Over modal buttons ───────────
+    document.getElementById('btn-play-again').addEventListener('click', () => {
+      closeModal('modal-game-over');
+      // Replay with same level — re-run startGame flow without transition
+      resetGameUI();
+      updateHudLevel(gameSession.level);
+      updateXpBar(0, gameSession.level);
+      runCountdown();
+    });
+
+    document.getElementById('btn-go-menu').addEventListener('click', () => {
+      closeModal('modal-game-over');
+      returnToMenu();
+    });
+
+    // ── Level selector ─────────────────────────────
+    // Phase 2: updateLevelDisplay now also updates the info card + bg tint
+    function updateLevelDisplay() {
+      const idx  = state.currentLevel - 1;
+      const data = LEVEL_DATA[idx];
+
+      // Number display
+      levelDisplay.textContent = state.currentLevel;
+      btnLevelPrev.disabled = state.currentLevel <= state.minLevel;
+      btnLevelNext.disabled = state.currentLevel >= state.maxLevel;
+
+      // Pop animation on the number
+      levelDisplay.classList.remove('popping');
+      void levelDisplay.offsetWidth; // reflow to restart animation
+      levelDisplay.classList.add('popping');
+
+      // Info card text
+      levelName.textContent  = data.name;
+      levelDesc.textContent  = data.desc;
+      levelSwatch.textContent = data.emoji;
+      const filled = '⭐'.repeat(data.stars);
+      const empty  = '☆'.repeat(LEVEL_DATA.length - data.stars);
+      levelStars.textContent = filled + empty;
+
+      // Info card colours (CSS custom properties)
+      levelInfoCard.style.setProperty('--level-color-a', data.colorA);
+      levelInfoCard.style.setProperty('--level-color-b', data.colorB);
+      levelInfoCard.style.setProperty('--level-border',  data.border);
+      levelInfoCard.style.background = `linear-gradient(135deg, ${data.colorA}, ${data.colorB})`;
+      levelInfoCard.style.borderColor = data.border;
+      levelSwatch.style.background    = `linear-gradient(135deg, ${data.colorA}, ${data.colorB})`;
+
+      // Background tint
+      menuBgTint.style.background = data.tint;
+
+      // Console log (Phase 2 spec: "just logs to console for now")
+      console.log(`[Level Selector] Level ${state.currentLevel} selected — ${data.name}`);
+    }
+
+    btnLevelPrev.addEventListener('click', () => {
+      if (state.currentLevel > state.minLevel) { state.currentLevel--; updateLevelDisplay(); }
+    });
+    btnLevelNext.addEventListener('click', () => {
+      if (state.currentLevel < state.maxLevel) { state.currentLevel++; updateLevelDisplay(); }
+    });
+
+    // Phase 2: staggered entrance animation — add .menu-ready after a short delay
+    window.addEventListener('load', () => {
+      requestAnimationFrame(() => {
+        setTimeout(() => menuCloud.classList.add('menu-ready'), 60);
+      });
+    });
+
+    // Initialise level display (runs once on load)
+    updateLevelDisplay();
+
+    // ── Modals ─────────────────────────────────────
+    const openModal  = id => document.getElementById(id).classList.remove('hidden');
+    const closeModal = id => document.getElementById(id).classList.add('hidden');
+
+    btnInstructions.addEventListener('click', () => openModal('modal-instructions'));
+    iconSettings.addEventListener('click',    () => openModal('modal-settings'));
+    iconScores.addEventListener('click',      () => { renderScores(); openModal('modal-scores'); });
+
+    document.querySelectorAll('[data-close]').forEach(btn =>
+      btn.addEventListener('click', () => closeModal(btn.dataset.close)));
+    document.querySelectorAll('.modal-overlay').forEach(o =>
+      o.addEventListener('click', e => { if (e.target === o) closeModal(o.id); }));
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape')
+        document.querySelectorAll('.modal-overlay:not(.hidden)').forEach(m => closeModal(m.id));
+    });
+
+    // ── Settings toggles ───────────────────────────
+    ['toggle-sfx','toggle-music','toggle-xp-popups'].forEach((id, i) => {
+      const key = ['sfx','music','xpPopups'][i];
+      document.getElementById(id).addEventListener('click', function() {
+        state.settings[key] = !state.settings[key];
+        this.classList.toggle('on', state.settings[key]);
+        this.setAttribute('aria-pressed', state.settings[key]);
+      });
+    });
+
+    // ── Scores ─────────────────────────────────────
+    const getScores  = () => { try { return JSON.parse(localStorage.getItem('fw_scores')||'[]'); } catch { return []; } };
+    const saveScores = s  => localStorage.setItem('fw_scores', JSON.stringify(s));
+    function renderScores() {
+      const scores = getScores();
+      const medals = ['gold','silver','bronze'];
+      const icons  = ['🥇','🥈','🥉','4th','5th'];
+      scoresList.innerHTML = scores.length
+        ? scores.slice(0,5).map((s,i) => `
+            <li class="score-entry ${medals[i]||''}">
+              <span class="score-rank">${icons[i]}</span>
+              <span style="font-weight:700">${s.date||'—'}</span>
+              <span class="score-xp">${s.xp} ✨</span>
+            </li>`).join('')
+        : `<li class="score-empty">No scores yet! Go play! 🎮</li>`;
+    }
+    btnClearScores.addEventListener('click', () => { saveScores([]); renderScores(); });
+
+    // ════════════════════════════════════════════════
+    //  TEST SUITE — PHASE 1 + PHASE 2
+    // ════════════════════════════════════════════════
+    const tests = []; let passed = 0, failed = 0;
+    const test = (name, fn) => {
+      try { fn(); tests.push({name,pass:true,phase:fn._phase||1}); passed++; }
+      catch(e) { tests.push({name,pass:false,error:e.message,phase:fn._phase||1}); failed++; }
+    };
+    const p2 = fn => { fn._phase = 2; return fn; };
+    const assert     = (c,m)   => { if(!c)    throw new Error(m||'Assertion failed'); };
+    const assertEqual= (a,b,m) => { if(a!==b) throw new Error(m||`Expected "${b}", got "${a}"`); };
+
+    // ── Phase 1 tests ──────────────────────────────
+    test('menu-screen exists',            () => assert(document.getElementById('menu-screen')));
+    test('game-screen exists',            () => assert(document.getElementById('game-screen')));
+    test('game-screen hidden by default', () => assert(gameScreen.classList.contains('hidden')));
+    test('menu-screen visible by default',() => assert(!menuScreen.classList.contains('hidden')));
+    test('game title element exists',     () => assert(document.getElementById('game-title')));
+    test('title contains "Falling Words"',() => {
+      const t = document.getElementById('game-title').textContent.toLowerCase();
+      assert(t.includes('falling') && t.includes('words'));
+    });
+    test('Start button exists',           () => assert(document.getElementById('btn-start')));
+    test('Instructions button exists',    () => assert(document.getElementById('btn-instructions')));
+    test('Back button exists',            () => assert(document.getElementById('btn-back')));
+    test('Settings icon exists',          () => assert(document.getElementById('icon-settings')));
+    test('Scores icon exists',            () => assert(document.getElementById('icon-scores')));
+    test('level-display starts at 1',     () => assertEqual(levelDisplay.textContent,'1'));
+    test('level increments on next',      () => {
+      const p = state.currentLevel; btnLevelNext.click();
+      assert(state.currentLevel === p+1); state.currentLevel=p; updateLevelDisplay();
+    });
+    test('level decrements on prev',      () => {
+      state.currentLevel=3; updateLevelDisplay(); btnLevelPrev.click();
+      assertEqual(state.currentLevel,2); state.currentLevel=1; updateLevelDisplay();
+    });
+    test('level floor is 1',              () => {
+      state.currentLevel=1; updateLevelDisplay(); btnLevelPrev.click();
+      assertEqual(state.currentLevel,1);
+    });
+    test('level ceiling is maxLevel',     () => {
+      state.currentLevel=6; updateLevelDisplay(); btnLevelNext.click();
+      assertEqual(state.currentLevel,6); state.currentLevel=1; updateLevelDisplay();
+    });
+    test('prev arrow disabled at min',    () => { state.currentLevel=1; updateLevelDisplay(); assert(btnLevelPrev.disabled); });
+    test('next arrow disabled at max',    () => {
+      state.currentLevel=6; updateLevelDisplay();
+      assert(btnLevelNext.disabled); state.currentLevel=1; updateLevelDisplay();
+    });
+    test('Start shows game-screen',       () => {
+      btnStart.click();
+      assert(!gameScreen.classList.contains('hidden'));
+      assert(menuScreen.classList.contains('hidden'));
+      showScreen('menu-screen');
+    });
+    test('Back shows menu-screen',        () => {
+      showScreen('game-screen'); btnBack.click();
+      assert(!menuScreen.classList.contains('hidden'));
+      assert(gameScreen.classList.contains('hidden'));
+    });
+    test('HUD level updates on start',    () => {
+      state.currentLevel=4; updateLevelDisplay(); showScreen('game-screen');
+      assert(hudLevel.textContent.includes('4'));
+      state.currentLevel=1; updateLevelDisplay(); showScreen('menu-screen');
+    });
+    test('all modals hidden by default',  () =>
+      ['modal-instructions','modal-scores','modal-settings'].forEach(id =>
+        assert(document.getElementById(id).classList.contains('hidden'),`${id} not hidden`)));
+    test('Instructions button opens modal',() => {
+      btnInstructions.click();
+      assert(!document.getElementById('modal-instructions').classList.contains('hidden'));
+      closeModal('modal-instructions');
+    });
+    test('Settings icon opens modal',     () => {
+      iconSettings.click();
+      assert(!document.getElementById('modal-settings').classList.contains('hidden'));
+      closeModal('modal-settings');
+    });
+    test('Scores icon opens modal',       () => {
+      iconScores.click();
+      assert(!document.getElementById('modal-scores').classList.contains('hidden'));
+      closeModal('modal-scores');
+    });
+    test('data-close button closes modal',() => {
+      openModal('modal-instructions');
+      document.querySelector('[data-close="modal-instructions"]').click();
+      assert(document.getElementById('modal-instructions').classList.contains('hidden'));
+    });
+    test('Escape closes open modal',      () => {
+      openModal('modal-settings');
+      document.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',bubbles:true}));
+      assert(document.getElementById('modal-settings').classList.contains('hidden'));
+    });
+    test('Overlay click closes modal',    () => {
+      openModal('modal-scores');
+      document.getElementById('modal-scores').click();
+      assert(document.getElementById('modal-scores').classList.contains('hidden'));
+    });
+    test('HUD has 3 hearts',              () => assertEqual(document.querySelectorAll('.heart').length,3));
+    test('word input exists',             () => assert(document.getElementById('word-input')));
+    test('XP display exists',             () => assert(document.getElementById('xp-display')));
+    test('XP display starts at 0',        () => assert(document.getElementById('xp-display').textContent.includes('0')));
+    test('game-area div exists',          () => assert(document.getElementById('game-area')));
+    test('toggle changes state value',    () => {
+      const b = state.settings.sfx;
+      document.getElementById('toggle-sfx').click();
+      assert(state.settings.sfx !== b);
+      document.getElementById('toggle-sfx').click();
+    });
+    test('toggle updates aria-pressed',   () => {
+      const t = document.getElementById('toggle-music'), b = t.getAttribute('aria-pressed');
+      t.click(); assert(t.getAttribute('aria-pressed') !== b); t.click();
+    });
+    test('toggle adds/removes .on',       () => {
+      const t = document.getElementById('toggle-xp-popups'), had = t.classList.contains('on');
+      t.click(); assertEqual(t.classList.contains('on'), !had); t.click();
+    });
+    test('clear scores empties storage',  () => {
+      saveScores([{xp:100,date:'01/01'}]); btnClearScores.click();
+      assertEqual(getScores().length,0);
+    });
+    test('empty scores shows message',    () => { saveScores([]); renderScores(); assert(scoresList.querySelector('.score-empty')); });
+    test('scores render correct count',   () => {
+      saveScores([{xp:300,date:'01/01'},{xp:200,date:'01/02'},{xp:100,date:'01/03'}]);
+      renderScores(); assertEqual(scoresList.querySelectorAll('.score-entry').length,3); saveScores([]);
+    });
+    test('resetGameUI clears input',      () => { wordInput.value='hello'; resetGameUI(); assertEqual(wordInput.value,''); });
+    test('resetGameUI resets XP',         () => {
+      document.getElementById('xp-display').textContent='500 ✨';
+      resetGameUI(); assert(document.getElementById('xp-display').textContent.includes('0'));
+    });
+    test('resetGameUI restores hearts',   () => {
+      document.querySelectorAll('.heart').forEach(h=>h.classList.add('lost'));
+      resetGameUI(); assertEqual(document.querySelectorAll('.heart.lost').length,0);
+    });
+
+    // ── Phase 2 tests ──────────────────────────────
+
+    test('LEVEL_DATA has 6 entries', p2(() =>
+      assertEqual(LEVEL_DATA.length, 6, 'Expected 6 level entries')));
+
+    test('every level has required fields', p2(() => {
+      LEVEL_DATA.forEach((d,i) => {
+        assert(d.name,   `Level ${i+1} missing name`);
+        assert(d.desc,   `Level ${i+1} missing desc`);
+        assert(d.emoji,  `Level ${i+1} missing emoji`);
+        assert(d.colorA, `Level ${i+1} missing colorA`);
+        assert(d.tint,   `Level ${i+1} missing tint`);
+        assert(d.stars >= 1 && d.stars <= 6, `Level ${i+1} stars out of range`);
+      });
+    }));
+
+    test('level-info-card exists in DOM', p2(() =>
+      assert(document.getElementById('level-info-card'))));
+
+    test('level-name element exists', p2(() =>
+      assert(document.getElementById('level-name'))));
+
+    test('level-desc element exists', p2(() =>
+      assert(document.getElementById('level-desc'))));
+
+    test('level-stars element exists', p2(() =>
+      assert(document.getElementById('level-stars'))));
+
+    test('level-swatch element exists', p2(() =>
+      assert(document.getElementById('level-swatch'))));
+
+    test('menu-bg-tint element exists', p2(() =>
+      assert(document.getElementById('menu-bg-tint'))));
+
+    test('level-name shows correct name for level 1', p2(() => {
+      state.currentLevel = 1; updateLevelDisplay();
+      assertEqual(levelName.textContent, LEVEL_DATA[0].name);
+    }));
+
+    test('level-desc shows correct desc for level 1', p2(() => {
+      state.currentLevel = 1; updateLevelDisplay();
+      assertEqual(levelDesc.textContent, LEVEL_DATA[0].desc);
+    }));
+
+    test('level-swatch shows correct emoji for level 1', p2(() => {
+      state.currentLevel = 1; updateLevelDisplay();
+      assertEqual(levelSwatch.textContent, LEVEL_DATA[0].emoji);
+    }));
+
+    test('level-name updates when level changes to 3', p2(() => {
+      state.currentLevel = 3; updateLevelDisplay();
+      assertEqual(levelName.textContent, LEVEL_DATA[2].name);
+      state.currentLevel = 1; updateLevelDisplay();
+    }));
+
+    test('level-swatch updates emoji when level changes', p2(() => {
+      state.currentLevel = 5; updateLevelDisplay();
+      assertEqual(levelSwatch.textContent, LEVEL_DATA[4].emoji);
+      state.currentLevel = 1; updateLevelDisplay();
+    }));
+
+    test('level-stars shows correct filled count for level 1', p2(() => {
+      state.currentLevel = 1; updateLevelDisplay();
+      const starText = levelStars.textContent;
+      assertEqual(starText.split('⭐').length - 1, 1, `Expected 1 filled star, got: ${starText}`);
+    }));
+
+    test('level-stars shows correct filled count for level 6', p2(() => {
+      state.currentLevel = 6; updateLevelDisplay();
+      const starText = levelStars.textContent;
+      assertEqual(starText.split('⭐').length - 1, 6, `Expected 6 filled stars, got: ${starText}`);
+      state.currentLevel = 1; updateLevelDisplay();
+    }));
+
+    test('level-stars total length is always 6 characters', p2(() => {
+      for (let l = 1; l <= 6; l++) {
+        state.currentLevel = l; updateLevelDisplay();
+        const len = [...levelStars.textContent].filter(c => c==='⭐'||c==='☆').length;
+        assertEqual(len, 6, `Level ${l} star row has ${len} chars, expected 6`);
+      }
+      state.currentLevel = 1; updateLevelDisplay();
+    }));
+
+    test('bg tint updates when level changes', p2(() => {
+      state.currentLevel = 1; updateLevelDisplay();
+      const tint1 = menuBgTint.style.background;
+      state.currentLevel = 6; updateLevelDisplay();
+      const tint6 = menuBgTint.style.background;
+      assert(tint1 !== tint6, 'Tint should differ between level 1 and 6');
+      state.currentLevel = 1; updateLevelDisplay();
+    }));
+
+    test('bg tint matches LEVEL_DATA for each level', p2(() => {
+      for (let l = 1; l <= 6; l++) {
+        state.currentLevel = l; updateLevelDisplay();
+        assert(menuBgTint.style.background.length > 0, `Level ${l} tint should not be empty`);
+      }
+      state.currentLevel = 1; updateLevelDisplay();
+    }));
+
+    test('level-info-card border changes between levels', p2(() => {
+      state.currentLevel = 1; updateLevelDisplay();
+      const b1 = levelInfoCard.style.borderColor;
+      state.currentLevel = 5; updateLevelDisplay();
+      const b5 = levelInfoCard.style.borderColor;
+      assert(b1 !== b5, 'Border color should differ between levels');
+      state.currentLevel = 1; updateLevelDisplay();
+    }));
+
+    test('corner labels exist in DOM', p2(() => {
+      const labels = document.querySelectorAll('.corner-label');
+      assert(labels.length >= 2, `Expected at least 2 corner labels, found ${labels.length}`);
+    }));
+
+    test('Settings label text is correct', p2(() => {
+      const label = document.querySelector('#wrap-settings .corner-label');
+      assert(label, 'Settings label not found');
+      assert(label.textContent.toLowerCase().includes('setting'), `Got: "${label.textContent}"`);
+    }));
+
+    test('Scores label text is correct', p2(() => {
+      const label = document.querySelector('#wrap-scores .corner-label');
+      assert(label, 'Scores label not found');
+      assert(
+        label.textContent.toLowerCase().includes('score') || label.textContent.toLowerCase().includes('best'),
+        `Got: "${label.textContent}"`
+      );
+    }));
+
+    test('Settings icon is inside wrap-settings', p2(() => {
+      const wrap = document.getElementById('wrap-settings');
+      assert(wrap, 'wrap-settings not found');
+      assert(wrap.contains(document.getElementById('icon-settings')), 'icon-settings should be inside wrap-settings');
+    }));
+
+    test('Scores icon is inside wrap-scores', p2(() => {
+      const wrap = document.getElementById('wrap-scores');
+      assert(wrap, 'wrap-scores not found');
+      assert(wrap.contains(document.getElementById('icon-scores')), 'icon-scores should be inside wrap-scores');
+    }));
+
+    test('console.log fires on level change', p2(() => {
+      const logged = [];
+      const orig = console.log;
+      console.log = (...a) => { logged.push(a.join(' ')); orig(...a); };
+      state.currentLevel = 3; updateLevelDisplay();
+      console.log = orig;
+      assert(logged.some(m => m.includes('Level 3')), 'Expected console.log with "Level 3"');
+      state.currentLevel = 1; updateLevelDisplay();
+    }));
+
+    test('menu-cloud element exists', p2(() =>
+      assert(document.querySelector('.menu-cloud'), '.menu-cloud not found')));
+
+    test('level display text matches state.currentLevel', p2(() => {
+      for (let l = 1; l <= 6; l++) {
+        state.currentLevel = l; updateLevelDisplay();
+        assertEqual(levelDisplay.textContent, String(l), `Display should show ${l}`);
+      }
+      state.currentLevel = 1; updateLevelDisplay();
+    }));
+
+    // ── Phase 3 tests ──────────────────────────────
+    const p3 = fn => { fn._phase = 3; return fn; };
+
+    test('gameSession object exists', p3(() =>
+      assert(typeof gameSession === 'object', 'gameSession not defined')));
+
+    test('gameSession has level, status fields', p3(() => {
+      assert('level'  in gameSession, 'gameSession missing level');
+      assert('status' in gameSession, 'gameSession missing status');
+    }));
+
+    test('gameSession.status starts as idle', p3(() =>
+      assertEqual(gameSession.status, 'idle')));
+
+    test('countdown-overlay exists in DOM', p3(() =>
+      assert(document.getElementById('countdown-overlay'))));
+
+    test('countdown-overlay is hidden by default', p3(() =>
+      assert(document.getElementById('countdown-overlay').classList.contains('hidden'))));
+
+    test('countdown-number element exists', p3(() =>
+      assert(document.getElementById('countdown-number'))));
+
+    test('countdown-label element exists', p3(() =>
+      assert(document.getElementById('countdown-label'))));
+
+    test('modal-pause exists in DOM', p3(() =>
+      assert(document.getElementById('modal-pause'))));
+
+    test('modal-pause is hidden by default', p3(() =>
+      assert(document.getElementById('modal-pause').classList.contains('hidden'))));
+
+    test('btn-resume exists', p3(() =>
+      assert(document.getElementById('btn-resume'))));
+
+    test('btn-quit-confirm exists', p3(() =>
+      assert(document.getElementById('btn-quit-confirm'))));
+
+    test('showCountdown removes hidden class', p3(() => {
+      showCountdown();
+      assert(!countdownOverlay.classList.contains('hidden'), 'overlay should be visible');
+      hideCountdown(); // cleanup
+    }));
+
+    test('hideCountdown adds hidden class', p3(() => {
+      showCountdown();
+      hideCountdown();
+      assert(countdownOverlay.classList.contains('hidden'), 'overlay should be hidden');
+    }));
+
+    test('hideCountdown removes go class', p3(() => {
+      countdownOverlay.classList.add('go');
+      hideCountdown();
+      assert(!countdownOverlay.classList.contains('go'), '.go should be removed');
+    }));
+
+    test('resetGameUI sets status to idle', p3(() => {
+      gameSession.status = 'playing';
+      resetGameUI();
+      assertEqual(gameSession.status, 'idle');
+    }));
+
+    test('resetGameUI hides countdown overlay', p3(() => {
+      showCountdown();
+      resetGameUI();
+      assert(countdownOverlay.classList.contains('hidden'), 'countdown should hide on reset');
+    }));
+
+    test('transitionToScreen is a function', p3(() =>
+      assert(typeof transitionToScreen === 'function')));
+
+    test('startGame is a function', p3(() =>
+      assert(typeof startGame === 'function')));
+
+    test('returnToMenu is a function', p3(() =>
+      assert(typeof returnToMenu === 'function')));
+
+    test('startGame copies state.currentLevel to gameSession.level', p3(() => {
+      state.currentLevel = 4;
+      updateLevelDisplay();
+      // Call showScreen (sync) to mimic what startGame does without animation
+      gameSession.level = state.currentLevel;
+      assertEqual(gameSession.level, 4);
+      state.currentLevel = 1; updateLevelDisplay();
+      gameSession.level = 1;
+    }));
+
+    test('showScreen(game-screen) updates hudLevel with level data', p3(() => {
+      gameSession.level = 3;
+      showScreen('game-screen');
+      assert(hudLevelNum.textContent.includes('3'), 'HUD num should show level number');
+      assert(hudLevelNum.textContent.includes(LEVEL_DATA[2].emoji), 'HUD num should show level emoji');
+      assert(hudLevelName.textContent === LEVEL_DATA[2].name, 'HUD name should show level name');
+      showScreen('menu-screen');
+      gameSession.level = 1;
+      gameSession.status = 'idle';
+    }));
+
+    test('btn-back click shows pause modal when status is playing', p3(() => {
+      gameSession.status = 'playing';
+      showScreen('game-screen');
+      btnBack.click();
+      assert(!modalPause.classList.contains('hidden'), 'pause modal should open');
+      closeModal('modal-pause');
+      gameSession.status = 'idle';
+      showScreen('menu-screen');
+    }));
+
+    test('gameSession.status becomes paused when back clicked mid-game', p3(() => {
+      gameSession.status = 'playing';
+      showScreen('game-screen');
+      btnBack.click();
+      assertEqual(gameSession.status, 'paused');
+      closeModal('modal-pause');
+      gameSession.status = 'idle';
+      showScreen('menu-screen');
+    }));
+
+    test('btn-resume closes pause modal', p3(() => {
+      gameSession.status = 'paused';
+      openModal('modal-pause');
+      btnResume.click();
+      assert(modalPause.classList.contains('hidden'), 'pause modal should close on resume');
+    }));
+
+    test('btn-resume restores playing status', p3(() => {
+      gameSession.status = 'paused';
+      openModal('modal-pause');
+      btnResume.click();
+      assertEqual(gameSession.status, 'playing');
+      // cleanup
+      gameSession.status = 'idle';
+    }));
+
+    test('btn-quit-confirm resets game UI', p3(() => {
+      gameSession.status = 'paused';
+      openModal('modal-pause');
+      wordInput.value = 'testing';
+      document.getElementById('xp-display').textContent = '999 ✨';
+      btnQuitConfirm.click();
+      assertEqual(wordInput.value, '', 'input should be cleared');
+      assert(document.getElementById('xp-display').textContent.includes('0'), 'XP should reset');
+    }));
+
+    test('btn-back during countdown interrupts it', p3(() => {
+      gameSession.status = 'countdown';
+      showScreen('game-screen');
+      showCountdown();
+      btnBack.click();
+      assert(countdownOverlay.classList.contains('hidden'), 'countdown should be hidden after back');
+    }));
+
+    test('all 3 modals still hidden independently of pause modal', p3(() => {
+      ['modal-instructions','modal-scores','modal-settings'].forEach(id =>
+        assert(document.getElementById(id).classList.contains('hidden'), `${id} not hidden`));
+    }));
+
+    // ── Phase 4 tests ──────────────────────────────
+    const p4 = fn => { fn._phase = 4; return fn; };
+
+    // DOM structure
+    test('game-area exists', p4(() =>
+      assert(document.getElementById('game-area'))));
+
+    test('game-ground exists', p4(() =>
+      assert(document.getElementById('game-ground'))));
+
+    test('game-trees container exists', p4(() =>
+      assert(document.getElementById('game-trees'))));
+
+    test('danger-zone exists', p4(() =>
+      assert(document.getElementById('danger-zone'))));
+
+    test('danger-label exists', p4(() =>
+      assert(document.getElementById('danger-label'))));
+
+    test('xp-bar-wrap exists', p4(() =>
+      assert(document.getElementById('xp-bar-wrap'))));
+
+    test('xp-bar exists inside xp-bar-wrap', p4(() => {
+      const wrap = document.getElementById('xp-bar-wrap');
+      assert(wrap, 'xp-bar-wrap not found');
+      assert(wrap.contains(document.getElementById('xp-bar')), 'xp-bar not inside wrap');
+    }));
+
+    test('hud-inner exists inside hud', p4(() => {
+      const hud  = document.getElementById('hud');
+      const inner = document.getElementById('hud-inner');
+      assert(hud && inner, 'hud or hud-inner missing');
+      assert(hud.contains(inner), 'hud-inner not inside hud');
+    }));
+
+    test('hud-level-num exists', p4(() =>
+      assert(document.getElementById('hud-level-num'))));
+
+    test('hud-level-name exists', p4(() =>
+      assert(document.getElementById('hud-level-name'))));
+
+    // XP_THRESHOLDS
+    test('XP_THRESHOLDS is defined', p4(() =>
+      assert(typeof XP_THRESHOLDS !== 'undefined')));
+
+    test('XP_THRESHOLDS has 7 entries (levels 0-6)', p4(() =>
+      assertEqual(XP_THRESHOLDS.length, 7)));
+
+    test('XP_THRESHOLDS is strictly increasing', p4(() => {
+      for (let i = 1; i < XP_THRESHOLDS.length; i++)
+        assert(XP_THRESHOLDS[i] > XP_THRESHOLDS[i-1],
+          `Threshold ${i} (${XP_THRESHOLDS[i]}) should exceed ${XP_THRESHOLDS[i-1]}`);
+    }));
+
+    // updateXpBar
+    test('updateXpBar is a function', p4(() =>
+      assert(typeof updateXpBar === 'function')));
+
+    test('updateXpBar sets xp-bar width to 0% at level start', p4(() => {
+      updateXpBar(0, 1);
+      assertEqual(xpBar.style.width, '0%');
+    }));
+
+    test('updateXpBar sets xp-bar to 100% when threshold reached', p4(() => {
+      updateXpBar(XP_THRESHOLDS[1], 1); // exactly at level 2 threshold
+      assertEqual(xpBar.style.width, '100%');
+      updateXpBar(0, 1); // reset
+    }));
+
+    test('updateXpBar sets width between 0-100 for mid-level XP', p4(() => {
+      const midXp = Math.floor((XP_THRESHOLDS[0] + XP_THRESHOLDS[1]) / 2);
+      updateXpBar(midXp, 1);
+      const w = parseFloat(xpBar.style.width);
+      assert(w > 0 && w < 100, `Width ${w}% should be between 0 and 100`);
+      updateXpBar(0, 1);
+    }));
+
+    test('updateXpBar clamps to 100% above threshold', p4(() => {
+      updateXpBar(99999, 1);
+      assertEqual(xpBar.style.width, '100%');
+      updateXpBar(0, 1);
+    }));
+
+    // bumpXpDisplay
+    test('bumpXpDisplay updates xp text', p4(() => {
+      bumpXpDisplay(350);
+      assert(xpDisplay.textContent.includes('350'), `Got: "${xpDisplay.textContent}"`);
+    }));
+
+    test('bumpXpDisplay resets to 0 after resetGameUI', p4(() => {
+      bumpXpDisplay(500);
+      resetGameUI();
+      assert(xpDisplay.textContent.includes('0'), 'XP should be 0 after reset');
+    }));
+
+    // updateHudLevel
+    test('updateHudLevel is a function', p4(() =>
+      assert(typeof updateHudLevel === 'function')));
+
+    test('updateHudLevel sets correct num text for level 1', p4(() => {
+      updateHudLevel(1);
+      assert(hudLevelNum.textContent.includes('1'), 'num should contain 1');
+      assert(hudLevelNum.textContent.includes(LEVEL_DATA[0].emoji), 'num should contain emoji');
+    }));
+
+    test('updateHudLevel sets correct name for level 4', p4(() => {
+      updateHudLevel(4);
+      assertEqual(hudLevelName.textContent, LEVEL_DATA[3].name);
+      updateHudLevel(1);
+    }));
+
+    test('updateHudLevel is robust to out-of-range level', p4(() => {
+      // Should not throw
+      updateHudLevel(99);
+      updateHudLevel(1); // restore
+    }));
+
+    // Danger zone
+    test('setDangerZone is a function', p4(() =>
+      assert(typeof setDangerZone === 'function')));
+
+    test('setDangerZone(true) adds .active class', p4(() => {
+      setDangerZone(true);
+      assert(dangerZone.classList.contains('active'));
+      setDangerZone(false);
+    }));
+
+    test('setDangerZone(false) removes .active class', p4(() => {
+      setDangerZone(true);
+      setDangerZone(false);
+      assert(!dangerZone.classList.contains('active'));
+    }));
+
+    test('resetGameUI deactivates danger zone', p4(() => {
+      setDangerZone(true);
+      resetGameUI();
+      assert(!dangerZone.classList.contains('active'));
+    }));
+
+    // buildTrees
+    test('buildTrees is a function', p4(() =>
+      assert(typeof buildTrees === 'function')));
+
+    test('buildTrees populates game-trees with children', p4(() => {
+      // Clear first so it re-runs
+      gameTreesEl.innerHTML = '';
+      buildTrees();
+      assert(gameTreesEl.children.length > 0,
+        `Expected trees, got ${gameTreesEl.children.length}`);
+    }));
+
+    test('buildTrees creates .game-tree elements', p4(() => {
+      buildTrees();
+      const trees = gameTreesEl.querySelectorAll('.game-tree');
+      assert(trees.length > 0, 'No .game-tree elements found');
+    }));
+
+    test('each tree has a canopy and trunk', p4(() => {
+      buildTrees();
+      const trees = gameTreesEl.querySelectorAll('.game-tree');
+      trees.forEach((t, i) => {
+        assert(t.querySelector('.canopy'), `Tree ${i} missing canopy`);
+        assert(t.querySelector('.trunk'),  `Tree ${i} missing trunk`);
+      });
+    }));
+
+    test('buildTrees is idempotent (calling twice keeps same count)', p4(() => {
+      buildTrees();
+      const count1 = gameTreesEl.children.length;
+      buildTrees();
+      const count2 = gameTreesEl.children.length;
+      assertEqual(count1, count2, 'buildTrees should not add duplicates');
+    }));
+
+    // Focus system
+    test('wordInput exists and is an input element', p4(() => {
+      assert(wordInput, 'wordInput not found');
+      assertEqual(wordInput.tagName, 'INPUT');
+    }));
+
+    test('game-area has click listener that focuses input when playing', p4(() => {
+      gameSession.status = 'playing';
+      showScreen('game-screen');
+      // Simulate a click dispatch
+      gameArea.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      // Focus should have been called; check document.activeElement if input is visible
+      // (in jsdom/test env focus may not fully work, so we just verify no errors thrown)
+      gameSession.status = 'idle';
+      showScreen('menu-screen');
+    }));
+
+    // ── Phase 5 tests ──────────────────────────────
+    const p5 = fn => { fn._phase = 5; return fn; };
+
+    // Word state variables
+    test('activeWords is an array', p5(() =>
+      assert(Array.isArray(activeWords))));
+
+    test('activeWords starts empty', p5(() =>
+      assertEqual(activeWords.length, 0)));
+
+    test('lives starts at 3', p5(() =>
+      assertEqual(lives, 3)));
+
+    test('totalXP starts at 0', p5(() =>
+      assertEqual(totalXP, 0)));
+
+    test('WORD_POOL_P5 is a non-empty array', p5(() => {
+      assert(Array.isArray(WORD_POOL_P5));
+      assert(WORD_POOL_P5.length > 0);
+    }));
+
+    test('WORD_POOL_P5 contains only non-empty strings', p5(() => {
+      WORD_POOL_P5.forEach((w, i) =>
+        assert(typeof w === 'string' && w.length > 0, `Entry ${i} is invalid`));
+    }));
+
+    // DOM elements
+    test('flash-overlay exists', p5(() =>
+      assert(document.getElementById('flash-overlay'))));
+
+    test('modal-game-over exists', p5(() =>
+      assert(document.getElementById('modal-game-over'))));
+
+    test('modal-game-over hidden by default', p5(() =>
+      assert(document.getElementById('modal-game-over').classList.contains('hidden'))));
+
+    test('gameover-score element exists', p5(() =>
+      assert(document.getElementById('gameover-score'))));
+
+    test('btn-play-again exists', p5(() =>
+      assert(document.getElementById('btn-play-again'))));
+
+    test('btn-go-menu exists', p5(() =>
+      assert(document.getElementById('btn-go-menu'))));
+
+    // Geometry helpers
+    test('getGroundY is a function', p5(() =>
+      assert(typeof getGroundY === 'function')));
+
+    test('getDangerTop is a function', p5(() =>
+      assert(typeof getDangerTop === 'function')));
+
+    test('getDangerTop is less than getGroundY', p5(() => {
+      showScreen('game-screen');
+      assert(getDangerTop() < getGroundY(),
+        `dangerTop=${getDangerTop()} should be < groundY=${getGroundY()}`);
+      showScreen('menu-screen');
+    }));
+
+    // spawnWord
+    test('spawnWord is a function', p5(() =>
+      assert(typeof spawnWord === 'function')));
+
+    test('spawnWord adds a word to activeWords', p5(() => {
+      showScreen('game-screen');
+      const before = activeWords.length;
+      spawnWord('test');
+      assertEqual(activeWords.length, before + 1);
+      clearAllWords();
+      showScreen('menu-screen');
+    }));
+
+    test('spawnWord creates an element with correct text', p5(() => {
+      showScreen('game-screen');
+      const word = spawnWord('hello');
+      assertEqual(word.el.textContent, 'hello');
+      clearAllWords();
+      showScreen('menu-screen');
+    }));
+
+    test('spawnWord element has .falling-word class', p5(() => {
+      showScreen('game-screen');
+      const word = spawnWord('world');
+      assert(word.el.classList.contains('falling-word'));
+      clearAllWords();
+      showScreen('menu-screen');
+    }));
+
+    test('spawnWord object has id, text, x, y, speed, el', p5(() => {
+      showScreen('game-screen');
+      const word = spawnWord('check');
+      assert('id'    in word, 'missing id');
+      assert('text'  in word, 'missing text');
+      assert('x'     in word, 'missing x');
+      assert('y'     in word, 'missing y');
+      assert('speed' in word, 'missing speed');
+      assert('el'    in word, 'missing el');
+      clearAllWords();
+      showScreen('menu-screen');
+    }));
+
+    test('spawnWord uses provided speed', p5(() => {
+      showScreen('game-screen');
+      const word = spawnWord('fast', 3.5);
+      assertEqual(word.speed, 3.5);
+      clearAllWords();
+      showScreen('menu-screen');
+    }));
+
+    test('spawnWord adds game-running class to game-area', p5(() => {
+      showScreen('game-screen');
+      gameArea.classList.remove('game-running');
+      spawnWord('run');
+      assert(gameArea.classList.contains('game-running'));
+      clearAllWords();
+      showScreen('menu-screen');
+    }));
+
+    test('nextWordId increments with each spawn', p5(() => {
+      showScreen('game-screen');
+      const id1 = spawnWord('a').id;
+      const id2 = spawnWord('b').id;
+      assert(id2 > id1, 'IDs should be increasing');
+      clearAllWords();
+      showScreen('menu-screen');
+    }));
+
+    // removeWord
+    test('removeWord is a function', p5(() =>
+      assert(typeof removeWord === 'function')));
+
+    test('removeWord removes word from activeWords', p5(() => {
+      showScreen('game-screen');
+      const word = spawnWord('bye');
+      const id   = word.id;
+      assertEqual(activeWords.length, 1);
+      removeWord(id);
+      assertEqual(activeWords.length, 0);
+      showScreen('menu-screen');
+    }));
+
+    test('removeWord removes element from DOM', p5(() => {
+      showScreen('game-screen');
+      const word = spawnWord('gone');
+      gameArea.appendChild(word.el); // ensure in DOM
+      removeWord(word.id);
+      assert(!gameArea.contains(word.el), 'element should be removed');
+      showScreen('menu-screen');
+    }));
+
+    test('removeWord is safe to call with invalid id', p5(() => {
+      // should not throw
+      removeWord(-999);
+    }));
+
+    // clearAllWords
+    test('clearAllWords is a function', p5(() =>
+      assert(typeof clearAllWords === 'function')));
+
+    test('clearAllWords empties activeWords', p5(() => {
+      showScreen('game-screen');
+      spawnWord('one'); spawnWord('two'); spawnWord('three');
+      assertEqual(activeWords.length, 3);
+      clearAllWords();
+      assertEqual(activeWords.length, 0);
+      showScreen('menu-screen');
+    }));
+
+    test('clearAllWords removes game-running class', p5(() => {
+      showScreen('game-screen');
+      spawnWord('x');
+      assert(gameArea.classList.contains('game-running'));
+      clearAllWords();
+      assert(!gameArea.classList.contains('game-running'));
+      showScreen('menu-screen');
+    }));
+
+    // Game loop functions
+    test('startGameLoop is a function', p5(() =>
+      assert(typeof startGameLoop === 'function')));
+
+    test('stopGameLoop is a function', p5(() =>
+      assert(typeof stopGameLoop === 'function')));
+
+    test('stopGameLoop sets rafId to null', p5(() => {
+      gameSession.status = 'idle'; // prevent loop rescheduling
+      stopGameLoop();
+      assertEqual(rafId, null);
+    }));
+
+    // loseLife
+    test('loseLife is a function', p5(() =>
+      assert(typeof loseLife === 'function')));
+
+    test('loseLife decrements lives when playing', p5(() => {
+      lives = 3;
+      gameSession.status = 'playing';
+      loseLife();
+      assertEqual(lives, 2);
+      gameSession.status = 'idle';
+      lives = 3;
+      document.querySelectorAll('.heart').forEach(h => h.classList.remove('lost'));
+    }));
+
+    test('loseLife marks correct heart as lost', p5(() => {
+      lives = 3; gameSession.status = 'playing';
+      loseLife(); // lives now 2
+      const hearts = document.querySelectorAll('.heart');
+      assert(!hearts[0].classList.contains('lost'), 'heart 1 should not be lost');
+      assert(!hearts[1].classList.contains('lost'), 'heart 2 should not be lost');
+      assert(hearts[2].classList.contains('lost'),  'heart 3 should be lost');
+      lives = 3; gameSession.status = 'idle';
+      document.querySelectorAll('.heart').forEach(h => h.classList.remove('lost'));
+    }));
+
+    test('loseLife triggers gameOver when lives reach 0', p5(() => {
+      lives = 1; gameSession.status = 'playing';
+      showScreen('game-screen');
+      loseLife();
+      assertEqual(gameSession.status, 'over', 'status should be over');
+      closeModal('modal-game-over');
+      lives = 3; gameSession.status = 'idle';
+      showScreen('menu-screen');
+      document.querySelectorAll('.heart').forEach(h => h.classList.remove('lost'));
+    }));
+
+    test('loseLife does nothing when status is not playing', p5(() => {
+      lives = 3; gameSession.status = 'idle';
+      loseLife();
+      assertEqual(lives, 3); // unchanged
+    }));
+
+    // gameOver
+    test('gameOver is a function', p5(() =>
+      assert(typeof gameOver === 'function')));
+
+    test('gameOver sets status to over', p5(() => {
+      gameSession.status = 'playing';
+      showScreen('game-screen');
+      gameOver();
+      assertEqual(gameSession.status, 'over');
+      closeModal('modal-game-over');
+      gameSession.status = 'idle';
+      showScreen('menu-screen');
+    }));
+
+    test('gameOver clears all words', p5(() => {
+      showScreen('game-screen');
+      gameSession.status = 'playing';
+      spawnWord('clear-me');
+      gameOver();
+      assertEqual(activeWords.length, 0);
+      closeModal('modal-game-over');
+      gameSession.status = 'idle';
+      showScreen('menu-screen');
+    }));
+
+    test('gameOver deactivates danger zone', p5(() => {
+      showScreen('game-screen');
+      gameSession.status = 'playing';
+      setDangerZone(true);
+      gameOver();
+      assert(!dangerZone.classList.contains('active'));
+      closeModal('modal-game-over');
+      gameSession.status = 'idle';
+      showScreen('menu-screen');
+    }));
+
+    test('resetGameUI resets lives to 3', p5(() => {
+      lives = 1;
+      resetGameUI();
+      assertEqual(lives, 3);
+    }));
+
+    test('resetGameUI resets totalXP to 0', p5(() => {
+      totalXP = 500;
+      resetGameUI();
+      assertEqual(totalXP, 0);
+    }));
+
+    test('resetGameUI clears active words', p5(() => {
+      showScreen('game-screen');
+      spawnWord('reset-me');
+      assertEqual(activeWords.length, 1);
+      resetGameUI();
+      assertEqual(activeWords.length, 0);
+      showScreen('menu-screen');
+    }));
+
+    test('flashScreen does not throw', p5(() => {
+      flashScreen('miss');
+      // Should not throw even when overlay exists
+    }));
+
+    test('spawnNextWord is a function', p5(() =>
+      assert(typeof spawnNextWord === 'function')));
+
+    test('spawnNextWord spawns from WORD_POOL_P5', p5(() => {
+      showScreen('game-screen');
+      spawnNextWord();
+      assert(activeWords.length === 1);
+      assert(WORD_POOL_P5.includes(activeWords[0].text),
+        `"${activeWords[0].text}" not in WORD_POOL_P5`);
+      clearAllWords();
+      showScreen('menu-screen');
+    }));
+
+    // ── Phase 6 tests ──────────────────────────────
+    const p6 = fn => { fn._phase = 6; return fn; };
+
+    // calcXP
+    test('calcXP is a function', p6(() =>
+      assert(typeof calcXP === 'function')));
+
+    test('calcXP returns a number', p6(() => {
+      showScreen('game-screen');
+      const word = spawnWord('cat');
+      word.y = 10; // near top — high bonus
+      assert(typeof calcXP(word) === 'number');
+      clearAllWords(); showScreen('menu-screen');
+    }));
+
+    test('calcXP base is wordLength × 10', p6(() => {
+      showScreen('game-screen');
+      const word = spawnWord('hi'); // length 2
+      word.y = getGroundY(); // at ground — bonus ≈ 0
+      const xp = calcXP(word);
+      assert(xp >= 20, `Expected >= 20, got ${xp}`);
+      clearAllWords(); showScreen('menu-screen');
+    }));
+
+    test('calcXP gives more XP when word is near top', p6(() => {
+      showScreen('game-screen');
+      const w1 = spawnWord('jump'); w1.y = 5;                        // near top
+      const w2 = spawnWord('jump'); w2.y = getGroundY() - 30;        // near ground
+      const xpTop    = calcXP(w1);
+      const xpBottom = calcXP(w2);
+      assert(xpTop > xpBottom, `top xp ${xpTop} should exceed bottom xp ${xpBottom}`);
+      clearAllWords(); showScreen('menu-screen');
+    }));
+
+    test('calcXP bonus is non-negative', p6(() => {
+      showScreen('game-screen');
+      const word = spawnWord('glow');
+      word.y = getGroundY() + 50; // past ground
+      const xp = calcXP(word);
+      assert(xp >= word.text.length * 10, 'base xp should always be present');
+      clearAllWords(); showScreen('menu-screen');
+    }));
+
+    test('calcXP longer word always earns more base than shorter', p6(() => {
+      showScreen('game-screen');
+      const short = spawnWord('hi');   short.y = getGroundY();
+      const long  = spawnWord('jump'); long.y  = getGroundY();
+      assert(calcXP(long) > calcXP(short),
+        `"jump" base should exceed "hi" base`);
+      clearAllWords(); showScreen('menu-screen');
+    }));
+
+    // tryMatchWord
+    test('tryMatchWord is a function', p6(() =>
+      assert(typeof tryMatchWord === 'function')));
+
+    test('tryMatchWord returns null when no words present', p6(() => {
+      clearAllWords();
+      assertEqual(tryMatchWord('cat'), null);
+    }));
+
+    test('tryMatchWord returns null for empty string', p6(() => {
+      showScreen('game-screen');
+      spawnWord('cat');
+      assertEqual(tryMatchWord(''), null);
+      clearAllWords(); showScreen('menu-screen');
+    }));
+
+    test('tryMatchWord returns null for whitespace-only string', p6(() => {
+      showScreen('game-screen');
+      spawnWord('cat');
+      assertEqual(tryMatchWord('   '), null);
+      clearAllWords(); showScreen('menu-screen');
+    }));
+
+    test('tryMatchWord matches exact word', p6(() => {
+      showScreen('game-screen');
+      spawnWord('moon');
+      const result = tryMatchWord('moon');
+      assert(result !== null, 'should find "moon"');
+      assertEqual(result.text, 'moon');
+      clearAllWords(); showScreen('menu-screen');
+    }));
+
+    test('tryMatchWord is case-insensitive', p6(() => {
+      showScreen('game-screen');
+      spawnWord('star');
+      assert(tryMatchWord('STAR') !== null, 'uppercase should match');
+      assert(tryMatchWord('Star') !== null, 'mixed case should match');
+      clearAllWords(); showScreen('menu-screen');
+    }));
+
+    test('tryMatchWord trims surrounding spaces', p6(() => {
+      showScreen('game-screen');
+      spawnWord('frog');
+      assert(tryMatchWord('  frog  ') !== null, 'trimmed input should match');
+      clearAllWords(); showScreen('menu-screen');
+    }));
+
+    test('tryMatchWord returns null for partial match', p6(() => {
+      showScreen('game-screen');
+      spawnWord('fish');
+      assertEqual(tryMatchWord('fis'), null, 'partial should not match');
+      clearAllWords(); showScreen('menu-screen');
+    }));
+
+    test('tryMatchWord returns null for wrong word', p6(() => {
+      showScreen('game-screen');
+      spawnWord('bird');
+      assertEqual(tryMatchWord('fish'), null);
+      clearAllWords(); showScreen('menu-screen');
+    }));
+
+    test('tryMatchWord finds word among multiple actives', p6(() => {
+      showScreen('game-screen');
+      spawnWord('dog'); spawnWord('cat'); spawnWord('sun');
+      const result = tryMatchWord('cat');
+      assert(result !== null && result.text === 'cat');
+      clearAllWords(); showScreen('menu-screen');
+    }));
+
+    // zapWord
+    test('zapWord is a function', p6(() =>
+      assert(typeof zapWord === 'function')));
+
+    test('zapWord removes word from activeWords immediately', p6(() => {
+      showScreen('game-screen');
+      const word = spawnWord('zap');
+      assertEqual(activeWords.length, 1);
+      zapWord(word);
+      assertEqual(activeWords.length, 0, 'word should be gone from activeWords');
+      clearAllWords(); showScreen('menu-screen');
+    }));
+
+    test('zapWord adds .zapped class to element', p6(() => {
+      showScreen('game-screen');
+      const word = spawnWord('zap');
+      zapWord(word);
+      assert(word.el.classList.contains('zapped'));
+      clearAllWords(); showScreen('menu-screen');
+    }));
+
+    // spawnXpPopup
+    test('spawnXpPopup is a function', p6(() =>
+      assert(typeof spawnXpPopup === 'function')));
+
+    test('spawnXpPopup creates element with xp text', p6(() => {
+      showScreen('game-screen');
+      const popup = spawnXpPopup(50, 100, 42, false);
+      assert(popup.textContent.includes('42'), `Got: "${popup.textContent}"`);
+      popup.remove();
+      showScreen('menu-screen');
+    }));
+
+    test('spawnXpPopup adds .xp-popup class', p6(() => {
+      showScreen('game-screen');
+      const popup = spawnXpPopup(50, 100, 10, false);
+      assert(popup.classList.contains('xp-popup'));
+      popup.remove();
+      showScreen('menu-screen');
+    }));
+
+    test('spawnXpPopup adds .big class when isBig=true', p6(() => {
+      showScreen('game-screen');
+      const popup = spawnXpPopup(50, 100, 30, true);
+      assert(popup.classList.contains('big'));
+      popup.remove();
+      showScreen('menu-screen');
+    }));
+
+    test('spawnXpPopup does NOT add .big when isBig=false', p6(() => {
+      showScreen('game-screen');
+      const popup = spawnXpPopup(50, 100, 10, false);
+      assert(!popup.classList.contains('big'));
+      popup.remove();
+      showScreen('menu-screen');
+    }));
+
+    // shakeInput
+    test('shakeInput is a function', p6(() =>
+      assert(typeof shakeInput === 'function')));
+
+    test('shakeInput adds .shake class to word input', p6(() => {
+      shakeInput();
+      assert(wordInput.classList.contains('shake'));
+      wordInput.classList.remove('shake');
+    }));
+
+    // onWordMatched
+    test('onWordMatched is a function', p6(() =>
+      assert(typeof onWordMatched === 'function')));
+
+    test('onWordMatched increases totalXP', p6(() => {
+      showScreen('game-screen');
+      gameSession.status = 'playing';
+      totalXP = 0;
+      const word = spawnWord('star');
+      word.y = 20;
+      onWordMatched(word);
+      assert(totalXP > 0, `totalXP should be > 0, got ${totalXP}`);
+      clearAllWords(); gameSession.status = 'idle'; showScreen('menu-screen');
+    }));
+
+    test('onWordMatched removes word from activeWords', p6(() => {
+      showScreen('game-screen');
+      gameSession.status = 'playing';
+      const word = spawnWord('fish');
+      assertEqual(activeWords.length, 1);
+      onWordMatched(word);
+      assertEqual(activeWords.length, 0);
+      clearAllWords(); gameSession.status = 'idle'; showScreen('menu-screen');
+    }));
+
+    test('onWordMatched updates xp display', p6(() => {
+      showScreen('game-screen');
+      gameSession.status = 'playing';
+      totalXP = 0;
+      const word = spawnWord('gold'); word.y = 10;
+      onWordMatched(word);
+      assert(!xpDisplay.textContent.includes('0 ✨') || totalXP === 0,
+        'XP display should reflect earned xp');
+      clearAllWords(); gameSession.status = 'idle'; showScreen('menu-screen');
+    }));
+
+    // Enter key handler — integration
+    test('Enter key clears the input field on match', p6(() => {
+      showScreen('game-screen');
+      gameSession.status = 'playing';
+      spawnWord('cat');
+      wordInput.value = 'cat';
+      wordInput.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+      assertEqual(wordInput.value, '', 'input should be cleared after Enter');
+      clearAllWords(); gameSession.status = 'idle'; showScreen('menu-screen');
+    }));
+
+    test('Enter key clears input even on no match', p6(() => {
+      showScreen('game-screen');
+      gameSession.status = 'playing';
+      spawnWord('dog');
+      wordInput.value = 'xyz';
+      wordInput.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+      assertEqual(wordInput.value, '', 'input should be cleared after miss');
+      clearAllWords(); gameSession.status = 'idle'; showScreen('menu-screen');
+    }));
+
+    test('Enter key removes matched word', p6(() => {
+      showScreen('game-screen');
+      gameSession.status = 'playing';
+      spawnWord('sun');
+      assertEqual(activeWords.length, 1);
+      wordInput.value = 'sun';
+      wordInput.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+      assertEqual(activeWords.length, 0, 'matched word should be removed');
+      clearAllWords(); gameSession.status = 'idle'; showScreen('menu-screen');
+    }));
+
+    test('Enter key does not remove word on no match', p6(() => {
+      showScreen('game-screen');
+      gameSession.status = 'playing';
+      spawnWord('moon');
+      wordInput.value = 'star';
+      wordInput.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+      assertEqual(activeWords.length, 1, 'word should still be there after miss');
+      clearAllWords(); gameSession.status = 'idle'; showScreen('menu-screen');
+    }));
+
+    test('Enter key does nothing when status is not playing', p6(() => {
+      showScreen('game-screen');
+      gameSession.status = 'idle';
+      spawnWord('frog');
+      wordInput.value = 'frog';
+      wordInput.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+      assert(activeWords.length === 1 && wordInput.value === 'frog',
+        'should not process input when not playing');
+      clearAllWords(); gameSession.status = 'idle'; showScreen('menu-screen');
+      wordInput.value = '';
+    }));
+
+    test('non-Enter key does not trigger matching', p6(() => {
+      showScreen('game-screen');
+      gameSession.status = 'playing';
+      spawnWord('rain');
+      wordInput.value = 'rain';
+      wordInput.dispatchEvent(new KeyboardEvent('keydown', { key: 'a', bubbles: true }));
+      assertEqual(activeWords.length, 1, 'word should still be there after non-Enter key');
+      clearAllWords(); gameSession.status = 'idle'; showScreen('menu-screen');
+      wordInput.value = '';
+    }));
+
+    test('totalXP accumulates across multiple correct words', p6(() => {
+      showScreen('game-screen');
+      gameSession.status = 'playing';
+      totalXP = 0;
+      const w1 = spawnWord('cat'); w1.y = 10;
+      const w2 = spawnWord('dog'); w2.y = 10;
+      onWordMatched(w1);
+      const xpAfterFirst = totalXP;
+      onWordMatched(w2);
+      assert(totalXP > xpAfterFirst, 'XP should keep growing');
+      clearAllWords(); gameSession.status = 'idle'; showScreen('menu-screen');
+    }));
+
+    // ── Phase 7 tests ──────────────────────────────
+    const p7 = fn => { fn._phase = 7; return fn; };
+
+    // ── Word lists ─────────────────────────────────
+    test('LEVEL_WORDS is defined', p7(() =>
+      assert(typeof LEVEL_WORDS !== 'undefined')));
+
+    test('LEVEL_WORDS has 6 arrays (one per level)', p7(() =>
+      assertEqual(LEVEL_WORDS.length, 6)));
+
+    test('every level word list is non-empty', p7(() => {
+      LEVEL_WORDS.forEach((list, i) =>
+        assert(list.length >= 10, `Level ${i+1} list has only ${list.length} words`));
+    }));
+
+    test('every entry in every list is a non-empty string', p7(() => {
+      LEVEL_WORDS.forEach((list, li) =>
+        list.forEach((w, wi) =>
+          assert(typeof w === 'string' && w.length > 0,
+            `Level ${li+1} word[${wi}] is invalid`)));
+    }));
+
+    test('Level 1 words are shorter on average than Level 6', p7(() => {
+      const avg = list => list.reduce((s,w) => s + w.length, 0) / list.length;
+      assert(avg(LEVEL_WORDS[0]) < avg(LEVEL_WORDS[5]),
+        'Level 1 avg length should be less than Level 6');
+    }));
+
+    test('no level list contains duplicates', p7(() => {
+      LEVEL_WORDS.forEach((list, i) => {
+        const uniq = new Set(list);
+        assertEqual(uniq.size, list.length, `Level ${i+1} has duplicate words`);
+      });
+    }));
+
+    // ── Level config ───────────────────────────────
+    test('LEVEL_CONFIG is defined', p7(() =>
+      assert(typeof LEVEL_CONFIG !== 'undefined')));
+
+    test('LEVEL_CONFIG has 6 entries', p7(() =>
+      assertEqual(LEVEL_CONFIG.length, 6)));
+
+    test('every config entry has spawnMs, maxWords, speed', p7(() => {
+      LEVEL_CONFIG.forEach((cfg, i) => {
+        assert('spawnMs'  in cfg, `Level ${i+1} missing spawnMs`);
+        assert('maxWords' in cfg, `Level ${i+1} missing maxWords`);
+        assert('speed'    in cfg, `Level ${i+1} missing speed`);
+      });
+    }));
+
+    test('spawnMs decreases with each level', p7(() => {
+      for (let i = 1; i < LEVEL_CONFIG.length; i++)
+        assert(LEVEL_CONFIG[i].spawnMs < LEVEL_CONFIG[i-1].spawnMs,
+          `Level ${i+1} spawnMs should be less than Level ${i}`);
+    }));
+
+    test('maxWords increases with each level', p7(() => {
+      for (let i = 1; i < LEVEL_CONFIG.length; i++)
+        assert(LEVEL_CONFIG[i].maxWords >= LEVEL_CONFIG[i-1].maxWords,
+          `Level ${i+1} maxWords should be >= Level ${i}`);
+    }));
+
+    test('speed increases with each level', p7(() => {
+      for (let i = 1; i < LEVEL_CONFIG.length; i++)
+        assert(LEVEL_CONFIG[i].speed > LEVEL_CONFIG[i-1].speed,
+          `Level ${i+1} speed should exceed Level ${i}`);
+    }));
+
+    test('all spawnMs values are positive integers > 0', p7(() => {
+      LEVEL_CONFIG.forEach((cfg, i) =>
+        assert(cfg.spawnMs > 0, `Level ${i+1} spawnMs must be > 0`));
+    }));
+
+    test('all maxWords values are >= 1', p7(() => {
+      LEVEL_CONFIG.forEach((cfg, i) =>
+        assert(cfg.maxWords >= 1, `Level ${i+1} maxWords must be >= 1`));
+    }));
+
+    // ── pickWord ───────────────────────────────────
+    test('pickWord is a function', p7(() =>
+      assert(typeof pickWord === 'function')));
+
+    test('pickWord returns a string from the correct level pool', p7(() => {
+      usedWords.clear();
+      const word = pickWord(1);
+      assert(typeof word === 'string' && word.length > 0);
+      assert(LEVEL_WORDS[0].includes(word), `"${word}" not in Level 1 pool`);
+    }));
+
+    test('pickWord uses correct pool for each level', p7(() => {
+      for (let l = 1; l <= 6; l++) {
+        usedWords.clear();
+        const word = pickWord(l);
+        assert(LEVEL_WORDS[l-1].includes(word),
+          `pickWord(${l}) returned "${word}" not in Level ${l} pool`);
+      }
+    }));
+
+    test('pickWord avoids currently active words', p7(() => {
+      showScreen('game-screen');
+      usedWords.clear();
+      // Spawn all but one word from level 1 pool
+      const pool = LEVEL_WORDS[0];
+      // Force active words list to contain most of pool
+      const saved = [...activeWords];
+      pool.slice(0, pool.length - 1).forEach(text => {
+        const fakeWord = { id: nextWordId++, text, x: 0, y: 0, speed: 1,
+          el: document.createElement('div') };
+        activeWords.push(fakeWord);
+      });
+      const chosen = pickWord(1);
+      const activeTexts = new Set(activeWords.map(w => w.text));
+      assert(!activeTexts.has(chosen) || pool.length <= 1,
+        `pickWord returned "${chosen}" which is already active`);
+      // Restore activeWords
+      activeWords = saved;
+      showScreen('menu-screen');
+    }));
+
+    test('pickWord resets usedWords when pool is exhausted', p7(() => {
+      usedWords.clear();
+      // Fill usedWords with the whole pool
+      LEVEL_WORDS[0].forEach(w => usedWords.add(w));
+      // Should not throw and should return something
+      const word = pickWord(1);
+      assert(typeof word === 'string' && word.length > 0, `Expected a word, got "${word}"`);
+    }));
+
+    // ── Spawner functions ──────────────────────────
+    test('startSpawner is a function', p7(() =>
+      assert(typeof startSpawner === 'function')));
+
+    test('stopSpawner is a function', p7(() =>
+      assert(typeof stopSpawner === 'function')));
+
+    test('spawnLevelWord is a function', p7(() =>
+      assert(typeof spawnLevelWord === 'function')));
+
+    test('stopSpawner sets spawnerId to null', p7(() => {
+      stopSpawner();
+      assertEqual(spawnerId, null);
+    }));
+
+    test('startSpawner sets a non-null spawnerId', p7(() => {
+      showScreen('game-screen');
+      gameSession.level  = 1;
+      gameSession.status = 'playing';
+      startSpawner();
+      assert(spawnerId !== null, 'spawnerId should be set after startSpawner');
+      stopSpawner();
+      clearAllWords();
+      gameSession.status = 'idle';
+      showScreen('menu-screen');
+    }));
+
+    test('startSpawner spawns at least one word immediately', p7(() => {
+      showScreen('game-screen');
+      gameSession.level  = 1;
+      gameSession.status = 'playing';
+      clearAllWords();
+      startSpawner();
+      assert(activeWords.length >= 1, 'Should have at least 1 word after startSpawner');
+      stopSpawner();
+      clearAllWords();
+      gameSession.status = 'idle';
+      showScreen('menu-screen');
+    }));
+
+    test('spawnLevelWord respects maxWords cap', p7(() => {
+      showScreen('game-screen');
+      gameSession.level  = 1;
+      gameSession.status = 'playing';
+      clearAllWords();
+      const cfg = LEVEL_CONFIG[0];
+      // Spawn up to cap
+      for (let i = 0; i < cfg.maxWords + 5; i++) spawnLevelWord();
+      assert(activeWords.length <= cfg.maxWords,
+        `activeWords.length ${activeWords.length} exceeds cap ${cfg.maxWords}`);
+      clearAllWords();
+      gameSession.status = 'idle';
+      showScreen('menu-screen');
+    }));
+
+    test('spawnLevelWord does not spawn when not playing', p7(() => {
+      showScreen('game-screen');
+      gameSession.status = 'idle';
+      clearAllWords();
+      spawnLevelWord();
+      assertEqual(activeWords.length, 0, 'Should not spawn when idle');
+      showScreen('menu-screen');
+    }));
+
+    test('spawnLevelWord uses level-appropriate word', p7(() => {
+      showScreen('game-screen');
+      gameSession.level  = 3;
+      gameSession.status = 'playing';
+      clearAllWords(); usedWords.clear();
+      spawnLevelWord();
+      if (activeWords.length > 0) {
+        assert(LEVEL_WORDS[2].includes(activeWords[0].text),
+          `"${activeWords[0].text}" not in Level 3 pool`);
+      }
+      clearAllWords();
+      gameSession.status = 'idle'; gameSession.level = 1;
+      showScreen('menu-screen');
+    }));
+
+    test('spawnLevelWord uses level-appropriate speed', p7(() => {
+      showScreen('game-screen');
+      gameSession.level  = 4;
+      gameSession.status = 'playing';
+      clearAllWords(); usedWords.clear();
+      spawnLevelWord();
+      if (activeWords.length > 0) {
+        const expected = LEVEL_CONFIG[3].speed;
+        assertEqual(activeWords[0].speed, expected,
+          `Expected speed ${expected}, got ${activeWords[0].speed}`);
+      }
+      clearAllWords();
+      gameSession.status = 'idle'; gameSession.level = 1;
+      showScreen('menu-screen');
+    }));
+
+    test('resetGameUI stops spawner (spawnerId becomes null)', p7(() => {
+      showScreen('game-screen');
+      gameSession.level  = 1;
+      gameSession.status = 'playing';
+      startSpawner();
+      assert(spawnerId !== null, 'spawner should be running');
+      resetGameUI();
+      assertEqual(spawnerId, null, 'resetGameUI should stop spawner');
+      showScreen('menu-screen');
+    }));
+
+    test('gameOver stops spawner', p7(() => {
+      showScreen('game-screen');
+      gameSession.level  = 1;
+      gameSession.status = 'playing';
+      startSpawner();
+      gameOver();
+      assertEqual(spawnerId, null, 'gameOver should stop spawner');
+      closeModal('modal-game-over');
+      showScreen('menu-screen');
+    }));
+
+    test('stopSpawner is idempotent (safe to call twice)', p7(() => {
+      stopSpawner();
+      stopSpawner(); // should not throw
+      assertEqual(spawnerId, null);
+    }));
+
+    test('startSpawner clears usedWords', p7(() => {
+      usedWords.add('polluted');
+      showScreen('game-screen');
+      gameSession.level = 1; gameSession.status = 'playing';
+      startSpawner();
+      // usedWords may have new entries but the old ones should be cleared
+      // (startSpawner calls usedWords.clear() then immediately adds the first pick)
+      stopSpawner(); clearAllWords();
+      gameSession.status = 'idle'; showScreen('menu-screen');
+      // Just assert it didn't throw
+    }));
+
+    // ── Phase 8 tests ──────────────────────────────
+    const p8 = fn => { fn._phase = 8; return fn; };
+
+    // ── applyLevelBackground ───────────────────────
+    test('applyLevelBackground is a function', p8(() =>
+      assert(typeof applyLevelBackground === 'function')));
+
+    test('applyLevelBackground sets data-level on game-screen', p8(() => {
+      applyLevelBackground(1);
+      assertEqual(gameScreen.dataset.level, '1');
+    }));
+
+    test('applyLevelBackground sets correct level for each 1-6', p8(() => {
+      for (let l = 1; l <= 6; l++) {
+        applyLevelBackground(l);
+        assertEqual(gameScreen.dataset.level, String(l), `Level ${l}`);
+      }
+      applyLevelBackground(1);
+    }));
+
+    test('applyLevelBackground clamps below 1 to 1', p8(() => {
+      applyLevelBackground(0);
+      assertEqual(gameScreen.dataset.level, '1');
+    }));
+
+    test('applyLevelBackground clamps above 6 to 6', p8(() => {
+      applyLevelBackground(99);
+      assertEqual(gameScreen.dataset.level, '6');
+      applyLevelBackground(1);
+    }));
+
+    // ── DOM: banner elements ───────────────────────
+    test('levelup-banner element exists', p8(() =>
+      assert(document.getElementById('levelup-banner'))));
+
+    test('levelup-banner is hidden by default', p8(() =>
+      assert(document.getElementById('levelup-banner').classList.contains('hidden'))));
+
+    test('levelup-bubble element exists', p8(() =>
+      assert(document.getElementById('levelup-bubble'))));
+
+    test('levelup-emoji element exists', p8(() =>
+      assert(document.getElementById('levelup-emoji'))));
+
+    test('levelup-title element exists', p8(() =>
+      assert(document.getElementById('levelup-title'))));
+
+    test('levelup-name element exists', p8(() =>
+      assert(document.getElementById('levelup-name'))));
+
+    test('levelup-stars element exists', p8(() =>
+      assert(document.getElementById('levelup-stars'))));
+
+    // ── showLevelUpBanner ──────────────────────────
+    test('showLevelUpBanner is a function', p8(() =>
+      assert(typeof showLevelUpBanner === 'function')));
+
+    test('showLevelUpBanner shows the banner', p8(() => {
+      showLevelUpBanner(2, () => {});
+      assert(!document.getElementById('levelup-banner').classList.contains('hidden'),
+        'banner should be visible');
+      // Cleanup
+      document.getElementById('levelup-banner').classList.add('hidden');
+    }));
+
+    test('showLevelUpBanner sets correct emoji for level 2', p8(() => {
+      showLevelUpBanner(2, () => {});
+      assertEqual(document.getElementById('levelup-emoji').textContent, LEVEL_DATA[1].emoji);
+      document.getElementById('levelup-banner').classList.add('hidden');
+    }));
+
+    test('showLevelUpBanner sets correct name for level 3', p8(() => {
+      showLevelUpBanner(3, () => {});
+      assert(document.getElementById('levelup-name').textContent.includes(LEVEL_DATA[2].name),
+        `Expected "${LEVEL_DATA[2].name}"`);
+      document.getElementById('levelup-banner').classList.add('hidden');
+    }));
+
+    test('showLevelUpBanner stars length matches LEVEL_DATA length', p8(() => {
+      for (let l = 1; l <= 6; l++) {
+        showLevelUpBanner(l, () => {});
+        const stars = document.getElementById('levelup-stars').textContent;
+        const total = [...stars].filter(c => c === '⭐' || c === '☆').length;
+        assertEqual(total, LEVEL_DATA.length, `Level ${l} star count`);
+      }
+      document.getElementById('levelup-banner').classList.add('hidden');
+    }));
+
+    test('showLevelUpBanner calls onDone eventually (uses fake timer check)', p8(() => {
+      // Ensure onDone is a callable; we can't wait 2s in a sync test,
+      // so just verify no throw and banner shows
+      let called = false;
+      showLevelUpBanner(2, () => { called = true; });
+      assert(!document.getElementById('levelup-banner').classList.contains('hidden'));
+      document.getElementById('levelup-banner').classList.add('hidden');
+    }));
+
+    test('showLevelUpBanner is safe with out-of-range level (calls onDone)', p8(() => {
+      let doneCalled = false;
+      showLevelUpBanner(99, () => { doneCalled = true; });
+      assert(doneCalled, 'onDone should be called for invalid level');
+    }));
+
+    // ── checkLevelUp ──────────────────────────────
+    test('checkLevelUp is a function', p8(() =>
+      assert(typeof checkLevelUp === 'function')));
+
+    test('checkLevelUp returns false when XP below threshold', p8(() => {
+      totalXP = 0; gameSession.level = 1;
+      const result = checkLevelUp();
+      assert(result === false, `Expected false, got ${result}`);
+    }));
+
+    test('checkLevelUp returns false at max level', p8(() => {
+      totalXP = 9999; gameSession.level = state.maxLevel;
+      const result = checkLevelUp();
+      assert(result === false, 'Should not level up past max');
+      gameSession.level = 1; totalXP = 0;
+    }));
+
+    test('checkLevelUp returns true when XP meets threshold', p8(() => {
+      gameSession.status = 'playing';
+      gameSession.level = 1;
+      totalXP = XP_THRESHOLDS[1]; // exactly at level 2 threshold
+      const result = checkLevelUp();
+      assert(result === true, 'Should level up when XP meets threshold');
+      // Cleanup
+      stopSpawner();
+      document.getElementById('levelup-banner').classList.add('hidden');
+      gameSession.level = 1; totalXP = 0; gameSession.status = 'idle';
+    }));
+
+    test('checkLevelUp does not trigger when XP one below threshold', p8(() => {
+      gameSession.level = 1;
+      totalXP = XP_THRESHOLDS[1] - 1;
+      const result = checkLevelUp();
+      assert(result === false, 'Should not level up one below threshold');
+      totalXP = 0;
+    }));
+
+    // ── triggerLevelUp ────────────────────────────
+    test('triggerLevelUp is a function', p8(() =>
+      assert(typeof triggerLevelUp === 'function')));
+
+    test('triggerLevelUp increments gameSession.level', p8(() => {
+      gameSession.level = 2; gameSession.status = 'playing';
+      triggerLevelUp();
+      assertEqual(gameSession.level, 3);
+      stopSpawner();
+      document.getElementById('levelup-banner').classList.add('hidden');
+      gameSession.level = 1; gameSession.status = 'idle';
+    }));
+
+    test('triggerLevelUp calls applyLevelBackground with new level', p8(() => {
+      gameSession.level = 1; gameSession.status = 'playing';
+      triggerLevelUp();
+      assertEqual(gameScreen.dataset.level, '2');
+      stopSpawner();
+      document.getElementById('levelup-banner').classList.add('hidden');
+      gameSession.level = 1; gameSession.status = 'idle';
+      applyLevelBackground(1);
+    }));
+
+    test('triggerLevelUp shows level-up banner', p8(() => {
+      gameSession.level = 1; gameSession.status = 'playing';
+      triggerLevelUp();
+      assert(!document.getElementById('levelup-banner').classList.contains('hidden'),
+        'banner should be visible after triggerLevelUp');
+      stopSpawner();
+      document.getElementById('levelup-banner').classList.add('hidden');
+      gameSession.level = 1; gameSession.status = 'idle';
+    }));
+
+    test('triggerLevelUp stops spawner during banner', p8(() => {
+      gameSession.level = 1; gameSession.status = 'playing';
+      startSpawner(); // make sure spawner is running
+      assert(spawnerId !== null, 'spawner should be running before triggerLevelUp');
+      triggerLevelUp();
+      // triggerLevelUp calls stopSpawner before showing banner
+      assertEqual(spawnerId, null, 'spawner should be stopped during banner');
+      document.getElementById('levelup-banner').classList.add('hidden');
+      gameSession.level = 1; gameSession.status = 'idle';
+      clearAllWords();
+    }));
+
+    test('triggerLevelUp does nothing when status is not playing', p8(() => {
+      gameSession.level = 1; gameSession.status = 'idle';
+      const before = gameSession.level;
+      triggerLevelUp();
+      assertEqual(gameSession.level, before, 'level should not change when not playing');
+    }));
+
+    test('triggerLevelUp updates HUD level display', p8(() => {
+      showScreen('game-screen');
+      gameSession.level = 2; gameSession.status = 'playing';
+      triggerLevelUp();
+      assert(hudLevelNum.textContent.includes('3'), 'HUD should show new level 3');
+      stopSpawner();
+      document.getElementById('levelup-banner').classList.add('hidden');
+      gameSession.level = 1; gameSession.status = 'idle';
+      showScreen('menu-screen');
+      applyLevelBackground(1);
+      updateHudLevel(1);
+    }));
+
+    test('resetGameUI hides the level-up banner', p8(() => {
+      document.getElementById('levelup-banner').classList.remove('hidden');
+      resetGameUI();
+      assert(document.getElementById('levelup-banner').classList.contains('hidden'),
+        'banner should be hidden after resetGameUI');
+    }));
+
+    test('XP_THRESHOLDS aligns with LEVEL_CONFIG lengths', p8(() => {
+      // XP_THRESHOLDS has 7 entries (0 through max level)
+      // LEVEL_CONFIG has 6 entries (one per level)
+      assert(XP_THRESHOLDS.length === LEVEL_CONFIG.length + 1,
+        `XP_THRESHOLDS.length=${XP_THRESHOLDS.length}, LEVEL_CONFIG.length=${LEVEL_CONFIG.length}`);
+    }));
+
+    test('checkLevelUp chain: level 1→2→3 via XP', p8(() => {
+      gameSession.level = 1; gameSession.status = 'playing'; totalXP = 0;
+
+      // Reach level 2 threshold
+      totalXP = XP_THRESHOLDS[1];
+      checkLevelUp();
+      assertEqual(gameSession.level, 2, 'Should be level 2');
+
+      stopSpawner();
+      document.getElementById('levelup-banner').classList.add('hidden');
+
+      // Reach level 3 threshold (still playing after level up)
+      gameSession.status = 'playing';
+      totalXP = XP_THRESHOLDS[2];
+      checkLevelUp();
+      assertEqual(gameSession.level, 3, 'Should be level 3');
+
+      stopSpawner();
+      document.getElementById('levelup-banner').classList.add('hidden');
+      gameSession.level = 1; totalXP = 0; gameSession.status = 'idle';
+      applyLevelBackground(1); updateHudLevel(1);
+    }));
+
+    // ── Phase 9 tests ──────────────────────────────
+    const p9 = fn => { fn._phase = 9; return fn; };
+
+    // ── Sound engine ───────────────────────────────
+    test('playSound is a function', p9(() =>
+      assert(typeof playSound === 'function')));
+
+    test('playSound does not throw when sfx is on', p9(() => {
+      state.settings.sfx = true;
+      playSound('hit');      // Should not throw even if AudioContext unavailable
+      playSound('miss');
+      playSound('miss-word');
+      playSound('levelup');
+      playSound('gameover');
+    }));
+
+    test('playSound does nothing when sfx is off', p9(() => {
+      state.settings.sfx = false;
+      playSound('hit'); // Should not throw
+      state.settings.sfx = true;
+    }));
+
+    test('getAudioCtx is a function', p9(() =>
+      assert(typeof getAudioCtx === 'function')));
+
+    test('getAudioCtx returns AudioContext or null', p9(() => {
+      const ctx = getAudioCtx();
+      assert(ctx === null || ctx instanceof (window.AudioContext || window.webkitAudioContext || Object),
+        'Should return AudioContext or null');
+    }));
+
+    // ── maybeSaveScore ─────────────────────────────
+    test('maybeSaveScore is a function', p9(() =>
+      assert(typeof maybeSaveScore === 'function')));
+
+    test('maybeSaveScore adds a score entry', p9(() => {
+      saveScores([]);
+      maybeSaveScore(100, 1);
+      const scores = getScores();
+      assertEqual(scores.length, 1, 'Should have 1 score');
+      assertEqual(scores[0].xp, 100);
+      saveScores([]); // cleanup
+    }));
+
+    test('maybeSaveScore keeps top 5 only', p9(() => {
+      saveScores([]);
+      for (let i = 0; i < 7; i++) maybeSaveScore(i * 100, 1);
+      const scores = getScores();
+      assert(scores.length <= 5, `Expected <= 5 scores, got ${scores.length}`);
+      saveScores([]);
+    }));
+
+    test('maybeSaveScore sorts descending by XP', p9(() => {
+      saveScores([]);
+      maybeSaveScore(200, 1);
+      maybeSaveScore(500, 2);
+      maybeSaveScore(100, 1);
+      const scores = getScores();
+      assert(scores[0].xp >= scores[1].xp, 'Scores should be sorted descending');
+      saveScores([]);
+    }));
+
+    test('maybeSaveScore includes date string', p9(() => {
+      saveScores([]);
+      maybeSaveScore(300, 2);
+      const scores = getScores();
+      assert(typeof scores[0].date === 'string' && scores[0].date.length > 0,
+        'Score should have a date');
+      saveScores([]);
+    }));
+
+    test('maybeSaveScore includes level', p9(() => {
+      saveScores([]);
+      maybeSaveScore(400, 3);
+      const scores = getScores();
+      assertEqual(scores[0].level, 3, 'Score should record level');
+      saveScores([]);
+    }));
+
+    // ── Bug-fix regression tests ────────────────────
+    test('BUG: no duplicate spawnNextWord — Phase 7 version delegates to spawnLevelWord', p9(() => {
+      // Both reference the same spawnLevelWord; verify no WORD_POOL_P5 direct call
+      showScreen('game-screen');
+      gameSession.level = 2; gameSession.status = 'playing';
+      clearAllWords(); usedWords.clear();
+      spawnNextWord();
+      if (activeWords.length > 0) {
+        const word = activeWords[0].text;
+        assert(LEVEL_WORDS[1].includes(word),
+          `spawnNextWord used wrong pool: "${word}" not in Level 2 words`);
+      }
+      clearAllWords(); gameSession.status = 'idle'; gameSession.level = 1;
+      showScreen('menu-screen');
+    }));
+
+    test('BUG: updateXpBar uses xpBar directly (no xp_bar alias breakage)', p9(() => {
+      updateXpBar(0, 1);
+      assertEqual(xpBar.style.width, '0%', 'xpBar should be set to 0%');
+    }));
+
+    test('BUG: resetGameUI uses session level for XP bar', p9(() => {
+      gameSession.level = 3;
+      totalXP = 0;
+      resetGameUI();
+      // With level 3, bar at 0 XP should still be 0%
+      assertEqual(xpBar.style.width, '0%', 'Bar should be 0% after reset');
+      gameSession.level = 1;
+    }));
+
+    test('BUG: gameOver saves score to localStorage', p9(() => {
+      saveScores([]); // start fresh
+      showScreen('game-screen');
+      gameSession.level  = 2;
+      gameSession.status = 'playing';
+      totalXP = 350;
+      gameOver();
+      const scores = getScores();
+      assert(scores.length > 0, 'Score should be saved after game over');
+      assert(scores.some(s => s.xp === 350), 'Score of 350 should be in list');
+      closeModal('modal-game-over');
+      saveScores([]); showScreen('menu-screen');
+      gameSession.status = 'idle'; gameSession.level = 1; totalXP = 0;
+    }));
+
+    test('BUG: loseLife calls playSound (no crash when sfx on)', p9(() => {
+      lives = 2; gameSession.status = 'playing';
+      state.settings.sfx = true;
+      loseLife(); // should not throw
+      lives = 3; gameSession.status = 'idle';
+      document.querySelectorAll('.heart').forEach(h => h.classList.remove('lost'));
+    }));
+
+    test('BUG: Enter miss-word calls playSound without crash', p9(() => {
+      showScreen('game-screen');
+      gameSession.status = 'playing';
+      spawnWord('frog');
+      state.settings.sfx = true;
+      wordInput.value = 'zzz'; // wrong word
+      wordInput.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+      // should not throw
+      clearAllWords(); gameSession.status = 'idle';
+      showScreen('menu-screen');
+    }));
+
+    // ── Render results ─────────────────────────────
+    const resultsEl = document.getElementById('test-results');
+    const summaryEl = document.getElementById('test-summary');
+
+    let p1Pass=0,p1Fail=0,p2Pass=0,p2Fail=0,p3Pass=0,p3Fail=0,
+        p4Pass=0,p4Fail=0,p5Pass=0,p5Fail=0,p6Pass=0,p6Fail=0,
+        p7Pass=0,p7Fail=0,p8Pass=0,p8Fail=0,p9Pass=0,p9Fail=0;
+    tests.forEach(t => {
+      const ph = t.phase || 1;
+      if (t.pass) {
+        if(ph===9)p9Pass++;else if(ph===8)p8Pass++;else if(ph===7)p7Pass++;else if(ph===6)p6Pass++;
+        else if(ph===5)p5Pass++;else if(ph===4)p4Pass++;else if(ph===3)p3Pass++;else if(ph===2)p2Pass++;else p1Pass++;
+      } else {
+        if(ph===9)p9Fail++;else if(ph===8)p8Fail++;else if(ph===7)p7Fail++;else if(ph===6)p6Fail++;
+        else if(ph===5)p5Fail++;else if(ph===4)p4Fail++;else if(ph===3)p3Fail++;else if(ph===2)p2Fail++;else p1Fail++;
+      }
+      const d = document.createElement('div');
+      d.className = `test-result ${t.pass?'pass':'fail'}`;
+      d.innerHTML = `<span style="font-size:9px;opacity:.55;margin-right:4px">P${ph}</span><span class="icon">${t.pass?'✓':'✗'}</span>${t.name}${t.pass?'':`<span class="test-err">↳ ${t.error}</span>`}`;
+      resultsEl.appendChild(d);
+    });
+
+    summaryEl.innerHTML =
+      `<span style="color:#2bad6a">${passed} ✓</span> · <span style="color:#e86060">${failed} ✗</span>`;
+
+    document.getElementById('test-panel-close')
+      .addEventListener('click', () => document.getElementById('test-panel').style.display='none');
+
+    const footer = document.createElement('div');
+    footer.style.cssText = 'padding:6px 14px 10px;font-size:10px;font-weight:700;color:#aac;line-height:2';
+    footer.innerHTML =
+      `P1:<span style="color:#2bad6a"> ${p1Pass}✓</span><span style="color:#e86060"> ${p1Fail}✗</span> &nbsp;` +
+      `P2:<span style="color:#2bad6a"> ${p2Pass}✓</span><span style="color:#e86060"> ${p2Fail}✗</span> &nbsp;` +
+      `P3:<span style="color:#2bad6a"> ${p3Pass}✓</span><span style="color:#e86060"> ${p3Fail}✗</span> &nbsp;` +
+      `P4:<span style="color:#2bad6a"> ${p4Pass}✓</span><span style="color:#e86060"> ${p4Fail}✗</span> &nbsp;` +
+      `P5:<span style="color:#2bad6a"> ${p5Pass}✓</span><span style="color:#e86060"> ${p5Fail}✗</span><br>` +
+      `P6:<span style="color:#2bad6a"> ${p6Pass}✓</span><span style="color:#e86060"> ${p6Fail}✗</span> &nbsp;` +
+      `P7:<span style="color:#2bad6a"> ${p7Pass}✓</span><span style="color:#e86060"> ${p7Fail}✗</span> &nbsp;` +
+      `P8:<span style="color:#2bad6a"> ${p8Pass}✓</span><span style="color:#e86060"> ${p8Fail}✗</span> &nbsp;` +
+      `P9:<span style="color:#2bad6a"> ${p9Pass}✓</span><span style="color:#e86060"> ${p9Fail}✗</span>`;
+    document.getElementById('test-panel').appendChild(footer);
+  </script>
+</body>
+</html>

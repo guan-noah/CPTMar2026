@@ -1,0 +1,1918 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Don't Drop the Words!</title>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --sky:      #d0f0ff;
+      --grass:    #b5ead7;
+      --pink:     #ffb7c5;
+      --yellow:   #fff176;
+      --peach:    #ffd6a5;
+      --purple:   #c9b8f5;
+      --white:    #ffffff;
+      --ink:      #5c4a72;
+      --soft:     #f7f0ff;
+      --border:   #e0c9f5;
+      --btn-main: #ff8fab;
+      --btn-sec:  #a0d2eb;
+      --shadow:   0 4px 0 #d4a0c0;
+      --shadow2:  0 4px 0 #7fb8d4;
+    }
+
+    body {
+      font-family: 'Nunito', sans-serif;
+      background: var(--sky);
+      color: var(--ink);
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background-image: radial-gradient(circle, #b8e4f9 1.5px, transparent 1.5px);
+      background-size: 28px 28px;
+    }
+
+    /* ══════════════════════════════════════
+       SCREEN TRANSITIONS
+    ══════════════════════════════════════ */
+    .screen {
+      position: absolute;
+      width: 100%; height: 100vh;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      opacity: 0; pointer-events: none;
+      transition: opacity 0.32s ease, transform 0.32s ease;
+      transform: translateX(0);
+    }
+    .screen.active     { opacity: 1; pointer-events: all; }
+    .screen.exit-left  { opacity: 0; transform: translateX(-48px); }
+    .screen.exit-right { opacity: 0; transform: translateX(48px); }
+    .screen.enter-right { animation: enterFromRight 0.32s ease forwards; }
+    .screen.enter-left  { animation: enterFromLeft  0.32s ease forwards; }
+
+    @keyframes enterFromRight {
+      from { opacity: 0; transform: translateX(48px); }
+      to   { opacity: 1; transform: translateX(0); }
+    }
+    @keyframes enterFromLeft {
+      from { opacity: 0; transform: translateX(-48px); }
+      to   { opacity: 1; transform: translateX(0); }
+    }
+
+    /* ── Base button ── */
+    button {
+      font-family: 'Fredoka One', cursive;
+      cursor: pointer; border: none; border-radius: 50px;
+      font-size: 1rem; letter-spacing: 1px;
+      transition: transform 0.1s, box-shadow 0.1s, opacity 0.2s, background 0.15s;
+    }
+    button:active   { transform: translateY(3px); box-shadow: none !important; }
+    button:disabled { opacity: 0.35; cursor: not-allowed; transform: none !important; }
+
+    /* ════════════════════════════════════
+       MENU SCREEN
+    ════════════════════════════════════ */
+    #menu-screen { gap: 14px; overflow: hidden; }
+
+    .cloud-deco {
+      position: absolute; font-size: 3rem; opacity: 0.4;
+      pointer-events: none;
+      animation: floatCloud 8s ease-in-out infinite;
+    }
+    .cloud-deco:nth-child(1) { top: 10%; left: 5%;   animation-delay: 0s;   font-size: 2.8rem; }
+    .cloud-deco:nth-child(2) { top: 18%; right: 6%;  animation-delay: 3.2s; font-size: 3.4rem; }
+    .cloud-deco:nth-child(3) { top: 6%;  right: 22%; animation-delay: 1.5s; font-size: 1.8rem; opacity: 0.25; }
+
+    @keyframes floatCloud {
+      0%, 100% { transform: translateX(0) translateY(0); }
+      33%       { transform: translateX(12px) translateY(-4px); }
+      66%       { transform: translateX(-6px) translateY(3px); }
+    }
+
+    #title-card {
+      background: var(--white); border-radius: 28px;
+      border: 3px solid var(--border); padding: 20px 44px 16px;
+      text-align: center; box-shadow: 0 6px 0 var(--border);
+    }
+    #menu-emoji    { font-size: 2rem; display: block; margin-bottom: 2px; }
+    #menu-title    { font-family: 'Fredoka One', cursive; font-size: 2.8rem; color: var(--btn-main); text-shadow: 2px 3px 0 #f5a0c0; line-height: 1.05; }
+    #menu-subtitle { font-size: 0.78rem; font-weight: 800; color: #c0aad8; letter-spacing: 2.5px; margin-top: 4px; text-transform: uppercase; }
+
+    #level-selector { display: flex; align-items: center; gap: 10px; }
+
+    .arrow-btn {
+      background: var(--purple); color: var(--white);
+      width: 38px; height: 38px; padding: 0; font-size: 1rem;
+      box-shadow: 0 3px 0 #a899e0; flex-shrink: 0;
+    }
+    .arrow-btn:hover:not(:disabled) { background: #b8a6f0; }
+
+    #level-card {
+      background: var(--white); border: 3px solid var(--border);
+      border-radius: 20px; padding: 14px 22px; min-width: 220px;
+      text-align: center; box-shadow: 0 5px 0 var(--border);
+      overflow: hidden; position: relative;
+    }
+    #level-card.slide-left  { animation: slideFromRight 0.22s ease; }
+    #level-card.slide-right { animation: slideFromLeft  0.22s ease; }
+    @keyframes slideFromRight { from { transform: translateX(24px);  opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+    @keyframes slideFromLeft  { from { transform: translateX(-24px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+    #level-card-bar   { position: absolute; top: 0; left: 0; right: 0; height: 6px; border-radius: 17px 17px 0 0; transition: background 0.3s; }
+    #level-card-emoji { font-size: 2rem; display: block; margin: 4px 0 2px; }
+    #level-card-name  { font-family: 'Fredoka One', cursive; font-size: 1.15rem; color: var(--ink); display: block; }
+    #level-card-tag   { font-size: 0.78rem; color: #b0a0c8; font-weight: 700; display: block; margin-top: 2px; }
+    #level-card-stars { display: block; font-size: 0.85rem; margin-top: 4px; letter-spacing: 1px; }
+    #level-card-words { margin-top: 6px; font-size: 0.72rem; font-weight: 700; color: #c0aad8; letter-spacing: 1px; }
+
+    #menu-buttons { display: flex; flex-direction: column; gap: 10px; width: 220px; }
+    #start-btn       { background: var(--btn-main); color: var(--white); padding: 13px 0; font-size: 1.25rem; box-shadow: var(--shadow); }
+    #start-btn:hover { background: #ff7a9f; }
+    #instructions-btn       { background: var(--btn-sec); color: var(--white); padding: 11px 0; font-size: 1.05rem; box-shadow: var(--shadow2); }
+    #instructions-btn:hover { background: #88c9e8; }
+
+    #menu-icons { position: absolute; bottom: 68px; width: 100%; display: flex; justify-content: center; gap: 20px; z-index: 50; }
+    .icon-btn {
+      background: var(--white); border: 3px solid var(--border);
+      font-size: 1.5rem; width: 52px; height: 52px;
+      display: flex; align-items: center; justify-content: center;
+      border-radius: 50%; box-shadow: 0 4px 0 var(--border);
+      color: var(--ink); padding: 0; transition: transform 0.15s;
+    }
+    .icon-btn:hover  { transform: scale(1.12) rotate(-5deg); }
+    .icon-btn:active { transform: translateY(3px); box-shadow: none !important; }
+
+    #grass-strip {
+      position: absolute; bottom: 0; width: 100%; height: 54px;
+      background: var(--grass); border-top: 4px solid #8ed6b5;
+      overflow: hidden; pointer-events: none; z-index: 1;
+    }
+    #grass-strip::before {
+      content: '🌸 🌼 🌺 🌸 🌼 🌺 🌸 🌼 🌺 🌸 🌼 🌺';
+      position: absolute; top: -5px; left: 50%; transform: translateX(-50%);
+      width: auto; font-size: 1.15rem; letter-spacing: 16px; opacity: 0.65;
+      white-space: nowrap;
+    }
+
+    /* ════════════════════════════════════
+       GAME SCREEN
+    ════════════════════════════════════ */
+    #game-screen { justify-content: flex-start; }
+
+    #game-area {
+      flex: 1; width: 100%;
+      position: relative; overflow: hidden; cursor: text;
+      transition: background 1.2s ease;
+    }
+
+    /* Level backgrounds */
+    #game-area.bg-level-1 {
+      background:
+        radial-gradient(circle, #d4ecf8 1.5px, transparent 1.5px) 0 0 / 28px 28px,
+        linear-gradient(180deg, #c8ecff 0%, #b8e8d0 75%, #7ecfaa 100%);
+    }
+    #game-area.bg-level-2 {
+      background:
+        radial-gradient(circle, #b2dfb0 1.5px, transparent 1.5px) 0 0 / 28px 28px,
+        linear-gradient(180deg, #a8d8a0 0%, #78c870 70%, #3a9e38 100%);
+    }
+    #game-area.bg-level-3 {
+      background:
+        radial-gradient(circle, #ffd9a0 1.5px, transparent 1.5px) 0 0 / 28px 28px,
+        linear-gradient(180deg, #ffe0b2 0%, #ffb347 60%, #e05c10 100%);
+    }
+    #game-area.bg-level-4 {
+      background:
+        radial-gradient(circle, #8a8abf 1.5px, transparent 1.5px) 0 0 / 28px 28px,
+        linear-gradient(180deg, #0e0e2a 0%, #1e1e5a 55%, #0a0a20 100%);
+    }
+    #game-area.bg-level-5 {
+      background:
+        radial-gradient(circle, #c8ecf8 1.5px, transparent 1.5px) 0 0 / 28px 28px,
+        linear-gradient(180deg, #e8f7ff 0%, #b3e5fc 55%, #7ec8f0 100%);
+    }
+    #game-area.bg-level-6 {
+      background:
+        radial-gradient(circle, #9060a0 1.5px, transparent 1.5px) 0 0 / 28px 28px,
+        linear-gradient(180deg, #050510 0%, #120228 55%, #0a0015 100%);
+    }
+
+    /* Spinning corner decoration */
+    #game-deco {
+      position: absolute; top: 14px; right: 20px;
+      font-size: 2.4rem; pointer-events: none;
+      animation: spinSun 12s linear infinite; z-index: 2;
+    }
+    @keyframes spinSun { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+    /* ── Falling word bubbles ──────────────────────────────
+       Each word is a pill-shaped div injected by spawnWord().
+       Phase 5 core: absolutely positioned, z-index above bg
+       but below UI controls.
+    ────────────────────────────────────────────────────── */
+    .falling-word {
+      position: absolute;
+      font-family: 'Fredoka One', cursive;
+      font-size: 1.1rem;
+      letter-spacing: 0.5px;
+      padding: 7px 18px;
+      border-radius: 50px;
+      background: rgba(255, 255, 255, 0.93);
+      border: 2.5px solid var(--border);
+      color: var(--ink);
+      white-space: nowrap;
+      pointer-events: none;
+      user-select: none;
+      z-index: 4;
+      box-shadow: 0 3px 6px rgba(0, 0, 0, 0.12);
+      /* Gentle entrance pop */
+      animation: wordPop 0.18s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+    }
+
+    @keyframes wordPop {
+      from { transform: scale(0.6); opacity: 0; }
+      to   { transform: scale(1);   opacity: 1; }
+    }
+
+    /* ── Danger state: bottom 20% of usable area ──
+       Red glow pulse warns the player to type fast.  */
+    .falling-word.danger {
+      border-color: #ff5252;
+      color: #c62828;
+      background: rgba(255, 235, 235, 0.97);
+      animation: wordPop 0.18s cubic-bezier(0.34, 1.56, 0.64, 1) both,
+                 dangerPulse 0.55s ease-in-out infinite;
+    }
+
+    /* Override wordPop after it has played (JS removes/re-adds if needed) */
+    .falling-word.danger.settled {
+      animation: dangerPulse 0.55s ease-in-out infinite;
+    }
+
+    @keyframes dangerPulse {
+      0%, 100% { box-shadow: 0 3px 6px rgba(0,0,0,0.12), 0 0 0   0   rgba(255, 82, 82, 0);   }
+      50%       { box-shadow: 0 3px 6px rgba(0,0,0,0.12), 0 0 14px 5px rgba(255, 82, 82, 0.55); }
+    }
+
+    /* ── Word destroy animation ──────────────────────────
+       Plays when a word is correctly typed.
+       JS adds .destroying; element removed after 300 ms.  */
+    .falling-word.destroying {
+      pointer-events: none;
+      animation: wordDestroy 0.28s cubic-bezier(0.22, 0.61, 0.36, 1) forwards !important;
+    }
+    @keyframes wordDestroy {
+      0%   { transform: scale(1);    opacity: 1; }
+      40%  { transform: scale(1.28); opacity: 0.9; }
+      100% { transform: scale(0.5);  opacity: 0; }
+    }
+
+    /* ── XP popup label ──────────────────────────────────
+       Floats up from the destroyed word's position and
+       fades out. Created and appended by JS.              */
+    .xp-popup {
+      position: absolute;
+      font-family: 'Fredoka One', cursive;
+      font-size: 1.05rem;
+      color: #ffffff;
+      text-shadow: 0 1px 6px rgba(0,0,0,0.35);
+      white-space: nowrap;
+      pointer-events: none;
+      user-select: none;
+      z-index: 15;
+      animation: xpFloat 0.95s ease forwards;
+    }
+    @keyframes xpFloat {
+      0%   { transform: translateY(0)    scale(1);    opacity: 1; }
+      15%  { transform: translateY(-6px) scale(1.15); opacity: 1; }
+      100% { transform: translateY(-52px) scale(0.9); opacity: 0; }
+    }
+
+    /* ── Input feedback animations ───────────────────────*/
+    /* Green flash on correct word */
+    #word-input.flash-correct {
+      animation: inputCorrect 0.35s ease forwards;
+    }
+    @keyframes inputCorrect {
+      0%   { background: rgba(255,255,255,0.92); box-shadow: 0 4px 0 rgba(0,0,0,0.12), 0 0 0 4px rgba(100,220,140,0.0); }
+      30%  { background: rgba(200,255,218,0.97); box-shadow: 0 4px 0 rgba(0,0,0,0.12), 0 0 0 6px rgba(100,220,140,0.5); }
+      100% { background: rgba(255,255,255,0.92); box-shadow: 0 4px 0 rgba(0,0,0,0.12), 0 0 0 4px rgba(100,220,140,0.0); }
+    }
+
+    /* Red shake on wrong word */
+    #word-input.flash-wrong {
+      animation: inputWrong 0.38s ease forwards;
+    }
+    @keyframes inputWrong {
+      0%   { transform: translateX(-50%) translateX(0);    background: rgba(255,255,255,0.92); }
+      15%  { transform: translateX(-50%) translateX(-7px); background: rgba(255,220,220,0.97); }
+      35%  { transform: translateX(-50%) translateX(7px);  background: rgba(255,220,220,0.97); }
+      55%  { transform: translateX(-50%) translateX(-4px); background: rgba(255,230,230,0.95); }
+      75%  { transform: translateX(-50%) translateX(4px);  background: rgba(255,230,230,0.95); }
+      100% { transform: translateX(-50%) translateX(0);    background: rgba(255,255,255,0.92); }
+    }
+
+    /* ── Screen-flash overlay ─────────────────────────────
+       A full-area transparent div that briefly flashes
+       red when a life is lost. Injected once in HTML,
+       triggered by adding .flash-red.                     */
+    #flash-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(220, 50, 50, 0.0);
+      pointer-events: none;
+      z-index: 20;
+    }
+    #flash-overlay.flash-red {
+      animation: screenFlashRed 0.45s ease forwards;
+    }
+    @keyframes screenFlashRed {
+      0%   { background: rgba(220, 50, 50, 0.0);  }
+      25%  { background: rgba(220, 50, 50, 0.35); }
+      100% { background: rgba(220, 50, 50, 0.0);  }
+    }
+
+    /* ── PHASE 8: Level-up banner ─────────────────────────
+       Shown mid-game when player reaches next level threshold   */
+    #levelup-banner {
+      position: absolute; top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 25; pointer-events: none;
+    }
+    #levelup-banner.hidden { display: none; }
+    .levelup-bubble {
+      background: var(--white); border-radius: 24px;
+      border: 3px solid var(--border);
+      padding: 24px 32px; text-align: center;
+      box-shadow: 0 8px 0 var(--border);
+      animation: bubbleIn 0.5s cubic-bezier(.34,1.56,.64,1) forwards;
+    }
+    .levelup-bubble.out {
+      animation: bubbleOut 0.4s ease forwards;
+    }
+    @keyframes bubbleIn {
+      from { transform: scale(0.3); opacity: 0; }
+      to   { transform: scale(1);   opacity: 1; }
+    }
+    @keyframes bubbleOut {
+      from { transform: scale(1);   opacity: 1; }
+      to   { transform: scale(0.6); opacity: 0; }
+    }
+    .levelup-emoji  { font-size: 3rem; display: block; margin-bottom: 8px; }
+    .levelup-title  { font-family: 'Fredoka One', cursive; font-size: 1.6rem; color: var(--btn-main); display: block; margin-bottom: 4px; }
+    .levelup-name   { font-size: 1rem; color: var(--ink); display: block; margin-bottom: 4px; }
+    .levelup-stars  { font-size: 0.9rem; letter-spacing: 2px; color: #ffd700; display: block; }
+
+    /* ── Scenery ──────────────────────────────────────────── */
+    #scenery {
+      position: absolute; bottom: 0; left: 0; right: 0;
+      height: 110px; pointer-events: none; z-index: 3;
+    }
+    .scene {
+      position: absolute; inset: 0;
+      opacity: 0; transition: opacity 0.9s ease;
+    }
+    .scene.active { opacity: 1; }
+    .scene svg { width: 100%; height: 100%; display: block; }
+
+    /* ── Danger ground strip ──────────────────────────────── */
+    #danger-ground {
+      position: absolute; bottom: 0; left: 0; right: 0;
+      height: 4px; z-index: 5; transition: background 0.8s ease;
+    }
+    #danger-ground.flash {
+      animation: dangerFlash 0.4s ease;
+    }
+    @keyframes dangerFlash {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: 0.1; }
+    }
+
+    /* ── Back button ──────────────────────────────────────── */
+    #back-btn {
+      position: absolute; top: 12px; left: 14px;
+      background: rgba(255,255,255,0.88); color: var(--ink);
+      border: 2px solid rgba(255,255,255,0.6);
+      padding: 6px 16px; font-size: 0.85rem;
+      box-shadow: 0 3px 0 rgba(0,0,0,0.08);
+      z-index: 10; backdrop-filter: blur(4px);
+    }
+    #back-btn:hover { background: var(--white); }
+
+    /* ── Input zone ───────────────────────────────────────── */
+    #input-zone {
+      position: absolute; bottom: 14px; left: 50%; transform: translateX(-50%);
+      z-index: 10; display: flex; flex-direction: column; align-items: center; gap: 4px;
+    }
+    #input-label {
+      font-family: 'Fredoka One', cursive; font-size: 0.7rem;
+      letter-spacing: 2px; color: rgba(255,255,255,0.7);
+      text-shadow: 0 1px 4px rgba(0,0,0,0.3); text-transform: uppercase;
+    }
+    #game-area.bg-level-1 #input-label,
+    #game-area.bg-level-2 #input-label,
+    #game-area.bg-level-3 #input-label,
+    #game-area.bg-level-5 #input-label { color: rgba(80,60,100,0.55); text-shadow: none; }
+
+    #word-input {
+      width: 240px; padding: 10px 20px;
+      font-family: 'Fredoka One', cursive; font-size: 1.15rem;
+      background: rgba(255,255,255,0.92); border: 3px solid var(--pink);
+      border-radius: 50px; color: var(--ink); outline: none;
+      text-align: center;
+      box-shadow: 0 4px 0 rgba(0,0,0,0.12), 0 0 0 0 transparent;
+      transition: border-color 0.3s, box-shadow 0.2s; backdrop-filter: blur(6px);
+    }
+    #word-input::placeholder { color: #d4adc5; }
+    #word-input:focus {
+      box-shadow: 0 4px 0 rgba(0,0,0,0.12), 0 0 0 4px rgba(255,143,171,0.25);
+    }
+
+    /* ── XP bump animation ──────────────────────────────────*/
+    #xp-display.xp-bump {
+      animation: xpBump 0.3s ease;
+    }
+    @keyframes xpBump {
+      0%   { transform: scale(1);    }
+      50%  { transform: scale(1.2); }
+      100% { transform: scale(1);    }
+    }
+
+    /* ── PHASE 10: Game-over modal ─────────────────────────*/
+    #gameover-modal {
+      position: fixed; inset: 0;
+      background: rgba(0, 0, 0, 0.5);
+      display: flex; align-items: center; justify-content: center;
+      opacity: 0; pointer-events: none; z-index: 30;
+      transition: opacity 0.4s;
+    }
+    #gameover-modal.open { opacity: 1; pointer-events: all; }
+    #gameover-content {
+      background: var(--white); border-radius: 28px;
+      border: 3px solid var(--border);
+      padding: 32px; text-align: center; max-width: 420px;
+      box-shadow: 0 12px 40px rgba(0,0,0,0.2);
+      animation: gameoverPop 0.5s cubic-bezier(.34,1.56,.64,1);
+    }
+    @keyframes gameoverPop {
+      from { transform: scale(0.4); opacity: 0; }
+      to   { transform: scale(1);   opacity: 1; }
+    }
+    #gameover-emoji { font-size: 4rem; display: block; margin-bottom: 12px; }
+    #gameover-title { font-family: 'Fredoka One', cursive; font-size: 2rem; color: var(--btn-main); margin-bottom: 8px; }
+    #gameover-score { font-size: 1.4rem; color: var(--ink); font-weight: 700; margin-bottom: 4px; }
+    #gameover-level { font-size: 1rem; color: #b0a0c8; margin-bottom: 16px; }
+    #gameover-rank  { font-size: 0.9rem; color: #ffd700; font-weight: 700; margin-bottom: 20px; }
+    .gameover-buttons { display: flex; gap: 10px; margin-top: 20px; }
+    .gameover-buttons button { flex: 1; }
+
+    /* ── PHASE 10: Player name input modal ─────────────────*/
+    #name-input-modal {
+      position: fixed; inset: 0;
+      background: rgba(0, 0, 0, 0.5);
+      display: flex; align-items: center; justify-content: center;
+      opacity: 0; pointer-events: none; z-index: 30;
+      transition: opacity 0.4s;
+    }
+    #name-input-modal.open { opacity: 1; pointer-events: all; }
+    #name-input-content {
+      background: var(--white); border-radius: 28px;
+      border: 3px solid var(--border);
+      padding: 32px; text-align: center; max-width: 420px;
+      box-shadow: 0 12px 40px rgba(0,0,0,0.2);
+      animation: gameoverPop 0.5s cubic-bezier(.34,1.56,.64,1);
+    }
+    #name-input-emoji { font-size: 4rem; display: block; margin-bottom: 12px; }
+    #name-input-title { font-family: 'Fredoka One', cursive; font-size: 2rem; color: var(--btn-main); margin-bottom: 16px; }
+    #name-input-subtitle { font-size: 0.95rem; color: #b0a0c8; margin-bottom: 20px; }
+    #player-name-input {
+      width: 100%; padding: 12px 16px; font-size: 1rem;
+      border: 3px solid var(--border); border-radius: 12px;
+      font-family: 'Nunito', sans-serif; box-sizing: border-box;
+      margin-bottom: 16px;
+    }
+    #player-name-input:focus { outline: none; box-shadow: 0 0 0 4px rgba(255,143,171,0.25); }
+    .name-input-buttons { display: flex; gap: 10px; margin-top: 16px; }
+    .name-input-buttons button { flex: 1; }
+
+    /* ════════════════════════════════════
+       HUD BAR
+    ════════════════════════════════════ */
+    #hud {
+      width: 100%; flex-shrink: 0;
+      background: var(--white); border-top: 3px solid var(--border);
+      display: flex; flex-direction: column; position: relative;
+    }
+    #hud-bar { width: 100%; height: 4px; transition: background 0.8s ease; flex-shrink: 0; }
+    #xp-progress-track {
+      width: 100%; height: 6px;
+      background: #f0e8f8; position: relative; overflow: hidden; flex-shrink: 0;
+    }
+    #xp-progress-fill {
+      position: absolute; left: 0; top: 0; bottom: 0; width: 0%;
+      border-radius: 0 3px 3px 0; transition: width 0.5s ease, background 0.8s ease;
+    }
+    #hud-main {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 16px; height: 54px; gap: 10px;
+    }
+    .hud-pill {
+      background: var(--soft); border: 2px solid var(--border);
+      border-radius: 50px; padding: 5px 14px;
+      display: flex; align-items: center; gap: 6px;
+      white-space: nowrap; transition: border-color 0.5s, background 0.5s;
+    }
+    #hud-lives-pill { min-width: 96px; justify-content: center; }
+    #lives-display  { display: flex; gap: 3px; font-size: 1.2rem; }
+    #hud-level-pill { flex: 1; justify-content: center; }
+    #hud-level { font-family: 'Fredoka One', cursive; font-size: 1rem; transition: color 0.5s; letter-spacing: 0.5px; }
+    #hud-xp-pill    { min-width: 100px; justify-content: flex-end; }
+    #xp-display { font-family: 'Fredoka One', cursive; font-size: 0.95rem; color: #7dc9a0; white-space: nowrap; }
+
+    /* ════════════════════════════════════
+       MODALS
+    ════════════════════════════════════ */
+    .modal-overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(180,140,200,0.35); backdrop-filter: blur(3px);
+      z-index: 100; align-items: center; justify-content: center;
+    }
+    .modal-overlay.open { display: flex; }
+
+    .modal-box {
+      background: var(--white); border: 3px solid var(--border);
+      border-radius: 24px; padding: 30px 34px;
+      min-width: 300px; max-width: 460px; width: 90%;
+      display: flex; flex-direction: column; gap: 13px;
+      box-shadow: 0 8px 0 var(--border);
+      animation: popIn 0.22s cubic-bezier(0.34,1.56,0.64,1);
+    }
+    @keyframes popIn {
+      from { transform: scale(0.85); opacity: 0; }
+      to   { transform: scale(1);    opacity: 1; }
+    }
+    .modal-box h2 { font-family: 'Fredoka One', cursive; font-size: 1.45rem; color: var(--btn-main); text-align: center; }
+    .modal-box p  { font-size: 0.93rem; line-height: 1.7; color: var(--ink); text-align: center; }
+    .modal-box li { font-size: 0.93rem; line-height: 1.8; color: var(--ink); }
+    .modal-box ul { padding-left: 20px; }
+    .modal-box li + li { margin-top: 2px; }
+
+    .modal-close {
+      align-self: center; background: var(--btn-main); color: var(--white);
+      padding: 10px 34px; font-size: 1rem; box-shadow: var(--shadow); margin-top: 4px;
+    }
+    .modal-close:hover { background: #ff7a9f; }
+
+    .modal-btn-row { display: flex; gap: 12px; justify-content: center; }
+    #quit-confirm-btn { background: #ffb7c5; color: var(--ink); padding: 10px 26px; box-shadow: 0 4px 0 #e890a8; }
+    #quit-confirm-btn:hover { background: #ff8fab; color: var(--white); }
+    #quit-cancel-btn  { background: var(--btn-sec); color: var(--white); padding: 10px 26px; box-shadow: var(--shadow2); }
+    #quit-cancel-btn:hover { background: #88c9e8; }
+
+    #scores-list { list-style: none; padding: 0; display: flex; flex-direction: column; gap: 7px; }
+    #scores-list li {
+      display: flex; justify-content: space-between; align-items: center;
+      background: var(--soft); border-radius: 12px;
+      padding: 8px 14px; font-size: 0.88rem; border: 2px solid var(--border);
+    }
+    #scores-list li .rank  { font-family: 'Fredoka One', cursive; color: var(--btn-main); min-width: 40px; }
+    #scores-list li .name  { font-weight: 700; color: var(--ink); flex: 1; text-align: left; padding: 0 12px; }
+    #scores-list li .pts   { font-family: 'Fredoka One', cursive; color: #7dc9a0; min-width: 60px; text-align: right; }
+    #scores-list li .dated { font-size: 0.72rem; color: #b0a0c8; min-width: 50px; text-align: right; }
+
+    #clear-scores-btn { background: var(--peach); color: var(--ink); padding: 8px 22px; font-size: 0.9rem; align-self: center; box-shadow: 0 3px 0 #e8c08a; }
+    #clear-scores-btn:hover { background: #ffc880; }
+
+    .setting-row { display: flex; justify-content: space-between; align-items: center; background: var(--soft); border-radius: 12px; padding: 10px 16px; border: 2px solid var(--border); }
+    .setting-row label { font-weight: 700; font-size: 0.9rem; }
+    .vol-wrap { display: flex; align-items: center; gap: 8px; }
+    .vol-wrap input[type="range"] { accent-color: var(--btn-main); width: 100px; }
+    .vol-val { font-family: 'Fredoka One', cursive; font-size: 0.85rem; color: var(--btn-main); min-width: 32px; text-align: right; }
+
+    #settings-saved { text-align: center; font-weight: 700; font-size: 0.85rem; color: #7dc9a0; opacity: 0; transition: opacity 0.3s; height: 18px; }
+    #settings-saved.show { opacity: 1; }
+  </style>
+</head>
+<body>
+
+  <!-- ══════════════════════ MENU SCREEN ══════════════════════ -->
+  <div id="menu-screen" class="screen">
+    <span class="cloud-deco">☁️</span>
+    <span class="cloud-deco">☁️</span>
+    <span class="cloud-deco">☁️</span>
+
+    <div id="title-card">
+      <span id="menu-emoji">🌈 ✨</span>
+      <h1 id="menu-title">Falling Words!</h1>
+      <p id="menu-subtitle">don't drop the words</p>
+    </div>
+
+    <div id="level-selector">
+      <button class="arrow-btn" id="level-prev">◀</button>
+      <div id="level-card">
+        <div id="level-card-bar"></div>
+        <span id="level-card-emoji"></span>
+        <span id="level-card-name"></span>
+        <span id="level-card-tag"></span>
+        <span id="level-card-stars"></span>
+        <div  id="level-card-words"></div>
+      </div>
+      <button class="arrow-btn" id="level-next">▶</button>
+    </div>
+
+    <div id="menu-buttons">
+      <button id="start-btn">🎮 Let's Play!</button>
+      <button id="instructions-btn">📖 How to Play</button>
+    </div>
+
+    <div id="menu-icons">
+      <button class="icon-btn" id="settings-btn" title="Settings">⚙️</button>
+      <button class="icon-btn" id="scores-btn"   title="Best Scores">🏆</button>
+    </div>
+
+    <div id="grass-strip"></div>
+  </div>
+
+  <!-- ══════════════════════ GAME SCREEN ══════════════════════ -->
+  <div id="game-screen" class="screen">
+    <div id="game-area" class="bg-level-1">
+
+      <div id="game-deco">☀️</div>
+      <button id="back-btn">🏠 Menu</button>
+
+      <!-- Screen-flash overlay for life-loss feedback -->
+      <div id="flash-overlay"></div>
+
+      <!-- Per-level scenery -->
+      <div id="scenery">
+
+        <!-- Level 1 — Sunny Meadow -->
+        <div class="scene scene-1 active">
+          <svg viewBox="0 0 800 110" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+            <ellipse cx="150" cy="110" rx="220" ry="70" fill="#8ecf7a" opacity="0.5"/>
+            <ellipse cx="660" cy="110" rx="200" ry="60" fill="#8ecf7a" opacity="0.5"/>
+            <rect x="0" y="72" width="800" height="38" fill="#6ab84e"/>
+            <rect x="0" y="72" width="800" height="6"  fill="#82d160" opacity="0.6"/>
+            <circle cx="80"  cy="72" r="10" fill="#f9e84a"/>
+            <circle cx="200" cy="72" r="8"  fill="#ff8fab"/>
+            <circle cx="350" cy="72" r="11" fill="#f9e84a"/>
+            <circle cx="500" cy="72" r="9"  fill="#ff8fab"/>
+            <circle cx="640" cy="72" r="10" fill="#f9e84a"/>
+            <circle cx="750" cy="72" r="8"  fill="#ff8fab"/>
+            <rect x="79"  y="66" width="2" height="10" fill="#5a9e3a" rx="1"/>
+            <rect x="199" y="66" width="2" height="10" fill="#5a9e3a" rx="1"/>
+            <rect x="349" y="66" width="2" height="10" fill="#5a9e3a" rx="1"/>
+            <rect x="499" y="66" width="2" height="10" fill="#5a9e3a" rx="1"/>
+            <rect x="639" y="66" width="2" height="10" fill="#5a9e3a" rx="1"/>
+            <rect x="749" y="66" width="2" height="10" fill="#5a9e3a" rx="1"/>
+          </svg>
+        </div>
+
+        <!-- Level 2 — Breezy Forest -->
+        <div class="scene scene-2">
+          <svg viewBox="0 0 800 110" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="0" y="78" width="800" height="32" fill="#2d7a2d"/>
+            <rect x="0" y="78" width="800" height="5" fill="#3ea03e" opacity="0.6"/>
+            <polygon points="100,78 120,30 140,78" fill="#3a8f3a" opacity="0.55"/>
+            <polygon points="280,78 305,18 330,78" fill="#3a8f3a" opacity="0.55"/>
+            <polygon points="490,78 510,28 530,78" fill="#3a8f3a" opacity="0.55"/>
+            <polygon points="680,78 700,22 720,78" fill="#3a8f3a" opacity="0.55"/>
+            <polygon points="30,78  55,10  80,78"  fill="#1d5c1d"/>
+            <polygon points="180,78 210,4  240,78" fill="#1d5c1d"/>
+            <polygon points="370,78 400,2  430,78" fill="#1d5c1d"/>
+            <polygon points="560,78 590,8  620,78" fill="#1d5c1d"/>
+            <polygon points="730,78 758,12 786,78" fill="#1d5c1d"/>
+            <rect x="52"  y="78" width="6" height="18" fill="#6b3a1f" rx="2"/>
+            <rect x="207" y="78" width="6" height="18" fill="#6b3a1f" rx="2"/>
+            <rect x="397" y="78" width="6" height="18" fill="#6b3a1f" rx="2"/>
+            <rect x="587" y="78" width="6" height="18" fill="#6b3a1f" rx="2"/>
+            <rect x="755" y="78" width="6" height="18" fill="#6b3a1f" rx="2"/>
+          </svg>
+        </div>
+
+        <!-- Level 3 — Golden Sunset -->
+        <div class="scene scene-3">
+          <svg viewBox="0 0 800 110" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+            <ellipse cx="200" cy="110" rx="280" ry="80" fill="#c0522a" opacity="0.55"/>
+            <ellipse cx="620" cy="110" rx="250" ry="70" fill="#c0522a" opacity="0.55"/>
+            <ellipse cx="0"   cy="110" rx="180" ry="60" fill="#8b3018" opacity="0.8"/>
+            <ellipse cx="400" cy="110" rx="260" ry="72" fill="#8b3018" opacity="0.8"/>
+            <ellipse cx="800" cy="110" rx="180" ry="60" fill="#8b3018" opacity="0.8"/>
+            <rect x="0" y="85" width="800" height="25" fill="#6a2410"/>
+            <rect x="0" y="82" width="800" height="4"  fill="#ffaa40" opacity="0.5"/>
+          </svg>
+        </div>
+
+        <!-- Level 4 — Starry Night (city skyline) -->
+        <div class="scene scene-4">
+          <svg viewBox="0 0 800 110" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="0" y="82" width="800" height="28" fill="#080818"/>
+            <rect x="10"  y="55" width="35" height="27" fill="#10103a"/>
+            <rect x="55"  y="42" width="28" height="40" fill="#10103a"/>
+            <rect x="93"  y="60" width="20" height="22" fill="#10103a"/>
+            <rect x="130" y="38" width="40" height="44" fill="#10103a"/>
+            <rect x="185" y="52" width="25" height="30" fill="#10103a"/>
+            <rect x="220" y="45" width="32" height="37" fill="#10103a"/>
+            <rect x="270" y="58" width="22" height="24" fill="#10103a"/>
+            <rect x="305" y="30" width="48" height="52" fill="#10103a"/>
+            <rect x="363" y="48" width="28" height="34" fill="#10103a"/>
+            <rect x="403" y="40" width="36" height="42" fill="#10103a"/>
+            <rect x="452" y="55" width="22" height="27" fill="#10103a"/>
+            <rect x="490" y="35" width="44" height="47" fill="#10103a"/>
+            <rect x="548" y="50" width="30" height="32" fill="#10103a"/>
+            <rect x="590" y="44" width="26" height="38" fill="#10103a"/>
+            <rect x="628" y="58" width="20" height="24" fill="#10103a"/>
+            <rect x="660" y="36" width="42" height="46" fill="#10103a"/>
+            <rect x="715" y="52" width="28" height="30" fill="#10103a"/>
+            <rect x="754" y="60" width="46" height="22" fill="#10103a"/>
+            <circle cx="35"  cy="65" r="1.5" fill="#ffe082" opacity="0.8"/>
+            <circle cx="70"  cy="52" r="1.5" fill="#ffe082" opacity="0.8"/>
+            <circle cx="148" cy="48" r="1.5" fill="#ffe082" opacity="0.8"/>
+            <circle cx="148" cy="60" r="1.5" fill="#ffe082" opacity="0.8"/>
+            <circle cx="324" cy="42" r="1.5" fill="#ffe082" opacity="0.8"/>
+            <circle cx="324" cy="56" r="1.5" fill="#ffe082" opacity="0.8"/>
+            <circle cx="336" cy="50" r="1.5" fill="#ffe082" opacity="0.8"/>
+            <circle cx="510" cy="45" r="1.5" fill="#ffe082" opacity="0.8"/>
+            <circle cx="510" cy="58" r="1.5" fill="#ffe082" opacity="0.8"/>
+            <circle cx="677" cy="46" r="1.5" fill="#ffe082" opacity="0.8"/>
+          </svg>
+        </div>
+
+        <!-- Level 5 — Frosty Peaks -->
+        <div class="scene scene-5">
+          <svg viewBox="0 0 800 110" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+            <polygon points="0,110 100,35 200,110"   fill="#9ecfe8" opacity="0.55"/>
+            <polygon points="150,110 280,18 410,110" fill="#9ecfe8" opacity="0.55"/>
+            <polygon points="400,110 530,28 660,110" fill="#9ecfe8" opacity="0.55"/>
+            <polygon points="620,110 730,40 840,110" fill="#9ecfe8" opacity="0.55"/>
+            <polygon points="100,35 112,55 88,55"    fill="#e8f6ff"/>
+            <polygon points="280,18 296,48 264,48"   fill="#e8f6ff"/>
+            <polygon points="530,28 548,58 512,58"   fill="#e8f6ff"/>
+            <polygon points="730,40 744,62 716,62"   fill="#e8f6ff"/>
+            <rect x="0" y="82" width="800" height="28" fill="#c8eaf8"/>
+            <ellipse cx="100" cy="82" rx="90"  ry="16" fill="#e0f4ff"/>
+            <ellipse cx="320" cy="82" rx="110" ry="14" fill="#e0f4ff"/>
+            <ellipse cx="560" cy="82" rx="95"  ry="16" fill="#e0f4ff"/>
+            <ellipse cx="760" cy="82" rx="80"  ry="14" fill="#e0f4ff"/>
+          </svg>
+        </div>
+
+        <!-- Level 6 — Outer Space -->
+        <div class="scene scene-6">
+          <svg viewBox="0 0 800 110" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="0" y="72" width="800" height="38" fill="#1a0830"/>
+            <rect x="0" y="72" width="800" height="4"  fill="#6020a0" opacity="0.5"/>
+            <ellipse cx="80"  cy="85" rx="28" ry="10" fill="#12061e"/>
+            <ellipse cx="80"  cy="85" rx="22" ry="7"  fill="#1a0830"/>
+            <ellipse cx="240" cy="88" rx="20" ry="8"  fill="#12061e"/>
+            <ellipse cx="240" cy="88" rx="15" ry="5"  fill="#1a0830"/>
+            <ellipse cx="430" cy="83" rx="34" ry="12" fill="#12061e"/>
+            <ellipse cx="430" cy="83" rx="28" ry="9"  fill="#1a0830"/>
+            <ellipse cx="620" cy="87" rx="22" ry="9"  fill="#12061e"/>
+            <ellipse cx="620" cy="87" rx="16" ry="6"  fill="#1a0830"/>
+            <ellipse cx="750" cy="84" rx="26" ry="10" fill="#12061e"/>
+            <ellipse cx="750" cy="84" rx="20" ry="7"  fill="#1a0830"/>
+            <circle cx="50"  cy="68" r="1.2" fill="#e0c0ff" opacity="0.7"/>
+            <circle cx="160" cy="65" r="1"   fill="#e0c0ff" opacity="0.7"/>
+            <circle cx="300" cy="70" r="1.4" fill="#ffffff"  opacity="0.6"/>
+            <circle cx="500" cy="66" r="1"   fill="#e0c0ff" opacity="0.7"/>
+            <circle cx="700" cy="69" r="1.2" fill="#ffffff"  opacity="0.6"/>
+          </svg>
+        </div>
+
+      </div><!-- /#scenery -->
+
+      <div id="danger-ground"></div>
+
+      <div id="input-zone">
+        <span id="input-label">TYPE &amp; ENTER</span>
+        <input id="word-input" type="text"
+               placeholder="type a word! 🌸"
+               autocomplete="off" spellcheck="false" />
+      </div>
+
+    </div><!-- /#game-area -->
+
+    <!-- ── HUD bar ── -->
+    <div id="hud">
+      <div id="hud-bar"></div>
+      <div id="xp-progress-track">
+        <div id="xp-progress-fill"></div>
+      </div>
+      <div id="hud-main">
+        <div class="hud-pill" id="hud-lives-pill">
+          <div id="lives-display"></div>
+        </div>
+        <div class="hud-pill" id="hud-level-pill">
+          <div id="hud-level">⭐ Level 1</div>
+        </div>
+        <div class="hud-pill" id="hud-xp-pill">
+          <div id="xp-display">0 ✨ xp</div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /#game-screen -->
+
+  <!-- ══════════════════════ MODAL — Instructions ══════════════════════ -->
+  <div id="instructions-modal" class="modal-overlay">
+    <div class="modal-box">
+      <h2>📖 How to Play!</h2>
+      <ul>
+        <li>🌟 Words float down from the sky!</li>
+        <li>⌨️ Type a word and press <strong>Enter</strong> to catch it.</li>
+        <li>⚡ Catch words <em>early</em> for a bigger XP bonus!</li>
+        <li>💨 If a word hits the ground, you lose a ❤️.</li>
+        <li>😢 Lose all 3 hearts and it's game over.</li>
+        <li>📈 Earn XP to level up — words get trickier!</li>
+        <li>🌍 Each level has a brand-new world to explore!</li>
+      </ul>
+      <button class="modal-close" id="instructions-close">Got it! 🎉</button>
+    </div>
+  </div>
+
+  <!-- ══════════════════════ MODAL — Settings ══════════════════════ -->
+  <div id="settings-modal" class="modal-overlay">
+    <div class="modal-box">
+      <h2>⚙️ Settings</h2>
+      <div class="setting-row">
+        <label>🎵 Music</label>
+        <div class="vol-wrap">
+          <input type="range" id="music-vol" min="0" max="100" value="60" />
+          <span class="vol-val" id="music-vol-val">60</span>
+        </div>
+      </div>
+      <div class="setting-row">
+        <label>🔔 Sound FX</label>
+        <div class="vol-wrap">
+          <input type="range" id="sfx-vol" min="0" max="100" value="80" />
+          <span class="vol-val" id="sfx-vol-val">80</span>
+        </div>
+      </div>
+      <div id="settings-saved">✅ Saved!</div>
+      <button class="modal-close" id="settings-close">Done! 💾</button>
+    </div>
+  </div>
+
+  <!-- ══════════════════════ MODAL — Best Scores ══════════════════════ -->
+  <div id="scores-modal" class="modal-overlay">
+    <div class="modal-box">
+      <h2>🏆 Best Scores</h2>
+      <ul id="scores-list"></ul>
+      <button id="clear-scores-btn">🗑️ Clear Scores</button>
+      <button class="modal-close" id="scores-close">Close 👋</button>
+    </div>
+  </div>
+
+  <!-- ══════════════════════ MODAL — Quit Confirm ══════════════════════ -->
+  <div id="quit-modal" class="modal-overlay">
+    <div class="modal-box">
+      <h2>🚪 Quit Game?</h2>
+      <p>Your current score will be lost.<br>Are you sure you want to go back to the menu?</p>
+      <div class="modal-btn-row">
+        <button id="quit-confirm-btn">Yes, quit 😢</button>
+        <button id="quit-cancel-btn">Keep playing! 💪</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── PHASE 8: Level-up banner ──────────────────────── -->
+  <div id="levelup-banner" class="hidden">
+    <div class="levelup-bubble">
+      <span class="levelup-emoji">🎉</span>
+      <span class="levelup-title">LEVEL UP!</span>
+      <span class="levelup-name">Level 2 — Forest</span>
+      <span class="levelup-stars">⭐☆☆☆☆☆</span>
+    </div>
+  </div>
+
+  <!-- ── PHASE 10: Player name input modal ──────────────── -->
+  <div id="name-input-modal">
+    <div id="name-input-content">
+      <span id="name-input-emoji">✨</span>
+      <span id="name-input-title">High Score!</span>
+      <div id="name-input-subtitle">Enter your name to save your score</div>
+      <input type="text" id="player-name-input" placeholder="Player Name" maxlength="20">
+      <div class="name-input-buttons">
+        <button onclick="submitPlayerName()" style="background: var(--btn-main); color: white; padding: 10px 0; font-size: 1rem; box-shadow: var(--shadow); font-family: 'Fredoka One', cursive; cursor: pointer; border: none; border-radius: 50px; letter-spacing: 1px;">Save</button>
+        <button onclick="skipPlayerName()" style="background: var(--btn-sec); color: white; padding: 10px 0; font-size: 1rem; box-shadow: var(--shadow2); font-family: 'Fredoka One', cursive; cursor: pointer; border: none; border-radius: 50px; letter-spacing: 1px;">Skip</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── PHASE 10: Game-over modal ──────────────────────── -->
+  <div id="gameover-modal">
+    <div id="gameover-content">
+      <span id="gameover-emoji">🎮</span>
+      <span id="gameover-title">Game Over!</span>
+      <div id="gameover-score">0 ✨ xp</div>
+      <div id="gameover-level">reached level 1</div>
+      <div id="gameover-rank"></div>
+      <div class="gameover-buttons">
+        <button onclick="returnToMenu()" style="background: var(--btn-main); color: white; padding: 10px 0; font-size: 1rem; box-shadow: var(--shadow); font-family: 'Fredoka One', cursive; cursor: pointer; border: none; border-radius: 50px; letter-spacing: 1px;">Menu</button>
+        <button onclick="location.reload()" style="background: var(--btn-sec); color: white; padding: 10px 0; font-size: 1rem; box-shadow: var(--shadow2); font-family: 'Fredoka One', cursive; cursor: pointer; border: none; border-radius: 50px; letter-spacing: 1px;">Restart</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ═══════════════════════════════════════════════════════
+    //  LEVEL DEFINITIONS
+    // ═══════════════════════════════════════════════════════
+    const levels = [
+      null,
+      {
+        name: 'Sunny Meadow',  emoji: '🌻', deco: '☀️',
+        tag: 'Short words, warm breezes!',
+        color: '#ffe082', hudColor: '#f8b400',
+        stars: 1, speed: 1.0,
+        words: ['cat','dog','run','sun','hat','bee','cup','map','hop','log',
+                'fan','bug','jam','pen','tin','wig','fox','mud','zip','nap'],
+      },
+      {
+        name: 'Breezy Forest', emoji: '🌲', deco: '🍃',
+        tag: 'Longer paths, leafy words!',
+        color: '#a5d6a7', hudColor: '#4caf50',
+        stars: 2, speed: 1.3,
+        words: ['cloud','flame','river','arrow','stone','tiger','brush','cream',
+                'grape','plant','brave','chess','cabin','daisy','eagle','frost'],
+      },
+      {
+        name: 'Golden Sunset', emoji: '🌅', deco: '🌤️',
+        tag: 'Words glow at dusk!',
+        color: '#ffcc80', hudColor: '#ff9800',
+        stars: 3, speed: 1.6,
+        words: ['castle','forest','bridge','battle','wizard','candle','pocket',
+                'jungle','silver','donkey','carpet','mirror','pirate','riddle'],
+      },
+      {
+        name: 'Starry Night',  emoji: '🌙', deco: '🌟',
+        tag: 'Dark skies, tricky words!',
+        color: '#b39ddb', hudColor: '#7c4dff',
+        stars: 4, speed: 1.9,
+        words: ['thunder','lantern','blanket','chimney','captain','dolphin',
+                'feather','harvest','journal','kitchen','mansion','pilgrim'],
+      },
+      {
+        name: 'Frosty Peaks',  emoji: '❄️', deco: '🌨️',
+        tag: 'Icy letters, chill out!',
+        color: '#b3e5fc', hudColor: '#03a9f4',
+        stars: 5, speed: 2.2,
+        words: ['blizzard','snowfall','calendar','champion','database','dinosaur',
+                'engineer','festival','flamingo','frequent','generous','language'],
+      },
+      {
+        name: 'Outer Space',   emoji: '🚀', deco: '🪐',
+        tag: 'Warp speed vocabulary!',
+        color: '#ce93d8', hudColor: '#9c27b0',
+        stars: 6, speed: 2.6,
+        words: ['adventure','blueprint','celebrate','community','dangerous',
+                'elaborate','forgotten','hibernate','important','jealousy',
+                'knowledge','labyrinth','marvelous','nightmare'],
+      },
+    ];
+
+    const MAX_LEVEL        = levels.length - 1;
+    const SCENERY_HEIGHT   = 110;  // px — height of the scenery panel
+    
+    // ═══════════════════════════════════════════════════════
+    //  PHASE 7: Level configuration (spawn rates, word caps)
+    // ═══════════════════════════════════════════════════════
+    const LEVEL_CONFIG = [
+      { spawnMs: 3200, maxWords: 2, speed: 1.0  }, // Level 1
+      { spawnMs: 2700, maxWords: 3, speed: 1.3  }, // Level 2
+      { spawnMs: 2200, maxWords: 4, speed: 1.6  }, // Level 3
+      { spawnMs: 1800, maxWords: 4, speed: 1.9  }, // Level 4
+      { spawnMs: 1500, maxWords: 5, speed: 2.2  }, // Level 5
+      { spawnMs: 1200, maxWords: 5, speed: 2.6  }, // Level 6
+    ];
+
+    // ═══════════════════════════════════════════════════════
+    //  PHASE 9: XP Thresholds for level progression
+    // ═══════════════════════════════════════════════════════
+    const levelThresholds  = [0, 0, 150, 400, 750, 1200, 1800];
+
+    // ═══════════════════════════════════════════════════════
+    //  SIMPLE ARRAYS — game state
+    // ═══════════════════════════════════════════════════════
+    const hearts     = ['❤️', '❤️', '❤️'];
+    const bestScores = [];
+
+    let gameState = { running: false, level: 1, lives: 3, xp: 0 };
+    let currentLevel = 1;
+
+    // ── Phase 5 additions ────────────────────────────────────
+    // activeWords  : array of word objects currently falling
+    // rafId        : handle returned by requestAnimationFrame
+    // wordIdCounter: auto-increment id for each spawned word
+    // lastTimestamp: used for delta-time normalisation
+    const activeWords  = [];
+    let   rafId        = null;
+    let   wordIdCounter = 0;
+    let   lastTimestamp = 0;
+
+    // ── Phase 7 additions ────────────────────────────────────
+    // spawnerId    : handle from setInterval for word spawning
+    // usedWords    : Set to track recently-used words and avoid repeats
+    let   spawnerId    = null;
+    let   usedWords    = new Set();
+
+    // ═══════════════════════════════════════════════════════
+    //  PHASE 7: pickWord(level) — avoid immediate repeats
+    // ═══════════════════════════════════════════════════════
+    function pickWord(level) {
+      const pool = levels[level].words;
+      // Filter out words currently active or recently used
+      const activeTexts = new Set(activeWords.map(w => w.text));
+      const available   = pool.filter(w => !activeTexts.has(w) && !usedWords.has(w));
+      // If we've exhausted the "unused" set, reset it and use the full pool minus active
+      if (available.length === 0) {
+        usedWords.clear();
+        return pool.filter(w => !activeTexts.has(w))[0] || pool[0];
+      }
+      const chosen = available[Math.floor(Math.random() * available.length)];
+      usedWords.add(chosen);
+      // Keep the "recently used" set from growing indefinitely
+      if (usedWords.size > Math.ceil(pool.length / 2)) {
+        const oldest = usedWords.values().next().value;
+        usedWords.delete(oldest);
+      }
+      return chosen;
+    }
+
+    // ═══════════════════════════════════════════════════════
+    //  PHASE 7: spawnWord(text, speed) — add one word to screen
+    // ═══════════════════════════════════════════════════════
+    function spawnWord(text, speed) {
+      if (speed === undefined) speed = LEVEL_CONFIG[gameState.level - 1]?.speed || 1.0;
+      const gameArea = document.getElementById('game-area');
+      const areaW    = gameArea.clientWidth;
+
+      // Create the DOM element first so we can measure it
+      const el = document.createElement('div');
+      el.className   = 'falling-word';
+      el.textContent = text;
+      // Place off-screen initially to measure width without flash
+      el.style.visibility = 'hidden';
+      el.style.top  = '-200px';
+      el.style.left = '0px';
+      gameArea.appendChild(el);
+
+      // Measure, then compute a valid random x that keeps word fully in-view
+      const wordW  = el.offsetWidth  || 100;
+      const margin = 16;
+      const maxX   = Math.max(margin, areaW - wordW - margin);
+      const x      = margin + Math.random() * (maxX - margin);
+
+      el.style.left       = `${x}px`;
+      el.style.top        = `-${el.offsetHeight + 4}px`;  // spawn just above top edge
+      el.style.visibility = '';
+
+      const word = {
+        id:    ++wordIdCounter,
+        text:  text,
+        x:     x,
+        y:     -(el.offsetHeight + 4),
+        speed: speed,
+        el:    el,
+      };
+
+      activeWords.push(word);
+      return word;
+    }
+
+    // ═══════════════════════════════════════════════════════
+    //  PHASE 7: spawnLevelWord() — spawn using level config
+    // ═══════════════════════════════════════════════════════
+    function spawnLevelWord() {
+      if (!gameState.running) return;
+      const cfg = LEVEL_CONFIG[gameState.level - 1] || LEVEL_CONFIG[0];
+      if (activeWords.length >= cfg.maxWords) return; // respect the cap
+      const text = pickWord(gameState.level);
+      spawnWord(text, cfg.speed);
+    }
+
+    // ═══════════════════════════════════════════════════════
+    //  PHASE 7: startSpawner() / stopSpawner()
+    // ═══════════════════════════════════════════════════════
+    function startSpawner() {
+      stopSpawner(); // clear any existing interval first
+      usedWords.clear();
+      const cfg = LEVEL_CONFIG[gameState.level - 1] || LEVEL_CONFIG[0];
+      // Spawn one word immediately, then on interval
+      spawnLevelWord();
+      spawnerId = setInterval(spawnLevelWord, cfg.spawnMs);
+    }
+
+    function stopSpawner() {
+      if (spawnerId !== null) { clearInterval(spawnerId); spawnerId = null; }
+    }
+
+    // ═══════════════════════════════════════════════════════
+    //  PHASE 9: calcXP(word) — calculate points for word
+    //  Base: wordLength × 10
+    //  Bonus: floor((distanceRemaining / gameAreaHeight) × 10)
+    // ═══════════════════════════════════════════════════════
+    function calcXP(word) {
+      const gameArea          = document.getElementById('game-area');
+      const areaH             = gameArea.clientHeight || 1;
+      const groundY           = areaH - SCENERY_HEIGHT;
+      const wordBottom        = word.y + (word.el.offsetHeight || 36);
+      const distanceRemaining = Math.max(0, groundY - wordBottom);
+      const bonus             = Math.floor((distanceRemaining / areaH) * 10);
+      return (word.text.length * 10) + bonus;
+    }
+
+    // ═══════════════════════════════════════════════════════
+    //  PHASE 9: bumpXpDisplay(newXP) — animate XP counter
+    // ═══════════════════════════════════════════════════════
+    function bumpXpDisplay(newXP) {
+      const xpDisplay = document.getElementById('xp-display');
+      xpDisplay.textContent = `${newXP} ✨ xp`;
+      xpDisplay.classList.remove('xp-bump');
+      void xpDisplay.offsetWidth; // reflow
+      xpDisplay.classList.add('xp-bump');
+      setTimeout(() => xpDisplay.classList.remove('xp-bump'), 300);
+    }
+
+    // ═══════════════════════════════════════════════════════
+    //  removeWord(word)
+    //  Removes a word object from activeWords and its element
+    //  from the DOM. Safe to call even if already removed.
+    // ═══════════════════════════════════════════════════════
+    function removeWord(word) {
+      if (word.el && word.el.parentNode) {
+        word.el.parentNode.removeChild(word.el);
+      }
+      const idx = activeWords.indexOf(word);
+      if (idx !== -1) {
+        activeWords.splice(idx, 1);
+      }
+    }
+
+    // ═══════════════════════════════════════════════════════
+    //  spawnXpPopup(x, y, xp, levelColor)
+    //  Creates a floating "+N xp" label at (x, y) inside
+    //  #game-area, then removes it after its animation ends.
+    // ═══════════════════════════════════════════════════════
+    function spawnXpPopup(x, y, xp, levelColor) {
+      const gameArea = document.getElementById('game-area');
+      const popup    = document.createElement('div');
+      popup.className   = 'xp-popup';
+      popup.textContent = `+${xp} xp`;
+
+      // Tint the popup with the level's colour so it always reads well
+      popup.style.background    = levelColor || '#ff8fab';
+      popup.style.padding       = '3px 12px';
+      popup.style.borderRadius  = '50px';
+      popup.style.left          = `${x}px`;
+      popup.style.top           = `${y}px`;
+
+      gameArea.appendChild(popup);
+
+      // Clean up after animation (950 ms matches @keyframes xpFloat duration)
+      setTimeout(() => {
+        if (popup.parentNode) popup.parentNode.removeChild(popup);
+      }, 980);
+    }
+
+    // ═══════════════════════════════════════════════════════
+    //  flashInput(type)
+    //  Briefly animates the text input.
+    //  type: 'correct' → green glow | 'wrong' → red shake
+    // ═══════════════════════════════════════════════════════
+    function flashInput(type) {
+      const input = document.getElementById('word-input');
+      const cls   = type === 'correct' ? 'flash-correct' : 'flash-wrong';
+      input.classList.remove('flash-correct', 'flash-wrong');
+      void input.offsetWidth;            // force reflow so animation restarts
+      input.classList.add(cls);
+    }
+
+    // ═══════════════════════════════════════════════════════
+    //  matchWord(typed)
+    //  Called on every Enter press.
+    //  Iterates activeWords; if/else to check match.
+    //  On match  → destroys word, awards XP, green flash.
+    //  No match  → red shake on input.
+    //  Always    → clears the input field.
+    // ═══════════════════════════════════════════════════════
+    function matchWord(typed) {
+      const normalized = typed.trim().toLowerCase();
+      if (!normalized) return;
+
+      const matched = activeWords.find(w => w.text.toLowerCase() === normalized);
+      if (!matched) {
+        // wrong word typed
+        document.getElementById('word-input').classList.add('flash-wrong');
+        setTimeout(() => document.getElementById('word-input').classList.remove('flash-wrong'), 380);
+        return;
+      }
+
+      // word matched! flash green, add XP, destroy the word
+      removeWord(matched);
+      document.getElementById('word-input').value = '';
+
+      // Flash the input green
+      document.getElementById('word-input').classList.add('flash-correct');
+      setTimeout(() => document.getElementById('word-input').classList.remove('flash-correct'), 350);
+
+      // ── Phase 9: Calculate XP with distance bonus ────────
+      const xpGained = calcXP(matched);
+      gameState.xp += xpGained;
+
+      // Update HUD with bump animation
+      bumpXpDisplay(gameState.xp);
+      updateXpBar(gameState.xp, gameState.level);
+
+      // Popup label showing XP gained
+      const popX = matched.x + (matched.el.offsetWidth  || 80) / 2 - 30;
+      const popY = matched.y - 10;
+      const popup = document.createElement('div');
+      popup.className = 'xp-popup';
+      popup.textContent = `+${xpGained} ✨`;
+      popup.style.left = `${popX}px`;
+      popup.style.top = `${popY}px`;
+      document.getElementById('game-area').appendChild(popup);
+      setTimeout(() => popup.remove(), 950);
+
+      // Destroy the word with animation
+      matched.el.classList.add('destroying');
+      setTimeout(() => matched.el.remove(), 300);
+
+      // ── Phase 8: Check if player has reached next level ────
+      checkLevelUp();
+    }
+
+    // ═══════════════════════════════════════════════════════
+    //  gameLoop(timestamp)
+    //  The main requestAnimationFrame loop.
+    //  Each frame:
+    //    1. Compute delta time (dt) to keep speed frame-rate independent
+    //    2. Move every word down by speed * (dt / 16.67)
+    //    3. Apply .danger class when word enters the bottom 22%
+    //    4. Detect ground collision → loseLife()
+    //    5. Single-word driver: spawn a new word when none remain
+    //       (Phase 7 replaces this with the full spawner)
+    // ═══════════════════════════════════════════════════════
+    function gameLoop(timestamp) {
+      if (!gameState.running) return;
+
+      // Delta-time normalisation: target 60 fps (16.67 ms/frame), cap at 50 ms
+      if (lastTimestamp === 0) lastTimestamp = timestamp;
+      const dt = Math.min(timestamp - lastTimestamp, 50);
+      lastTimestamp = timestamp;
+
+      const gameArea    = document.getElementById('game-area');
+      const areaH       = gameArea.clientHeight;
+      const groundY     = areaH - SCENERY_HEIGHT;   // y at which word hits ground
+      const dangerStart = groundY - (areaH * 0.2);  // bottom-20% threshold
+
+      // Iterate backwards so splicing inside removeWord is safe
+      for (let i = activeWords.length - 1; i >= 0; i--) {
+        const word = activeWords[i];
+
+        // Move word down
+        word.y += word.speed * (dt / 16.67);
+        word.el.style.top = `${word.y}px`;
+
+        const wordBottom = word.y + word.el.offsetHeight;
+
+        // Toggle danger state based on word's position
+        if (wordBottom >= dangerStart) {
+          if (!word.el.classList.contains('danger')) {
+            word.el.classList.add('danger');
+            // Mark as settled after the entrance pop animation finishes
+            setTimeout(() => {
+              if (word.el) word.el.classList.add('settled');
+            }, 200);
+          }
+        } else {
+          word.el.classList.remove('danger', 'settled');
+        }
+
+        // Ground collision: word's bottom edge reaches top of scenery
+        if (wordBottom >= groundY) {
+          removeWord(word);
+          loseLife();
+        }
+      }
+
+      // ── Phase 7: spawner handles word timing ──────────────
+      // The spawner (setInterval) now manages word spawning;
+      // this manual respawn is removed.
+
+      rafId = requestAnimationFrame(gameLoop);
+    }
+
+    // ═══════════════════════════════════════════════════════
+    //  PHASE 8: checkLevelUp() — detect if level threshold reached
+    // ═══════════════════════════════════════════════════════
+    function checkLevelUp() {
+      if (gameState.level >= MAX_LEVEL) return false;
+      const threshold = levelThresholds[gameState.level];
+      if (threshold === undefined || gameState.xp < threshold) return false;
+      triggerLevelUp();
+      return true;
+    }
+
+    // ═══════════════════════════════════════════════════════
+    //  PHASE 8: triggerLevelUp() — orchestrate level-up sequence
+    // ═══════════════════════════════════════════════════════
+    function triggerLevelUp() {
+      if (!gameState.running) return;
+      stopSpawner(); // pause spawns while showing banner
+      const newLevel = gameState.level + 1;
+      gameState.level = newLevel;
+      applyLevelTheme(newLevel); // update background, colors, etc.
+      updateHudLevel(newLevel);
+      showLevelUpBanner(newLevel, () => {
+        // Only restart if still playing (player may have paused or died)
+        if (gameState.running) startSpawner();
+      });
+    }
+
+    // ═══════════════════════════════════════════════════════
+    //  PHASE 8: showLevelUpBanner(newLevel, onDone)
+    //  Shows animated banner for ~2 seconds then calls onDone
+    // ═══════════════════════════════════════════════════════
+    function showLevelUpBanner(newLevel, onDone) {
+      const lvl = levels[newLevel];
+      if (!lvl) { onDone?.(); return; }
+
+      const banner = document.getElementById('levelup-banner');
+      const bubble = document.querySelector('.levelup-bubble');
+      document.querySelector('.levelup-emoji').textContent  = lvl.emoji;
+      document.querySelector('.levelup-title').textContent  = 'LEVEL UP!';
+      document.querySelector('.levelup-name').textContent   = `${newLevel} — ${lvl.name}`;
+      const starsHtml = '⭐'.repeat(lvl.stars) + '☆'.repeat(MAX_LEVEL - lvl.stars);
+      document.querySelector('.levelup-stars').textContent  = starsHtml;
+
+      // Reset animation
+      bubble.classList.remove('out');
+      bubble.style.animation = 'none';
+      void bubble.offsetWidth;
+      bubble.style.animation = '';
+      banner.classList.remove('hidden');
+
+      // After 2s, start the exit animation
+      setTimeout(() => {
+        bubble.classList.add('out');
+        bubble.addEventListener('animationend', () => {
+          banner.classList.add('hidden');
+          bubble.classList.remove('out');
+          onDone?.();
+        }, { once: true });
+      }, 2000);
+    }
+
+    // ═══════════════════════════════════════════════════════
+    //  loseLife()
+    //  Decrements lives, refreshes heart display, flashes
+    //  the screen and danger-ground strip.
+    //  Game-over handling (Phase 8) will be added later;
+    //  for now the game just stops when lives hit 0.
+    // ═══════════════════════════════════════════════════════
+    function loseLife() {
+      gameState.lives = Math.max(0, gameState.lives - 1);
+
+      // Re-render hearts using a slice of the hearts array equal to lives left
+      renderLives(hearts.slice(0, gameState.lives));
+
+      // Flash the danger-ground strip
+      const dg = document.getElementById('danger-ground');
+      dg.classList.remove('flash');
+      void dg.offsetWidth;          // force reflow so animation restarts
+      dg.classList.add('flash');
+
+      // Flash the whole game area red
+      const overlay = document.getElementById('flash-overlay');
+      overlay.classList.remove('flash-red');
+      void overlay.offsetWidth;
+      overlay.classList.add('flash-red');
+
+      // ── Phase 10: Show proper game-over modal ──────────────
+      if (gameState.lives <= 0) {
+        gameState.running = false;
+        cancelAnimationFrame(rafId);
+        rafId = null;
+        stopSpawner();
+        setTimeout(() => showGameOver(), 500);
+      }
+    }
+
+    // ═══════════════════════════════════════════════════════
+    //  renderLives(livesArray)
+    //  Iterates the array; if/else per slot
+    // ═══════════════════════════════════════════════════════
+    function renderLives(livesArray) {
+      const container = document.getElementById('lives-display');
+      container.innerHTML = '';
+      for (let i = 0; i < hearts.length; i++) {
+        const span = document.createElement('span');
+        if (i < livesArray.length) {
+          span.textContent = '❤️';
+        } else {
+          span.textContent   = '🤍';
+          span.style.opacity = '0.4';
+        }
+        container.appendChild(span);
+      }
+    }
+
+    // ═══════════════════════════════════════════════════════
+    //  renderScores(scoresArray)
+    //  Iterates array; if/else per entry
+    // ═══════════════════════════════════════════════════════
+    function renderScores(scoresArray) {
+      const list = document.getElementById('scores-list');
+      list.innerHTML = '';
+      for (let i = 0; i < scoresArray.length; i++) {
+        const li = document.createElement('li');
+        const score = scoresArray[i];
+        const playerName = (score.name && score.name.trim()) ? score.name.trim() : 'Player';
+        const scoreDate = score.date ? score.date : '-';
+        if (score.xp >= 500) {
+          li.innerHTML = `<span class="rank">🌟 #${i+1}</span>
+                          <span class="name">${playerName}</span>
+                          <span class="pts">${score.xp} xp</span>
+                          <span class="dated">${scoreDate}</span>`;
+        } else {
+          li.innerHTML = `<span class="rank">#${i+1}</span>
+                          <span class="name">${playerName}</span>
+                          <span class="pts">${score.xp} xp</span>
+                          <span class="dated">${scoreDate}</span>`;
+        }
+        list.appendChild(li);
+      }
+      if (scoresArray.length === 0) {
+        const li = document.createElement('li');
+        li.style.justifyContent = 'center';
+        li.style.color = '#b0a0c8';
+        li.textContent = 'No scores yet — go play! 🎮';
+        list.appendChild(li);
+      }
+    }
+
+    // ═══════════════════════════════════════════════════════
+    //  updateLevelCard(direction)
+    // ═══════════════════════════════════════════════════════
+    function updateLevelCard(direction) {
+      const lvl  = levels[currentLevel];
+      const card = document.getElementById('level-card');
+
+      document.getElementById('level-card-bar').style.background = lvl.color;
+      document.getElementById('level-card-emoji').textContent    = lvl.emoji;
+      document.getElementById('level-card-name').textContent     = `Level ${currentLevel} — ${lvl.name}`;
+      document.getElementById('level-card-tag').textContent      = lvl.tag;
+      document.getElementById('level-card-words').textContent    = `${lvl.words.length} words`;
+
+      const starEl = document.getElementById('level-card-stars');
+      starEl.innerHTML = '';
+      for (let i = 1; i <= MAX_LEVEL; i++) {
+        const s = document.createElement('span');
+        if (i <= lvl.stars) {
+          s.textContent = '⭐';
+        } else {
+          s.textContent   = '☆';
+          s.style.opacity = '0.25';
+        }
+        starEl.appendChild(s);
+      }
+
+      document.getElementById('level-prev').disabled = (currentLevel === 1);
+      document.getElementById('level-next').disabled = (currentLevel === MAX_LEVEL);
+
+      card.classList.remove('slide-left', 'slide-right');
+      if (direction === 'left')  { void card.offsetWidth; card.classList.add('slide-left');  }
+      if (direction === 'right') { void card.offsetWidth; card.classList.add('slide-right'); }
+    }
+
+    // ── Store current game score for name input modal ──────
+    let pendingScore = { xp: 0, level: 1 };
+
+    // ═══════════════════════════════════════════════════════
+    //  PHASE 10: showGameOver() — display game-over modal
+    // ═══════════════════════════════════════════════════════
+    function showGameOver() {
+      pendingScore = { xp: gameState.xp, level: gameState.level };
+      
+      // Show name input modal first with defensive checks
+      const inputEl = document.getElementById('player-name-input');
+      const modalEl = document.getElementById('name-input-modal');
+      if (!inputEl || !modalEl) {
+        console.error('Name input modal elements missing, showing final game over directly');
+        showFinalGameOver();
+        return;
+      }
+      inputEl.value = '';
+      inputEl.focus();
+      modalEl.classList.add('open');
+    }
+
+    // ═══════════════════════════════════════════════════════
+    //  submitPlayerName() — save score with name
+    // ═══════════════════════════════════════════════════════
+    function submitPlayerName() {
+      const inputEl = document.getElementById('player-name-input');
+      const modalEl = document.getElementById('name-input-modal');
+      if (!inputEl || !modalEl) {
+        console.error('Name input modal elements not found');
+        return;
+      }
+      const name = inputEl.value.trim() || 'Player';
+      modalEl.classList.remove('open');
+      maybeSaveScore(pendingScore.xp, pendingScore.level, name);
+      showFinalGameOver();
+    }
+
+    // ═══════════════════════════════════════════════════════
+    //  skipPlayerName() — skip name and show final screen
+    // ═══════════════════════════════════════════════════════
+    function skipPlayerName() {
+      const modalEl = document.getElementById('name-input-modal');
+      if (!modalEl) {
+        console.error('Name input modal element not found');
+        return;
+      }
+      modalEl.classList.remove('open');
+      maybeSaveScore(pendingScore.xp, pendingScore.level, 'Player');
+      showFinalGameOver();
+    }
+
+    // ═══════════════════════════════════════════════════════
+    //  showFinalGameOver() — display the final game-over screen
+    // ═══════════════════════════════════════════════════════
+    function showFinalGameOver() {
+      const scores = getScores();
+      // Calculate rank: find the position of the score (always < 5 if it was saved)
+      const rank = scores.length > 0 ? 1 : 0; // Default to rank 1 if in top 5
+      // For more precision, we can count how many scores are higher
+      const higherScores = scores.filter(s => s.xp > pendingScore.xp).length;
+      const actualRank = higherScores + 1;
+
+      // Get all required elements with defensive checks
+      const elements = {
+        emoji: document.getElementById('gameover-emoji'),
+        title: document.getElementById('gameover-title'),
+        score: document.getElementById('gameover-score'),
+        level: document.getElementById('gameover-level'),
+        rank: document.getElementById('gameover-rank'),
+        modal: document.getElementById('gameover-modal')
+      };
+
+      // Check if all required elements exist
+      const missingElements = Object.keys(elements).filter(k => !elements[k]);
+      if (missingElements.length > 0) {
+        console.error('Missing elements for game-over screen:', missingElements);
+        return;
+      }
+
+      elements.emoji.textContent  = '🎮';
+      elements.title.textContent  = 'Game Over!';
+      elements.score.textContent  = `${pendingScore.xp} ✨ xp`;
+      elements.level.textContent  = `reached level ${pendingScore.level}`;
+      elements.rank.textContent   = actualRank <= 5 ? `🏆 Rank #${actualRank}` : '';
+
+      elements.modal.classList.add('open');
+    }
+
+    // ═══════════════════════════════════════════════════════
+    //  updateHudLevel(levelNum) — update HUD when level changes
+    // ═══════════════════════════════════════════════════════
+    function updateHudLevel(levelNum) {
+      const lvl = levels[levelNum];
+      if (!lvl) return;
+      document.getElementById('hud-level').textContent = `${lvl.emoji} Level ${levelNum}`;
+      document.getElementById('hud-level').style.color = lvl.hudColor;
+    }
+
+    // ═══════════════════════════════════════════════════════
+    //  updateXpBar(xp, levelNum)
+    // ═══════════════════════════════════════════════════════
+    function updateXpBar(xp, levelNum) {
+      const fill  = document.getElementById('xp-progress-fill');
+      const low   = levelThresholds[levelNum]       || 0;
+      const high  = levelThresholds[levelNum + 1]   || (low + 500);
+      const pct   = Math.min(100, Math.max(0, ((xp - low) / (high - low)) * 100));
+      fill.style.width = `${pct}%`;
+    }
+
+    // ═══════════════════════════════════════════════════════
+    //  applyLevelTheme(levelNum)
+    // ═══════════════════════════════════════════════════════
+    function applyLevelTheme(levelNum) {
+      const lvl      = levels[levelNum];
+      const gameArea = document.getElementById('game-area');
+
+      for (let i = 1; i <= MAX_LEVEL; i++) gameArea.classList.remove(`bg-level-${i}`);
+      gameArea.classList.add(`bg-level-${levelNum}`);
+
+      document.querySelectorAll('#scenery .scene').forEach(el => el.classList.remove('active'));
+      const sc = document.querySelector(`#scenery .scene-${levelNum}`);
+      if (sc) sc.classList.add('active');
+
+      document.getElementById('game-deco').textContent = lvl.deco;
+
+      document.getElementById('danger-ground').style.background =
+        `linear-gradient(90deg, transparent, ${lvl.color}, transparent)`;
+
+      document.getElementById('hud-bar').style.background          = lvl.color;
+      document.getElementById('xp-progress-fill').style.background = lvl.color;
+      document.getElementById('hud-level').textContent             = `${lvl.emoji} Level ${levelNum}`;
+      document.getElementById('hud-level').style.color             = lvl.hudColor;
+
+      const pills = document.querySelectorAll('.hud-pill');
+      for (let i = 0; i < pills.length; i++) {
+        pills[i].style.borderColor = lvl.color;
+      }
+
+      document.getElementById('word-input').style.borderColor = lvl.color;
+      updateXpBar(gameState.xp, levelNum);
+    }
+
+    // ═══════════════════════════════════════════════════════
+    //  keepInputFocused()
+    // ═══════════════════════════════════════════════════════
+    function keepInputFocused() {
+      if (!gameState.running) return;
+      setTimeout(() => document.getElementById('word-input').focus(), 20);
+    }
+
+    // ═══════════════════════════════════════════════════════
+    //  resetGame()
+    //  Stops the loop, clears words, resets state
+    // ═══════════════════════════════════════════════════════
+    function resetGame() {
+      gameState.running = false;
+
+      // Cancel the animation loop
+      if (rafId !== null) {
+        cancelAnimationFrame(rafId);
+        rafId = null;
+      }
+      lastTimestamp = 0;
+
+      // ── Phase 7: Stop the spawner ────────────────────
+      stopSpawner();
+
+      // Remove all active word divs from the DOM
+      for (let i = activeWords.length - 1; i >= 0; i--) {
+        if (activeWords[i].el && activeWords[i].el.parentNode) {
+          activeWords[i].el.parentNode.removeChild(activeWords[i].el);
+        }
+      }
+      activeWords.length = 0;
+
+      gameState.level = 1;
+      gameState.lives = 3;
+      gameState.xp    = 0;
+
+      // Get all elements with defensive checks
+      const xpDisplay = document.getElementById('xp-display');
+      const wordInput = document.getElementById('word-input');
+      const xpFill = document.getElementById('xp-progress-fill');
+      const banner = document.getElementById('levelup-banner');
+      const nameModal = document.getElementById('name-input-modal');
+      const gameoverModal = document.getElementById('gameover-modal');
+
+      if (xpDisplay) xpDisplay.textContent = '0 ✨ xp';
+      if (wordInput) wordInput.value = '';
+      if (xpFill) xpFill.style.width = '0%';
+      if (banner) banner.classList.add('hidden');
+      if (nameModal) nameModal.classList.remove('open');
+      if (gameoverModal) gameoverModal.classList.remove('open');
+    }
+
+    // ═══════════════════════════════════════════════════════
+    //  startGame(levelNum)
+    //  Initialises state, applies theme, then kicks off the
+    //  rAF loop after the screen transition settles.
+    // ═══════════════════════════════════════════════════════
+    function startGame(levelNum) {
+      // Reset any previous session
+      resetGame();
+
+      gameState.running = true;
+      gameState.level   = levelNum;
+      gameState.lives   = 3;
+      gameState.xp      = 0;
+
+      applyLevelTheme(levelNum);
+      renderLives(hearts);
+      document.getElementById('xp-display').textContent = '0 ✨ xp';
+      updateXpBar(0, levelNum);
+
+      transitionScreens('menu-screen', 'game-screen', 'left');
+
+      // Start the rAF loop once the transition has settled (~340 ms)
+      setTimeout(() => {
+        document.getElementById('word-input').focus();
+        lastTimestamp = 0;
+        rafId = requestAnimationFrame(gameLoop);
+        // ── Phase 7: Start the interval-based spawner ──────────
+        startSpawner();
+      }, 380);
+    }
+
+    // ═══════════════════════════════════════════════════════
+    //  returnToMenu()
+    // ═══════════════════════════════════════════════════════
+    function returnToMenu() {
+      resetGame();
+      transitionScreens('game-screen', 'menu-screen', 'right');
+      updateLevelCard('');
+    }
+
+    // ═══════════════════════════════════════════════════════
+    //  transitionScreens(fromId, toId, direction)
+    // ═══════════════════════════════════════════════════════
+    function transitionScreens(fromId, toId, direction) {
+      const from = document.getElementById(fromId);
+      const to   = document.getElementById(toId);
+
+      from.classList.remove('active');
+      from.classList.add(direction === 'left' ? 'exit-left' : 'exit-right');
+
+      to.style.opacity = '0';
+      to.style.display = 'flex';
+
+      setTimeout(() => {
+        from.classList.remove('exit-left', 'exit-right');
+        from.style.opacity   = '';
+        from.style.display   = '';
+        from.style.transform = '';
+        to.style.opacity = '';
+        to.classList.add(direction === 'left' ? 'enter-right' : 'enter-left');
+
+        setTimeout(() => {
+          to.classList.remove('enter-right', 'enter-left');
+          to.classList.add('active');
+        }, 320);
+      }, 300);
+    }
+
+    // ═══════════════════════════════════════════════════════
+    //  PHASE 9: localStorage helpers — save & load high scores
+    // ═══════════════════════════════════════════════════════
+    function getScores() {
+      const saved = localStorage.getItem('fallingWords_scores');
+      return saved ? JSON.parse(saved) : [];
+    }
+
+    function saveScores(scores) {
+      localStorage.setItem('fallingWords_scores', JSON.stringify(scores));
+    }
+
+    function loadScores() {
+      const parsed = getScores();
+      for (let i = 0; i < parsed.length; i++) bestScores.push(parsed[i]);
+    }
+
+    // ═══════════════════════════════════════════════════════
+    //  PHASE 9: maybeSaveScore(xp, level, name) — save if top 5
+    // ═══════════════════════════════════════════════════════
+    function maybeSaveScore(xp, level, name) {
+      const scores = getScores();
+      const date   = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      scores.push({ xp, level, date, name: name || 'Player' });
+      // Sort descending, keep top 5
+      scores.sort((a, b) => b.xp - a.xp);
+      saveScores(scores.slice(0, 5));
+    }
+    function loadSettings() {
+      const saved = localStorage.getItem('fallingWords_settings');
+      if (saved) {
+        const s = JSON.parse(saved);
+        document.getElementById('music-vol').value            = s.music ?? 60;
+        document.getElementById('sfx-vol').value              = s.sfx   ?? 80;
+        document.getElementById('music-vol-val').textContent  = s.music ?? 60;
+        document.getElementById('sfx-vol-val').textContent    = s.sfx   ?? 80;
+      }
+    }
+    function saveSettings() {
+      const s = {
+        music: parseInt(document.getElementById('music-vol').value),
+        sfx:   parseInt(document.getElementById('sfx-vol').value),
+      };
+      localStorage.setItem('fallingWords_settings', JSON.stringify(s));
+      const msg = document.getElementById('settings-saved');
+      msg.classList.add('show');
+      setTimeout(() => msg.classList.remove('show'), 1800);
+    }
+
+    // ═══════════════════════════════════════════════════════
+    //  Modal helpers
+    // ═══════════════════════════════════════════════════════
+    function openModal(id)  { document.getElementById(id).classList.add('open'); }
+    function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+    // ═══════════════════════════════════════════════════════
+    //  EVENT LISTENERS
+    // ═══════════════════════════════════════════════════════
+
+    document.getElementById('level-prev').addEventListener('click', () => {
+      if (currentLevel > 1) { currentLevel--; updateLevelCard('right'); }
+    });
+    document.getElementById('level-next').addEventListener('click', () => {
+      if (currentLevel < MAX_LEVEL) { currentLevel++; updateLevelCard('left'); }
+    });
+
+    document.getElementById('start-btn').addEventListener('click', () => startGame(currentLevel));
+
+    document.getElementById('back-btn').addEventListener('click', () => {
+      if (gameState.running && document.getElementById('gameover-modal').classList.contains('open')) {
+        // Don't allow back button while game-over is showing
+        return;
+      }
+      if (gameState.running) openModal('quit-modal');
+      else returnToMenu();
+    });
+    document.getElementById('quit-confirm-btn').addEventListener('click', () => {
+      closeModal('quit-modal');
+      returnToMenu();
+    });
+    document.getElementById('quit-cancel-btn').addEventListener('click', () => {
+      closeModal('quit-modal');
+      keepInputFocused();
+    });
+
+    // ── Phase 6: word matching on Enter ──────────────────
+    document.getElementById('word-input').addEventListener('keydown', (e) => {
+      if (e.key !== 'Enter') return;
+      e.preventDefault();
+      if (!gameState.running) return;
+      const typed = document.getElementById('word-input').value;
+      matchWord(typed);
+    });
+
+    // Bulletproof focus
+    document.getElementById('game-area').addEventListener('click', keepInputFocused);
+    document.getElementById('word-input').addEventListener('blur', keepInputFocused);
+    document.addEventListener('keydown', (e) => {
+      if (!gameState.running) return;
+      if (e.target === document.getElementById('word-input')) return;
+      if (e.key.length === 1 || e.key === 'Backspace') keepInputFocused();
+    });
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') keepInputFocused();
+    });
+
+    document.getElementById('instructions-btn').addEventListener('click', () => openModal('instructions-modal'));
+    document.getElementById('instructions-close').addEventListener('click', () => closeModal('instructions-modal'));
+
+    document.getElementById('settings-btn').addEventListener('click', () => openModal('settings-modal'));
+    document.getElementById('settings-close').addEventListener('click', () => { saveSettings(); closeModal('settings-modal'); });
+    document.getElementById('music-vol').addEventListener('input', function() { document.getElementById('music-vol-val').textContent = this.value; });
+    document.getElementById('sfx-vol').addEventListener('input',  function() { document.getElementById('sfx-vol-val').textContent  = this.value; });
+
+    document.getElementById('scores-btn').addEventListener('click', () => { renderScores(bestScores); openModal('scores-modal'); });
+    document.getElementById('scores-close').addEventListener('click', () => closeModal('scores-modal'));
+    document.getElementById('clear-scores-btn').addEventListener('click', () => { bestScores.length = 0; saveScores(); renderScores(bestScores); });
+
+    document.querySelectorAll('.modal-overlay').forEach(overlay => {
+      overlay.addEventListener('click', e => {
+        if (e.target !== overlay) return;
+        if (overlay.id === 'settings-modal') saveSettings();
+        if (overlay.id === 'quit-modal') return;
+        closeModal(overlay.id);
+        keepInputFocused();
+      });
+    });
+
+    // ── Phase 10: Game-over modal overlay ─────────────────
+    // ── Name input modal event listeners ─────────────────
+    document.getElementById('player-name-input').addEventListener('keydown', e => {
+      if (e.key === 'Enter') submitPlayerName();
+    });
+
+    document.getElementById('name-input-modal').addEventListener('click', e => {
+      if (e.target !== document.getElementById('name-input-modal')) return;
+      // Allow closing by clicking outside (skip name)
+      skipPlayerName();
+    });
+
+    document.getElementById('gameover-modal').addEventListener('click', e => {
+      if (e.target !== document.getElementById('gameover-modal')) return;
+      // Allow closing by clicking outside
+      document.getElementById('gameover-modal').classList.remove('open');
+      returnToMenu();
+    });
+
+    // ═══════════════════════════════════════════════════════
+    //  INIT
+    // ═══════════════════════════════════════════════════════
+    loadScores();
+    loadSettings();
+    updateLevelCard('');
+    document.getElementById('menu-screen').classList.add('active');
+    document.getElementById('levelup-banner').classList.add('hidden');
+  </script>
+</body>
+</html>
