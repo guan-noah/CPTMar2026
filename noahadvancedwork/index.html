@@ -1343,6 +1343,19 @@
   </div>
 
   <!-- ── MODAL: GAME OVER (Phase 5) ──────────────── -->
+  <!-- ── NAME INPUT MODAL ────────────────────────── -->
+  <div id="modal-name-input" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="name-input-title">
+    <div class="modal-box">
+      <h2 class="modal-title" id="name-input-title">👤 Your Name</h2>
+      <p style="font-size: 0.95rem; color: #666; margin: 0 0 16px 0;">Enter your name for the high scores:</p>
+      <input type="text" id="modal-player-name" placeholder="Player Name" maxlength="20" style="width: 100%; padding: 10px; font-size: 1rem; border: 2px solid #ddd; border-radius: 8px; font-family: 'Fredoka', sans-serif; margin-bottom: 16px; box-sizing: border-box;">
+      <div style="display: flex; gap: 10px; justify-content: center;">
+        <button id="btn-name-submit" style="padding: 10px 20px; background: #4CAF50; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; font-family: 'Fredoka One', cursive;">Start Game</button>
+        <button id="btn-name-skip" style="padding: 10px 20px; background: #999; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; font-family: 'Fredoka One', cursive;">Skip</button>
+      </div>
+    </div>
+  </div>
+
   <div id="modal-game-over" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="gameover-title">
     <div class="modal-box">
       <h2 class="modal-title" id="gameover-title">Game Over! 😢</h2>
@@ -1359,7 +1372,7 @@
   <!-- ── TEST PANEL ───────────────────────────────── -->
   <div id="test-panel" role="region" aria-label="Test results">
     <div id="test-panel-header">
-      <span id="test-panel-title">🧪 Phase 1–9 Tests</span>
+      <span id="test-panel-title">🧪 Phase 1–13 Tests</span>
       <span id="test-summary"></span>
       <button id="test-panel-close" aria-label="Close test panel">✕</button>
     </div>
@@ -1418,6 +1431,7 @@
     const gameSession = {
       level:  1,       // the level passed in when Start was pressed
       status: 'idle',  // idle | countdown | playing | paused | over
+      playerName: 'Player', // player name for high scores
     };
 
     // Phase 3 refs
@@ -1451,6 +1465,7 @@
     let nextWordId  = 0;    // ever-increasing ID counter
     let rafId       = null; // current requestAnimationFrame handle
     let lastTime    = 0;    // timestamp of last frame (for dt calc)
+    let gameOverTimeoutId = null; // track gameOver's modal timeout for cleanup
     let lives       = 3;    // current lives (reset on new game)
     let totalXP     = 0;    // running XP total for the session
 
@@ -1707,11 +1722,13 @@
       setDangerZone(false);
 
       playSound('gameover');                  // Phase 9: sad tune
-      maybeSaveScore(totalXP, gameSession.level); // Phase 9: save high score
+      maybeSaveScore(totalXP, gameSession.level, gameSession.playerName); // Phase 9: save high score with name
 
       document.getElementById('gameover-score').textContent        = `${totalXP} ✨`;
       document.getElementById('gameover-level-reached').textContent = `reached level ${gameSession.level}`;
-      setTimeout(() => openModal('modal-game-over'), 350);
+      // Clear any previously pending gameOver timeout before scheduling new one
+      if (gameOverTimeoutId !== null) { clearTimeout(gameOverTimeoutId); }
+      gameOverTimeoutId = setTimeout(() => openModal('modal-game-over'), 350);
     }
 
     // ── RAF game loop ──────────────────────────────
@@ -1834,10 +1851,10 @@
 
     // ── Best score saving ──────────────────────────
     // Called from gameOver() — saves if it's a top-5 score.
-    function maybeSaveScore(xp, level) {
+    function maybeSaveScore(xp, level, name) {
       const scores = getScores();
       const date   = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-      scores.push({ xp, level, date });
+      scores.push({ xp, level, date, name: name || 'Player' });
       // Sort descending, keep top 5
       scores.sort((a, b) => b.xp - a.xp);
       saveScores(scores.slice(0, 5));
@@ -2141,6 +2158,9 @@
 
     // ── resetGameUI ────────────────────────────────
     function resetGameUI() {
+      // Clear any pending gameOver modal timeout from previous game
+      if (gameOverTimeoutId !== null) { clearTimeout(gameOverTimeoutId); gameOverTimeoutId = null; }
+      
       stopGameLoop();
       stopSpawner();
       clearAllWords();
@@ -2271,6 +2291,22 @@
     function startGame() {
       gameSession.level  = state.currentLevel;
       gameSession.status = 'idle';
+      gameSession.playerName = 'Player'; // reset player name
+      
+      // Show name input modal first
+      const nameInput = document.getElementById('modal-player-name');
+      const nameModal = document.getElementById('modal-name-input');
+      if (nameInput && nameModal) {
+        nameInput.value = '';
+        nameInput.focus();
+        openModal('modal-name-input');
+      } else {
+        proceedToGameScreen();
+      }
+    }
+
+    // ── proceedToGameScreen — called after player enters name ─
+    function proceedToGameScreen() {
       buildTrees();
       transitionToScreen('game-screen', () => {
         applyLevelBackground(gameSession.level); // Phase 8: set background theme
@@ -2325,6 +2361,32 @@
       updateHudLevel(gameSession.level);
       updateXpBar(0, gameSession.level);
       runCountdown();
+    });
+
+    // ── Name input handlers ──────────────────────────
+    const submitPlayerName = () => {
+      const nameInput = document.getElementById('modal-player-name');
+      const name = nameInput.value.trim() || 'Player';
+      gameSession.playerName = name;
+      closeModal('modal-name-input');
+      proceedToGameScreen();
+    };
+
+    const skipPlayerName = () => {
+      gameSession.playerName = 'Player';
+      closeModal('modal-name-input');
+      proceedToGameScreen();
+    };
+
+    document.getElementById('btn-name-submit')?.addEventListener('click', submitPlayerName);
+    document.getElementById('btn-name-skip')?.addEventListener('click', skipPlayerName);
+    
+    // Enter key to submit name
+    document.getElementById('modal-player-name')?.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        submitPlayerName();
+      }
     });
 
     document.getElementById('btn-go-menu').addEventListener('click', () => {
@@ -2426,6 +2488,7 @@
         ? scores.slice(0,5).map((s,i) => `
             <li class="score-entry ${medals[i]||''}">
               <span class="score-rank">${icons[i]}</span>
+              <span style="font-weight:700">${s.name || 'Player'}</span>
               <span style="font-weight:700">${s.date||'—'}</span>
               <span class="score-xp">${s.xp} ✨</span>
             </li>`).join('')
@@ -4343,14 +4406,17 @@
 
     let p1Pass=0,p1Fail=0,p2Pass=0,p2Fail=0,p3Pass=0,p3Fail=0,
         p4Pass=0,p4Fail=0,p5Pass=0,p5Fail=0,p6Pass=0,p6Fail=0,
-        p7Pass=0,p7Fail=0,p8Pass=0,p8Fail=0,p9Pass=0,p9Fail=0;
+        p7Pass=0,p7Fail=0,p8Pass=0,p8Fail=0,p9Pass=0,p9Fail=0,
+        p10Pass=0,p10Fail=0,p11Pass=0,p11Fail=0,p12Pass=0,p12Fail=0,p13Pass=0,p13Fail=0;
     tests.forEach(t => {
       const ph = t.phase || 1;
       if (t.pass) {
-        if(ph===9)p9Pass++;else if(ph===8)p8Pass++;else if(ph===7)p7Pass++;else if(ph===6)p6Pass++;
+        if(ph===13)p13Pass++;else if(ph===12)p12Pass++;else if(ph===11)p11Pass++;else if(ph===10)p10Pass++;
+        else if(ph===9)p9Pass++;else if(ph===8)p8Pass++;else if(ph===7)p7Pass++;else if(ph===6)p6Pass++;
         else if(ph===5)p5Pass++;else if(ph===4)p4Pass++;else if(ph===3)p3Pass++;else if(ph===2)p2Pass++;else p1Pass++;
       } else {
-        if(ph===9)p9Fail++;else if(ph===8)p8Fail++;else if(ph===7)p7Fail++;else if(ph===6)p6Fail++;
+        if(ph===13)p13Fail++;else if(ph===12)p12Fail++;else if(ph===11)p11Fail++;else if(ph===10)p10Fail++;
+        else if(ph===9)p9Fail++;else if(ph===8)p8Fail++;else if(ph===7)p7Fail++;else if(ph===6)p6Fail++;
         else if(ph===5)p5Fail++;else if(ph===4)p4Fail++;else if(ph===3)p3Fail++;else if(ph===2)p2Fail++;else p1Fail++;
       }
       const d = document.createElement('div');
@@ -4376,7 +4442,11 @@
       `P6:<span style="color:#2bad6a"> ${p6Pass}✓</span><span style="color:#e86060"> ${p6Fail}✗</span> &nbsp;` +
       `P7:<span style="color:#2bad6a"> ${p7Pass}✓</span><span style="color:#e86060"> ${p7Fail}✗</span> &nbsp;` +
       `P8:<span style="color:#2bad6a"> ${p8Pass}✓</span><span style="color:#e86060"> ${p8Fail}✗</span> &nbsp;` +
-      `P9:<span style="color:#2bad6a"> ${p9Pass}✓</span><span style="color:#e86060"> ${p9Fail}✗</span>`;
+      `P9:<span style="color:#2bad6a"> ${p9Pass}✓</span><span style="color:#e86060"> ${p9Fail}✗</span><br>` +
+      `P10:<span style="color:#2bad6a"> ${p10Pass}✓</span><span style="color:#e86060"> ${p10Fail}✗</span> &nbsp;` +
+      `P11:<span style="color:#2bad6a"> ${p11Pass}✓</span><span style="color:#e86060"> ${p11Fail}✗</span> &nbsp;` +
+      `P12:<span style="color:#2bad6a"> ${p12Pass}✓</span><span style="color:#e86060"> ${p12Fail}✗</span> &nbsp;` +
+      `P13:<span style="color:#2bad6a"> ${p13Pass}✓</span><span style="color:#e86060"> ${p13Fail}✗</span>`;
     document.getElementById('test-panel').appendChild(footer);
   </script>
 </body>
