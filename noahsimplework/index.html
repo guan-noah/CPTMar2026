@@ -1578,7 +1578,7 @@
       elements.title.textContent  = 'Game Over!';
       elements.score.textContent  = `${pendingScore.xp} ✨ xp`;
       elements.level.textContent  = `reached level ${pendingScore.level}`;
-      elements.rank.textContent   = actualRank <= 5 ? `🏆 Rank #${actualRank}` : '';
+      elements.rank.textContent   = actualRank <= 10 ? `🏆 Rank #${actualRank}` : '';
 
       elements.modal.classList.add('open');
     }
@@ -1782,9 +1782,9 @@
       const scores = getScores();
       const date   = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
       scores.push({ xp, level, date, name: name || 'Player' });
-      // Sort descending, keep top 5
+      // Sort descending, keep top 10
       scores.sort((a, b) => b.xp - a.xp);
-      saveScores(scores.slice(0, 5));
+      saveScores(scores.slice(0, 10));
     }
     function loadSettings() {
       const saved = localStorage.getItem('fallingWords_settings');
@@ -1843,13 +1843,14 @@
       keepInputFocused();
     });
 
-    // ── Phase 6: word matching on Enter ──────────────────
+    // ── Phase 6: word matching on Enter or Space ──────────────────
     document.getElementById('word-input').addEventListener('keydown', (e) => {
-      if (e.key !== 'Enter') return;
+      if (e.key !== 'Enter' && e.key !== ' ') return;
       e.preventDefault();
       if (!gameState.running) return;
       const typed = document.getElementById('word-input').value;
       matchWord(typed);
+      document.getElementById('word-input').value = ''; // Clear input after entry
     });
 
     // Bulletproof focus

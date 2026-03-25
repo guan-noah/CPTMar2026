@@ -1588,11 +1588,65 @@
       if (speed === undefined) speed = 0.7 + gameSession.level * 0.22;
       const el     = createWordEl(text);
       const w      = el.offsetWidth  || 80;
+      const h      = el.offsetHeight || 36;
       const areaW  = gameArea.clientWidth;
+      const areaH  = gameArea.clientHeight;
       const pad    = 24;
+      
+      // ── Prevent off-screen horizontal overflow ─
       const maxX   = Math.max(pad, areaW - w - pad);
-      const x      = pad + Math.random() * (maxX - pad);
-      const y      = -(el.offsetHeight + 4); // start just above the area
+      let x        = pad + Math.random() * (maxX - pad);
+      x = Math.max(pad, Math.min(x, areaW - w - pad));
+      
+      const y = -(h + 4); // start just above the area
+
+      // ── Check for overlap with existing words ─
+      const overlapThreshold = 60; // min pixel distance
+      let hasOverlap = false;
+      for (const existingWord of activeWords) {
+        const ex1 = existingWord.x;
+        const ey1 = existingWord.y;
+        const ex2 = ex1 + (existingWord.el.offsetWidth || 80);
+        const ey2 = ey1 + (existingWord.el.offsetHeight || 36);
+        
+        const nx1 = x;
+        const ny1 = y;
+        const nx2 = x + w;
+        const ny2 = y + h;
+        
+        // Boxes overlap if they intersect in both X and Y with threshold
+        if (!(nx2 + overlapThreshold < ex1 || nx1 - overlapThreshold > ex2 ||
+              ny2 + overlapThreshold < ey1 || ny1 - overlapThreshold > ey2)) {
+          hasOverlap = true;
+          break;
+        }
+      }
+      
+      // If overlap detected, try alternate positions
+      if (hasOverlap) {
+        const attempts = 5;
+        for (let i = 0; i < attempts; i++) {
+          x = pad + Math.random() * (maxX - pad);
+          x = Math.max(pad, Math.min(x, areaW - w - pad));
+          hasOverlap = false;
+          for (const existingWord of activeWords) {
+            const ex1 = existingWord.x;
+            const ey1 = existingWord.y;
+            const ex2 = ex1 + (existingWord.el.offsetWidth || 80);
+            const ey2 = ey1 + (existingWord.el.offsetHeight || 36);
+            const nx1 = x;
+            const ny1 = y;
+            const nx2 = x + w;
+            const ny2 = y + h;
+            if (!(nx2 + overlapThreshold < ex1 || nx1 - overlapThreshold > ex2 ||
+                  ny2 + overlapThreshold < ey1 || ny1 - overlapThreshold > ey2)) {
+              hasOverlap = true;
+              break;
+            }
+          }
+          if (!hasOverlap) break;
+        }
+      }
 
       const word = { id: nextWordId++, text, x, y, speed, el };
       activeWords.push(word);
@@ -2135,9 +2189,42 @@
       }
     });
 
-    // Strategy 4: when the tab regains visibility, refocus
+    // Strategy 4: when the tab regains visibility, resume game
     document.addEventListener('visibilitychange', () => {
-      if (!document.hidden && gameSession.status === 'playing') {
+      if (document.hidden) {
+        // Tab lost focus — pause if playing
+        if (gameSession.status === 'playing') {
+          gameSession.status = 'paused';
+          stopSpawner();
+          stopGameLoop();
+        }
+      } else {
+        // Tab regained focus — resume if was playing
+        if (gameSession.status === 'paused') {
+          gameSession.status = 'playing';
+          lastTime = 0; // prevent dt spike
+          startSpawner();
+          startGameLoop();
+          setTimeout(() => wordInput.focus(), 100);
+        }
+      }
+    });
+
+    // Strategy 5: window focus/blur for same-window tab switching
+    window.addEventListener('blur', () => {
+      if (gameSession.status === 'playing') {
+        gameSession.status = 'paused';
+        stopSpawner();
+        stopGameLoop();
+      }
+    });
+
+    window.addEventListener('focus', () => {
+      if (gameSession.status === 'paused' && !document.hidden) {
+        gameSession.status = 'playing';
+        lastTime = 0;
+        startSpawner();
+        startGameLoop();
         setTimeout(() => wordInput.focus(), 100);
       }
     });
