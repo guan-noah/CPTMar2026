@@ -44,50 +44,31 @@ let selectedLevel = 1;
 let currentLevel, lives, totalXP, xpThisLevel, activeWords;
 let spawnTimer, rafId, gameRunning, isPaused;
 
-// Per-level word queue (ensures all words used before repeating)
-let wordQueue = [];
+// Tracks the last 3 words shown (to avoid repeats)
+let recentWords = [];
 
 // ============================================================
 // WORD QUEUE FUNCTION
 // Uses an array parameter, a for loop, and an if/else statement.
 // Shuffles the word list so every word appears once before any repeats.
 // ============================================================
-function buildWordQueue(wordList) {
-  // Copy the array, skipping words already visible on screen
-  var activeTexts = activeWords ? activeWords.map(function(w) { return w.text; }) : [];
-  var queue = [];
-  for (var i = 0; i < wordList.length; i++) {
-    if (activeTexts.indexOf(wordList[i]) !== -1) {
-      // Word is currently falling — leave it out of this round
-    } else {
-      queue.push(wordList[i]);
+// Picks a random word that is not among the last 3 words shown.
+// Uses an array parameter, a for loop, and an if/else statement.
+function pickWord(wordList) {
+  var candidate;
+  for (var attempts = 0; attempts < 10; attempts++) {
+    candidate = wordList[Math.floor(Math.random() * wordList.length)];
+    if (recentWords.indexOf(candidate) === -1) {
+      // Not in recent list — good to use
+      recentWords.push(candidate);
+      if (recentWords.length > 3) {
+        recentWords.shift(); // keep only the last 3
+      }
+      return candidate;
     }
   }
-
-  // Safety fallback: if every word is on screen, just use the full list
-  if (queue.length === 0) {
-    for (var i = 0; i < wordList.length; i++) {
-      queue.push(wordList[i]);
-    }
-  }
-
-  // Fisher-Yates shuffle
-  for (var i = queue.length - 1; i > 0; i--) {
-    var j = Math.floor(Math.random() * (i + 1));
-    var temp = queue[i];
-    queue[i] = queue[j];
-    queue[j] = temp;
-  }
-
-  return queue;
-}
-
-function getNextWord() {
-  // If queue is empty, rebuild it from the current level's list
-  if (wordQueue.length === 0) {
-    wordQueue = buildWordQueue(ALL_WORDS[currentLevel - 1]);
-  }
-  return wordQueue.pop();
+  // Fallback: if no fresh word found after 10 tries, just use the candidate
+  return candidate;
 }
 
 // ============================================================
@@ -196,7 +177,7 @@ function startGame() {
   activeWords   = [];
   gameRunning   = true;
   isPaused      = false;
-  wordQueue     = buildWordQueue(ALL_WORDS[currentLevel - 1]);
+  recentWords   = [];
 
   updateHUD();
   elInput.value = '';
@@ -291,7 +272,7 @@ function scheduleSpawn() {
 function spawnWord() {
   if (!gameRunning || isPaused) return;
 
-  var text = getNextWord();
+  var text = pickWord(ALL_WORDS[currentLevel - 1]);
   var div  = document.createElement('div');
   div.className   = 'word';
   div.textContent = text;
@@ -409,8 +390,8 @@ function doFlash(color) {
 function checkLevelUp() {
   if (currentLevel < MAX_LEVEL && xpThisLevel >= XP_PER_LEVEL) {
     currentLevel++;
-    xpThisLevel = 0; // reset counter for next level
-    wordQueue   = buildWordQueue(ALL_WORDS[currentLevel - 1]); // fresh queue for new level
+    xpThisLevel = 0;
+    recentWords = []; // clear recent words for the new level
     updateHUD();
     elBanner.classList.add('show');
     doFlash('#ffd166');
