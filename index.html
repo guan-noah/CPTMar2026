@@ -1,104 +1,196 @@
 <!DOCTYPE html>
+<!-- Declares this document as HTML5 -->
+
 <html lang="en">
+<!-- Root element of the page; lang="en" helps browsers and accessibility tools -->
+
 <head>
   <meta charset="UTF-8" />
+  <!-- Ensures proper text encoding (supports all characters, including emojis) -->
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <!-- Makes the layout responsive on different screen sizes (mobile scaling) -->
+
   <title>Don't Drop the Words!</title>
+  <!-- Title shown in browser tab -->
+
   <link rel="stylesheet" href="style.css" />
+  <!-- Links external CSS file for styling -->
 </head>
+
 <body>
 
-  <!-- MENU -->
+  <!-- MENU SCREEN: Initial screen before gameplay -->
   <div id="menu">
     <h1>🌟 Don't Drop the Words!</h1>
     <p>Type the falling words before they hit the ground.</p>
 
+    <!-- PLAYER NAME INPUT -->
     <div class="name-row">
       <label for="player-name">Your Name:</label>
-      <input id="player-name" type="text" maxlength="20" placeholder="Enter your name…" autocomplete="off" />
+      <!-- Label linked to input for accessibility -->
+
+      <input id="player-name" type="text" maxlength="20"
+      placeholder="Enter your name…" autocomplete="off" />
+      <!-- Text input field with:
+           maxlength = limits input length
+           placeholder = hint text
+           autocomplete="off" = disables browser suggestions -->
     </div>
 
+    <!-- LEVEL SELECTOR -->
     <div class="level-row">
       <button id="lv-down">◀</button>
+      <!-- Decreases level -->
+
       <div class="level-label-box">
         <span id="lv-display">Level 1 — Easy</span>
+        <!-- Displays current level and difficulty -->
       </div>
+
       <button id="lv-up">▶</button>
+      <!-- Increases level -->
     </div>
 
+    <!-- START BUTTON -->
     <button class="btn" id="btn-start">▶ Start Game</button>
+
+    <!-- MENU FOOTER BUTTONS -->
     <div class="menu-bottom-btns">
       <button class="btn btn-sm" id="btn-how">How to Play</button>
+      <!-- Opens instructions modal -->
+
       <button class="btn btn-sm" id="btn-scores">🏆 Best Scores</button>
+      <!-- Opens leaderboard modal -->
     </div>
   </div>
 
-  <!-- BEST SCORES MODAL -->
+  <!-- BEST SCORES MODAL (hidden overlay) -->
   <div class="overlay" id="modal-scores">
+    <!-- overlay = full-screen darkened background -->
+
     <div class="modal">
+      <!-- modal = centered popup box -->
+
       <button class="modal-close" id="close-scores">✕</button>
+      <!-- Close button -->
+
       <h2>🏆 Best Scores</h2>
+
       <div id="scores-list"></div>
-      <button class="btn btn-sm" id="btn-clear-scores" style="margin-top:16px;">Clear Scores</button>
+      <!-- Scores dynamically inserted here via JavaScript -->
+
+      <button class="btn btn-sm" id="btn-clear-scores" style="margin-top:16px;">
+        Clear Scores
+      </button>
+      <!-- Clears localStorage scores -->
     </div>
   </div>
 
   <!-- HOW TO PLAY MODAL -->
   <div class="overlay" id="modal-how">
     <div class="modal">
+
       <button class="modal-close" id="close-how">✕</button>
+
       <h2>How to Play 🎮</h2>
+
       <ul>
+        <!-- Instruction list -->
         <li>Words fall from the sky.</li>
         <li>Type a word and press <strong>Enter</strong> or <strong>Space</strong> to destroy it.</li>
+        <!-- <strong> makes text bold -->
+
         <li>You have <strong>3 lives ❤️</strong>. Lose one when a word hits the ground.</li>
+
         <li>Longer words give more <strong>XP</strong>! ⚡</li>
+
         <li>Earn 200 XP per level to <strong>level up</strong> — words get faster! 🚀</li>
+
         <li>Red glow means a word is about to fall! ⚠️</li>
       </ul>
     </div>
   </div>
 
-  <!-- GAME -->
+  <!-- GAME SCREEN (hidden until Start is pressed) -->
   <div id="game">
+
+    <!-- HUD (Heads-Up Display) -->
     <div id="hud">
       <div id="hud-lives">❤️❤️❤️</div>
+      <!-- Displays remaining lives -->
+
       <div id="hud-level">Level 1</div>
+      <!-- Displays current level -->
+
       <div id="hud-xp">0 xp</div>
+      <!-- Displays current XP -->
+
       <button class="hud-btn" id="btn-pause">⏸ Pause</button>
+      <!-- Pauses the game -->
+
       <button class="hud-btn" id="btn-quit">✕ Quit</button>
+      <!-- Returns to menu -->
     </div>
 
+    <!-- MAIN GAME AREA -->
     <div id="arena">
-      <!-- Pause overlay -->
+      <!-- This is where words fall -->
+
+      <!-- PAUSE OVERLAY -->
       <div id="pause-screen">
+        <!-- Covers arena when paused -->
+
         <div class="pause-box">
           <div style="font-size:2rem;">⏸ Paused</div>
           <button class="btn" id="btn-resume">▶ Resume</button>
+          <!-- Resumes gameplay -->
         </div>
       </div>
 
-      <div id="levelup-banner"><div>⬆️ Level Up!</div></div>
+      <!-- LEVEL UP BANNER -->
+      <div id="levelup-banner">
+        <div>⬆️ Level Up!</div>
+        <!-- Shown briefly when leveling up -->
+      </div>
 
+      <!-- GAME OVER SCREEN -->
       <div id="gameover">
         <div class="go-box">
           <h2>Game Over!</h2>
+
           <p id="final-score">You scored 0 xp</p>
+          <!-- Final XP inserted dynamically -->
+
           <div class="go-btns">
             <button class="btn btn-sm" id="btn-retry">Retry</button>
+            <!-- Restart game -->
+
             <button class="btn btn-sm" id="btn-menu">Menu</button>
+            <!-- Return to main menu -->
           </div>
         </div>
       </div>
 
+      <!-- SCREEN FLASH EFFECT -->
       <div id="flash"></div>
+      <!-- Used for red flash when losing a life -->
 
+      <!-- INPUT AREA -->
       <div id="input-area">
-        <input id="word-input" type="text" autocomplete="off" spellcheck="false" placeholder="type a word…" />
+        <input id="word-input" type="text"
+        autocomplete="off" spellcheck="false"
+        placeholder="type a word…" />
+        <!-- Main typing input:
+             spellcheck off = prevents red underline
+             always focused during gameplay -->
       </div>
     </div>
   </div>
 
+  <!-- JAVASCRIPT FILE -->
   <script src="game.js"></script>
+  <!-- Handles all game logic -->
+
 </body>
 </html>

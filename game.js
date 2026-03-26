@@ -44,31 +44,50 @@ let selectedLevel = 1;
 let currentLevel, lives, totalXP, xpThisLevel, activeWords;
 let spawnTimer, rafId, gameRunning, isPaused;
 
-// Tracks the last 3 words shown (to avoid repeats)
-let recentWords = [];
+// Per-level word queue (ensures all words used before repeating)
+let wordQueue = [];
 
 // ============================================================
 // WORD QUEUE FUNCTION
 // Uses an array parameter, a for loop, and an if/else statement.
 // Shuffles the word list so every word appears once before any repeats.
 // ============================================================
-// Picks a random word that is not among the last 3 words shown.
-// Uses an array parameter, a for loop, and an if/else statement.
-function pickWord(wordList) {
-  var candidate;
-  for (var attempts = 0; attempts < 10; attempts++) {
-    candidate = wordList[Math.floor(Math.random() * wordList.length)];
-    if (recentWords.indexOf(candidate) === -1) {
-      // Not in recent list — good to use
-      recentWords.push(candidate);
-      if (recentWords.length > 3) {
-        recentWords.shift(); // keep only the last 3
-      }
-      return candidate;
+function buildWordQueue(wordList) {
+  // Copy the array, skipping words already visible on screen
+  var activeTexts = activeWords ? activeWords.map(function(w) { return w.text; }) : [];
+  var queue = [];
+  for (var i = 0; i < wordList.length; i++) {
+    if (activeTexts.indexOf(wordList[i]) !== -1) {
+      // Word is currently falling — leave it out of this round
+    } else {
+      queue.push(wordList[i]);
     }
   }
-  // Fallback: if no fresh word found after 10 tries, just use the candidate
-  return candidate;
+
+  // Safety fallback: if every word is on screen, just use the full list
+  if (queue.length === 0) {
+    for (var i = 0; i < wordList.length; i++) {
+      queue.push(wordList[i]);
+    }
+  }
+
+  // Fisher-Yates shuffle
+  for (var i = queue.length - 1; i > 0; i--) {
+    var j = Math.floor(Math.random() * (i + 1));
+    var temp = queue[i];
+    queue[i] = queue[j];
+    queue[j] = temp;
+  }
+
+  return queue;
+}
+
+function getNextWord() {
+  // If queue is empty, rebuild it from the current level's list
+  if (wordQueue.length === 0) {
+    wordQueue = buildWordQueue(ALL_WORDS[currentLevel - 1]);
+  }
+  return wordQueue.pop();
 }
 
 // ============================================================
@@ -177,7 +196,7 @@ function startGame() {
   activeWords   = [];
   gameRunning   = true;
   isPaused      = false;
-  recentWords   = [];
+  wordQueue     = buildWordQueue(ALL_WORDS[currentLevel - 1]);
 
   updateHUD();
   elInput.value = '';
@@ -247,7 +266,7 @@ function updateHUD() {
   for (var i = 0; i < lives; i++)  hearts += '❤️';
   for (var i = lives; i < 3; i++) hearts += '🖤';
   elHudLives.textContent = hearts;
-  elHudLevel.textContent = 'Level ' + currentLevel + ' (' + xpThisLevel + '/' + XP_PER_LEVEL + ' xp)';
+  elHudLevel.textContent = 'Level ' + currentLevel + ' (' + xpThisLevel + '/' + XP_PER_LEVEL*currentLevel + ' xp)';
   elHudXP.textContent    = 'Total: ' + totalXP + ' xp';
 }
 
@@ -255,10 +274,14 @@ function updateHUD() {
 // SPAWNING
 // ============================================================
 function getSpawnInterval() {
-  return Math.max(800, 2800 - (currentLevel - 1) * 280);
+  if(currentLevel == MAX_LEVEL)
+	return 2800;
+  return 2800 - (currentLevel - 1) * 280;
 }
 function getFallSpeed() {
-  return 0.6 + (currentLevel - 1) * 0.25;
+  if(currentLevel == MAX_LEVEL)
+	return 0.3;
+  return 0.6 + (currentLevel - 1) * 0.1;
 }
 
 function scheduleSpawn() {
@@ -268,11 +291,38 @@ function scheduleSpawn() {
     scheduleSpawn();
   }, getSpawnInterval());
 }
-
 function spawnWord() {
   if (!gameRunning || isPaused) return;
 
-  var text = pickWord(ALL_WORDS[currentLevel - 1]);
+  var text = getNextWord();
+  var div  = document.createElement('div');
+  div.className   = 'word';
+  div.textContent = text;
+
+  // TEMPORARILY add to DOM to measure width
+  div.style.visibility = 'hidden';
+  div.style.left = '0px';
+  div.style.top  = '0px';
+  elArena.appendChild(div);
+
+  var wordWidth = div.offsetWidth;
+
+  // Calculate safe spawn range
+  var maxX = elArena.clientWidth - wordWidth;
+  var x    = Math.random() * Math.max(0, maxX);
+
+  // Apply final position
+  div.style.left = x + 'px';
+  div.style.top  = '0px';
+  div.style.visibility = 'visible';
+
+  activeWords.push({ text: text, el: div, y: 0, speed: getFallSpeed() });
+}
+/*old function
+function spawnWord() {
+  if (!gameRunning || isPaused) return;
+
+  var text = getNextWord();
   var div  = document.createElement('div');
   div.className   = 'word';
   div.textContent = text;
@@ -285,7 +335,7 @@ function spawnWord() {
 
   activeWords.push({ text: text, el: div, y: 0, speed: getFallSpeed() });
 }
-
+*/
 // ============================================================
 // GAME LOOP
 // ============================================================
@@ -388,10 +438,10 @@ function doFlash(color) {
 // LEVEL UP — based on XP earned THIS level, not total XP
 // ============================================================
 function checkLevelUp() {
-  if (currentLevel < MAX_LEVEL && xpThisLevel >= XP_PER_LEVEL) {
+  if (currentLevel < MAX_LEVEL && xpThisLevel >= XP_PER_LEVEL*currentLevel) {
     currentLevel++;
-    xpThisLevel = 0;
-    recentWords = []; // clear recent words for the new level
+    xpThisLevel = 0; // reset counter for next level
+    wordQueue   = buildWordQueue(ALL_WORDS[currentLevel - 1]); // fresh queue for new level
     updateHUD();
     elBanner.classList.add('show');
     doFlash('#ffd166');
