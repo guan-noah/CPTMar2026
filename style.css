@@ -1,3 +1,59 @@
+/* ── CSS LEGEND ── */
+
+/* overflow: hidden; 
+   - Prevents content from overflowing its container (scrollbars are hidden). */
+
+/* .level-row button:hover 
+   - Styles buttons when hovered by the mouse (pseudo-class :hover). */
+
+/* :disabled 
+   - Styles elements that are disabled/uninteractive (e.g., <button disabled>). */
+
+/* .overlay.open 
+   - Applies styles when overlay has both classes: .overlay and .open (combined class selector). */
+
+/* .modal h2, ul 
+   - Descendant selectors; styles <h2> and <ul> inside .modal. */
+
+/* position: relative; 
+   - Sets positioning context for absolutely positioned children. */
+
+/* #arena::after 
+   - Pseudo-element to insert content after #arena (used for decorative elements). */
+
+/* white-space: nowrap; 
+   - Prevents text from wrapping to a new line. */
+
+/* user-select: none; 
+   - Prevents the user from selecting text. */
+
+/* transition: property duration; 
+   - Smoothly animates changes to CSS properties over time. */
+
+/* box-shadow: ...; 
+   - Adds shadow effects to elements. */
+
+/* @keyframes name { ... } 
+   - Defines steps of a CSS animation. */
+
+/* animation: name duration easing [options]; 
+   - Applies a defined keyframe animation to an element. */
+
+/* pointer-events: none; 
+   - Disables mouse interactions on the element. */
+
+/* word-input:focus 
+   - Styles the input field when it gains focus (pseudo-class :focus). */
+
+/* inset: 0; 
+   - Shorthand for top:0; right:0; bottom:0; left:0; positioning. */
+
+/* #gameover.show 
+   - Shows gameover overlay when the .show class is added (combined ID + class selector). */
+
+/* transition: opacity .15s; 
+   - Smoothly changes the element’s opacity over 0.15 seconds. */
+
 /* ── GLOBAL RESET ── */
 /* Reset margin/padding and set box-sizing for easier sizing */
 * { 
