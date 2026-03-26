@@ -1,0 +1,19 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "chrome",
+            "request": "launch",
+            "name": "Open noahadvancedwork",
+            "file": "${workspaceFolder}/noahadvancedwork/index.html",
+            "runtimeArgs": ["--remote-debugging-port=9222"]
+        },
+        {
+            "type": "chrome",
+            "request": "launch",
+            "name": "Open noahsimplework",
+            "file": "${workspaceFolder}/noahsimplework/index.html",
+            "runtimeArgs": ["--remote-debugging-port=9222"]
+        }
+    ]
+}

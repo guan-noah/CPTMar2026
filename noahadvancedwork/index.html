@@ -2164,8 +2164,16 @@
       stopGameLoop();
       stopSpawner();
       clearAllWords();
-      lives   = 3;
-      totalXP = 0;
+
+      activeWords = [];   // currently falling words
+      nextWordId  = 0;    // ever-increasing ID counter
+      rafId       = null; // current requestAnimationFrame handle
+      lastTime    = 0;    // timestamp of last frame (for dt calc)
+      gameOverTimeoutId = null; // track gameOver's modal timeout for cleanup
+      lives       = 3;    // current lives (reset on new game)
+      totalXP     = 0;    // running XP total for the session
+      spawnerId   = null; // setInterval handle
+      usedWords   = new Set(); // track recently-used words to avoid duplicates
 
       wordInput.value = '';
       xpDisplay.textContent = '0 ✨';
@@ -2178,6 +2186,26 @@
       document.getElementById('levelup-banner').classList.add('hidden');
       gameSession.status = 'idle';
     }
+
+    // ── Cleanup on app exit (tab/window close) ────
+    // Called when user closes tab, window, or navigates away
+    // Only pause the game; preserve state in case user returns
+    window.addEventListener('pagehide', () => {
+      if (gameSession.status === 'playing') {
+        gameSession.status = 'paused';
+        stopSpawner();
+        stopGameLoop();
+      }
+    });
+    
+    // Fallback for older browsers and certain navigation scenarios
+    window.addEventListener('beforeunload', () => {
+      if (gameSession.status === 'playing') {
+        gameSession.status = 'paused';
+        stopSpawner();
+        stopGameLoop();
+      }
+    });
 
     // ── Phase 4: PERMANENT FOCUS SYSTEM ───────────
     // Strategy 1: if input loses focus while playing, refocus it
@@ -4424,6 +4452,26 @@
       d.innerHTML = `<span style="font-size:9px;opacity:.55;margin-right:4px">P${ph}</span><span class="icon">${t.pass?'✓':'✗'}</span>${t.name}${t.pass?'':`<span class="test-err">↳ ${t.error}</span>`}`;
       resultsEl.appendChild(d);
     });
+
+    // ── Test Cleanup — Reset app to clean state ──
+    // Clear any pending timeouts from tests (especially gameOver modal timeout)
+    if (gameOverTimeoutId !== null) { clearTimeout(gameOverTimeoutId); gameOverTimeoutId = null; }
+    
+    // Close all open modals
+    document.querySelectorAll('.modal-overlay').forEach(m => m.classList.add('hidden'));
+    
+    // Reset game state
+    gameSession.status = 'idle';
+    gameSession.level = 1;
+    lives = 3;
+    totalXP = 0;
+    activeWords = [];
+    stopGameLoop();
+    stopSpawner();
+    
+    // Ensure menu screen is visible
+    showScreen('menu-screen');
+    updateLevelDisplay();
 
     summaryEl.innerHTML =
       `<span style="color:#2bad6a">${passed} ✓</span> · <span style="color:#e86060">${failed} ✗</span>`;
