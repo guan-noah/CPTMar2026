@@ -1,58 +1,3 @@
-/* ── CSS LEGEND ── */
-
-/* overflow: hidden; 
-   - Prevents content from overflowing its container (scrollbars are hidden). */
-
-/* .level-row button:hover 
-   - Styles buttons when hovered by the mouse (pseudo-class :hover). */
-
-/* :disabled 
-   - Styles elements that are disabled/uninteractive (e.g., <button disabled>). */
-
-/* .overlay.open 
-   - Applies styles when overlay has both classes: .overlay and .open (combined class selector). */
-
-/* .modal h2, ul 
-   - Descendant selectors; styles <h2> and <ul> inside .modal. */
-
-/* position: relative; 
-   - Sets positioning context for absolutely positioned children. */
-
-/* #arena::after 
-   - Pseudo-element to insert content after #arena (used for decorative elements). */
-
-/* white-space: nowrap; 
-   - Prevents text from wrapping to a new line. */
-
-/* user-select: none; 
-   - Prevents the user from selecting text. */
-
-/* transition: property duration; 
-   - Smoothly animates changes to CSS properties over time. */
-
-/* box-shadow: ...; 
-   - Adds shadow effects to elements. */
-
-/* @keyframes name { ... } 
-   - Defines steps of a CSS animation. */
-
-/* animation: name duration easing [options]; 
-   - Applies a defined keyframe animation to an element. */
-
-/* pointer-events: none; 
-   - Disables mouse interactions on the element. */
-
-/* word-input:focus 
-   - Styles the input field when it gains focus (pseudo-class :focus). */
-
-/* inset: 0; 
-   - Shorthand for top:0; right:0; bottom:0; left:0; positioning. */
-
-/* #gameover.show 
-   - Shows gameover overlay when the .show class is added (combined ID + class selector). */
-
-/* transition: opacity .15s; 
-   - Smoothly changes the element’s opacity over 0.15 seconds. */
 
 /* ── GLOBAL RESET ── */
 /* Reset margin/padding and set box-sizing for easier sizing */
@@ -79,10 +24,10 @@ body {
   cursor: pointer;                       /* Pointer on hover */
   background: #f77f00;                   /* Orange background */
   color: #fff;                           /* White text */
-  box-shadow: 0 4px 0 #c96200;          /* Shadow for 3D effect */
-  transition: transform .1s, box-shadow .1s; /* Smooth hover/press changes */
+  box-shadow: 0 4px 0 #c96200;          /* box-shadow: adds shadow effects to elements */
+  transition: transform .1s, box-shadow .1s; /* transition: smoothly animates changes to CSS properties over time */
 }
-/* Hover state: slightly lifted with longer shadow */
+/* Hover state: slightly lifted with longer shadow (pseudo-class :hover - styles buttons when hovered by the mouse) */
 .btn:hover  { 
   transform: translateY(-2px); 
   box-shadow: 0 6px 0 #c96200; 
@@ -146,9 +91,10 @@ body {
   outline: none; 
   width: 200px;
 }
+/* Highlight on focus (pseudo-class :focus - styles the input field when it gains focus) */
 .name-row input:focus { 
   border-color: #f77f00; 
-} /* Highlight on focus */
+}
 
 /* ── LEVEL SELECTOR ── */
 .level-row { 
@@ -167,11 +113,11 @@ body {
   border-radius: 50%;                     /* Circular buttons */
   transition: background .15s;            /* Smooth hover background change */
 }
-/* Hover background */
+/* Hover background (pseudo-class :hover - styles buttons when hovered by the mouse) */
 .level-row button:hover { 
   background: rgba(247,127,0,0.12); 
 }
-/* Disabled buttons: semi-transparent and non-clickable */
+/* Disabled buttons: semi-transparent and non-clickable (pseudo-class :disabled - styles elements that are disabled/uninteractive) */
 .level-row button:disabled { 
   opacity: 0.3; 
   cursor: default; 
@@ -194,13 +140,13 @@ body {
 .overlay {
   display: none;                          /* Hidden by default */
   position: fixed;                         /* Fixed on viewport */
-  inset: 0;                                /* top:0; right:0; bottom:0; left:0; */
+  inset: 0;                                /* Shorthand for top:0; right:0; bottom:0; left:0; positioning */
   background: rgba(0,0,0,0.45);           /* Semi-transparent black */
   align-items: center; 
   justify-content: center;
   z-index: 50;
 }
-/* Open overlay */
+/* Open overlay (combined class selector - applies styles when overlay has both classes: .overlay and .open) */
 .overlay.open { 
   display: flex; 
 }
@@ -213,6 +159,7 @@ body {
   width: 90%;           /* Responsive width */
   box-shadow: 0 8px 32px rgba(0,0,0,0.2); /* Soft shadow */
 }
+/* Descendant selectors; styles h2 and ul inside .modal */
 .modal h2 { 
   color: #f77f00; 
   margin-bottom: 16px; 
@@ -325,11 +272,11 @@ body {
 /* ARENA */
 #arena {
   flex: 1;
-  position: relative;  /* Needed for absolute children positioning */
-  overflow: hidden;
+  position: relative;  /* position: relative - sets positioning context for absolutely positioned children */
+  overflow: hidden;    /* overflow: hidden - prevents content from overflowing its container (scrollbars are hidden) */
   background: linear-gradient(180deg, #caf0f8 0%, #ade8f4 65%, #90e0ef 100%);
 }
-/* Ground pseudo-element */
+/* Ground pseudo-element (#arena::after - pseudo-element to insert content after #arena) */
 #arena::after {
   content: '';
   position: absolute; bottom: 0; left: 0; right: 0;
@@ -346,16 +293,17 @@ body {
   border: 2px solid #48cae4;
   border-radius: 20px;
   font-size: 1rem; font-weight: bold;
-  white-space: nowrap;                     /* Prevent line breaks */
-  user-select: none;                       /* Prevent text selection */
+  white-space: nowrap;                     /* white-space: nowrap - prevents text from wrapping to a new line */
+  user-select: none;                       /* user-select: none - prevents the user from selecting text */
   box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-  transition: border-color .2s, box-shadow .2s; /* Smooth hover/animation changes */
+  transition: border-color .2s, box-shadow .2s; /* transition: smoothly animates changes to CSS properties over time */
 }
 .word.danger {
   border-color: #e63946;
   box-shadow: 0 0 10px rgba(230,57,70,0.5);
-  animation: pulse .4s ease-in-out infinite alternate; /* Keyframe animation for pulse */
+  animation: pulse .4s ease-in-out infinite alternate; /* animation: applies a defined keyframe animation to an element */
 }
+/* @keyframes name { ... } - defines steps of a CSS animation */
 @keyframes pulse { 
   from { 
     transform: scale(1); 
@@ -369,9 +317,10 @@ body {
 .xp-pop {
   position: absolute;
   font-weight: bold; font-size: 1rem; color: #f77f00;
-  pointer-events: none;                  /* Clicks pass through */
-  animation: floatUp .9s ease forwards;  /* Float up animation */
+  pointer-events: none;                  /* pointer-events: none - disables mouse interactions on the element */
+  animation: floatUp .9s ease forwards;  /* animation: applies a defined keyframe animation to an element */
 }
+/* @keyframes name { ... } - defines steps of a CSS animation */
 @keyframes floatUp { 
   0% { 
 	opacity: 1; 
@@ -402,6 +351,7 @@ body {
   background: rgba(255,255,255,0.93);
   box-shadow: 0 4px 12px rgba(247,127,0,0.2);
 }
+/* Styles the input field when it gains focus (pseudo-class :focus) */
 #word-input:focus { 
   border-color: #48cae4; 
 }
@@ -454,6 +404,7 @@ body {
   border-radius: 20px; 
   box-shadow: 0 8px 24px rgba(0,0,0,0.15); 
 }
+/* @keyframes name { ... } - defines steps of a CSS animation */
 @keyframes bannerPop { 
   0% { 
 	opacity: 0; 
@@ -478,6 +429,7 @@ body {
   justify-content: center; 
   z-index: 20; 
 }
+/* Shows gameover overlay when the .show class is added (combined ID + class selector) */
 #gameover.show { 
   display: flex; 
 }
@@ -512,5 +464,5 @@ body {
   pointer-events: none; 
   z-index: 30; 
   opacity: 0; 
-  transition: opacity .15s; 
+  transition: opacity .15s;  /* transition: smoothly changes the element's opacity over 0.15 seconds */
 }
