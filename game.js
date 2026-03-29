@@ -196,6 +196,17 @@ document.getElementById('btn-clear-scores').addEventListener('click', function()
 });
 
 // ============================================================
+// BACKGROUND IMAGE — sets per level
+// Dynamically loads and sets the background image for each level.
+// Images must be named level1.jpeg through level8.jpeg in images/ folder.
+// Called at game start and on level up to update the background.
+// ============================================================
+function setBackgroundImage(level) {
+  var imagePath = 'images/level' + level + '.jpeg';
+  elArena.style.backgroundImage = 'url("' + imagePath + '")';
+}
+
+// ============================================================
 // MENU — LEVEL SELECTOR
 // ============================================================
 function updateLvDisplay() {
@@ -253,6 +264,8 @@ function startGame() {
   isPaused      = false;
   wordQueue     = buildWordQueue(ALL_WORDS[currentLevel - 1]);
 
+  // Set background image for the selected level
+  setBackgroundImage(currentLevel);
   updateHUD();
   elInput.value = '';
   elInput.focus();
@@ -479,15 +492,9 @@ function showXPPop(el, xp) {
 function loseLife() {
   lives--;
   updateHUD();
-  doFlash('#e63946');
   if (lives <= 0) endGame();
 }
 
-function doFlash(color) {
-  elFlash.style.background = color;
-  elFlash.style.opacity    = '0.35';
-  setTimeout(function() { elFlash.style.opacity = '0'; }, 300);
-}
 
 // ============================================================
 // LEVEL UP — based on XP earned THIS level, not total XP
@@ -497,6 +504,8 @@ function checkLevelUp() {
     currentLevel++;
     xpThisLevel = 0; // reset counter for next level
     wordQueue   = buildWordQueue(ALL_WORDS[currentLevel - 1]); // fresh queue for new level
+    // Update background image when advancing to next level
+    setBackgroundImage(currentLevel);
     updateHUD();
     elBanner.classList.add('show');
     doFlash('#ffd166');

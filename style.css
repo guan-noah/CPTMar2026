@@ -270,11 +270,16 @@ body {
 }
 
 /* ARENA */
+/* Background images are set dynamically via JS based on current level.
+   Images should be placed in images/ folder as level1.jpg, level2.jpg, etc.
+   The setBackgroundImage() function in game.js handles dynamic switching. */
 #arena {
   flex: 1;
   position: relative;  /* position: relative - sets positioning context for absolutely positioned children */
   overflow: hidden;    /* overflow: hidden - prevents content from overflowing its container (scrollbars are hidden) */
-  background: linear-gradient(180deg, #caf0f8 0%, #ade8f4 65%, #90e0ef 100%);
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
 }
 /* Ground pseudo-element (#arena::after - pseudo-element to insert content after #arena) */
 #arena::after {
@@ -301,16 +306,6 @@ body {
 .word.danger {
   border-color: #e63946;
   box-shadow: 0 0 10px rgba(230,57,70,0.5);
-  animation: pulse .4s ease-in-out infinite alternate; /* animation: applies a defined keyframe animation to an element */
-}
-/* @keyframes name { ... } - defines steps of a CSS animation */
-@keyframes pulse { 
-  from { 
-    transform: scale(1); 
-  } 
-  to { 
-    transform: scale(1.07); 
-  } 
 }
 
 /* ── XP POPUP ── */
@@ -464,5 +459,5 @@ body {
   pointer-events: none; 
   z-index: 30; 
   opacity: 0; 
-  transition: opacity .15s;  /* transition: smoothly changes the element's opacity over 0.15 seconds */
+  display: none;
 }
