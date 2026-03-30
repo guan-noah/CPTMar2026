@@ -55,19 +55,12 @@ const words8 = [
 "pathophysiological","counterrevolutionary"
 ];
 
-const ALL_WORDS = [words1, words2, words3, words4, words5, words6, words7, words8];
-
+const ALL_WORDS   = [words1, words2, words3, words4, words5, words6, words7, words8];
 const LEVEL_NAMES = [
-"Sunrise Forest",
-"Green Canopy",
-"Amber Dusk",
-"Starlit Hollow",
-"Frozen Peaks",
-"Scorched Wastes",
-"The Void",
-"Oblivion"
+  "Sunrise Forest","Green Canopy","Amber Dusk","Starlit Hollow",
+  "Frozen Peaks","Scorched Wastes","The Void","Oblivion"
 ];
-const XP_PER_LEVEL = 200; // XP needed to advance from one level to the next, times current level
+const XP_PER_LEVEL = 200;
 const MAX_LEVEL    = 8;
 
 // ============================================================
@@ -99,21 +92,15 @@ let selectedLevel = 1;
 let currentLevel, lives, totalXP, xpThisLevel;
 let spawnTimer, rafId, gameRunning, isPaused;
 
-var wordTexts  = [];
-var wordEls    = [];
-var wordYs     = [];
-var wordSpeeds = [];
-
-// Per-level word queue (ensures all words used before repeating)
-let wordQueue = [];
-
-// ============================================================
-// WORD QUEUE FUNCTION
-// Uses an array parameter, a for loop, and an if/else statement.
-// Shuffles the word list so at least 3 different words are shown before any repeats.
-// ============================================================
+var wordTexts   = [];
+var wordEls     = [];
+var wordYs      = [];
+var wordSpeeds  = [];
 var recentWords = [];
 
+// ============================================================
+// WORD SELECTION
+// ============================================================
 function pickWord(wordList) {
   var candidate;
   for (var attempts = 0; attempts < 10; attempts++) {
@@ -121,7 +108,7 @@ function pickWord(wordList) {
     if (recentWords.indexOf(candidate) === -1 && wordTexts.indexOf(candidate) === -1) {
       recentWords.push(candidate);
       if (recentWords.length > 3) {
-        recentWords.shift();//if greater than 3 elements, removes first element
+        recentWords.shift();
       }
       return candidate;
     }
@@ -135,19 +122,34 @@ function getNextWord() {
 
 // ============================================================
 // BEST SCORES (localStorage)
+// Scores are saved as a JSON string — a text format for storing
+// structured data. JSON.stringify converts the array to a string
+// for storage. JSON.parse converts it back to an array when reading.
 // ============================================================
 function getScores() {
-  try { return JSON.parse(localStorage.getItem('ddtw_scores')) || []; }
-  catch(e) { return []; }
+  var raw = localStorage.getItem('ddtw_scores'); // returns raw string, or null if nothing saved
+  if (!raw) return [];                            // nothing saved yet — start fresh
+  try {
+    return JSON.parse(raw);                       // parse string back into an array of objects
+  } catch(e) {
+    return [];                                    // data is corrupt — start fresh
+  }
+}
+
+function compareScores(a, b) {
+  return b.xp - a.xp;
 }
 
 function saveScore(xp) {
   var name   = elPlayerName.value.trim() || 'Anonymous';
   var scores = getScores();
   scores.push({ name: name, xp: xp, date: new Date().toLocaleDateString() });
-  scores.sort(function(a, b) { return b.xp - a.xp; });
-  scores = scores.slice(0, 5);
-  localStorage.setItem('ddtw_scores', JSON.stringify(scores));
+  scores.sort(compareScores);
+  // Trim to top 5 — remove lowest scores from the end until only 5 remain
+  while (scores.length > 5) {
+    scores.pop();
+  }
+  localStorage.setItem('ddtw_scores', JSON.stringify(scores)); // convert array back to string for storage
 }
 
 function renderScores() {
@@ -158,40 +160,43 @@ function renderScores() {
     list.innerHTML = '<div class="score-empty">No scores yet — play your first game!</div>';
     return;
   }
-  list.innerHTML = scores.map(function(s, i) {
-    return '<div class="score-row">' +
-      '<span class="score-rank">' + medals[i] + '</span>' +
-      '<span class="score-name">' + s.name + '</span>' +
-      '<span class="score-xp">' + s.xp + ' xp</span>' +
-      '<span class="score-date">' + s.date + '</span>' +
+  var html = '';
+  for (var i = 0; i < scores.length; i++) {
+    html += '<div class="score-row">' +
+      '<span class="score-rank">' + medals[i]      + '</span>' +
+      '<span class="score-name">' + scores[i].name + '</span>' +
+      '<span class="score-xp">'   + scores[i].xp   + ' xp</span>' +
+      '<span class="score-date">' + scores[i].date  + '</span>' +
     '</div>';
-  }).join('');
+  }
+  list.innerHTML = html;
 }
 
-document.getElementById('btn-scores').addEventListener('click', function() {
+function onBtnScores() {
   renderScores();
   elModalScores.classList.add('open');
-});
-document.getElementById('close-scores').addEventListener('click', function() {
+}
+function onCloseScores() {
   elModalScores.classList.remove('open');
-});
-elModalScores.addEventListener('click', function(e) {
+}
+function onModalScoresClick(e) {
   if (e.target === elModalScores) elModalScores.classList.remove('open');
-});
-document.getElementById('btn-clear-scores').addEventListener('click', function() {
+}
+function onBtnClearScores() {
   localStorage.removeItem('ddtw_scores');
   renderScores();
-});
+}
+
+document.getElementById('btn-scores').addEventListener('click', onBtnScores);
+document.getElementById('close-scores').addEventListener('click', onCloseScores);
+elModalScores.addEventListener('click', onModalScoresClick);
+document.getElementById('btn-clear-scores').addEventListener('click', onBtnClearScores);
 
 // ============================================================
-// BACKGROUND IMAGE — sets per level
-// Dynamically loads and sets the background image for each level.
-// Images must be named level1.jpeg through level8.jpeg in images/ folder.
-// Called at game start and on level up to update the background.
+// BACKGROUND IMAGE
 // ============================================================
 function setBackgroundImage(level) {
-  var imagePath = 'images/level' + level + '.jpeg';
-  elArena.style.backgroundImage = 'url("' + imagePath + '")';
+  elArena.style.backgroundImage = 'url("images/level' + level + '.jpeg")';
 }
 
 // ============================================================
@@ -203,26 +208,33 @@ function updateLvDisplay() {
   elLvUp.disabled   = (selectedLevel >= MAX_LEVEL);
 }
 
-elLvDown.addEventListener('click', function() {
+function onLvDown() {
   if (selectedLevel > 1) { selectedLevel--; updateLvDisplay(); }
-});
-elLvUp.addEventListener('click', function() {
+}
+function onLvUp() {
   if (selectedLevel < MAX_LEVEL) { selectedLevel++; updateLvDisplay(); }
-});
+}
+
+elLvDown.addEventListener('click', onLvDown);
+elLvUp.addEventListener('click', onLvUp);
 updateLvDisplay();
 
 // ============================================================
 // MENU — HOW TO PLAY MODAL
 // ============================================================
-document.getElementById('btn-how').addEventListener('click', function() {
+function onBtnHow() {
   elModalHow.classList.add('open');
-});
-document.getElementById('close-how').addEventListener('click', function() {
+}
+function onCloseHow() {
   elModalHow.classList.remove('open');
-});
-elModalHow.addEventListener('click', function(e) {
+}
+function onModalHowClick(e) {
   if (e.target === elModalHow) elModalHow.classList.remove('open');
-});
+}
+
+document.getElementById('btn-how').addEventListener('click', onBtnHow);
+document.getElementById('close-how').addEventListener('click', onCloseHow);
+elModalHow.addEventListener('click', onModalHowClick);
 
 // ============================================================
 // START / RETRY / QUIT
@@ -232,15 +244,18 @@ document.getElementById('btn-retry').addEventListener('click', startGame);
 document.getElementById('btn-menu').addEventListener('click', goMenu);
 document.getElementById('btn-quit').addEventListener('click', goMenu);
 
+function removeEl(el) {
+  el.remove();
+}
+
 function startGame() {
   elMenu.style.display    = 'none';
   elGame.style.display    = 'flex';
   elGameover.classList.remove('show');
   elBanner.classList.remove('show');
   elPauseScreen.classList.remove('show');
-  // Clear leftover word elements
-  elArena.querySelectorAll('.word').forEach(function(w) { w.remove(); });
-  elArena.querySelectorAll('.xp-pop').forEach(function(p) { p.remove(); });
+  elArena.querySelectorAll('.word').forEach(removeEl);
+  elArena.querySelectorAll('.xp-pop').forEach(removeEl);
   currentLevel  = selectedLevel;
   lives         = 3;
   totalXP       = 0;
@@ -252,7 +267,6 @@ function startGame() {
   recentWords   = [];
   gameRunning   = true;
   isPaused      = false;
-  // Set background image for the selected level
   setBackgroundImage(currentLevel);
   updateHUD();
   elInput.value = '';
@@ -266,16 +280,16 @@ function goMenu() {
   isPaused    = false;
   cancelAnimationFrame(rafId);
   clearTimeout(spawnTimer);
-  elArena.querySelectorAll('.word').forEach(function(w) { w.remove(); });
+  elArena.querySelectorAll('.word').forEach(removeEl);
   elPauseScreen.classList.remove('show');
   elGame.style.display = 'none';
   elMenu.style.display = 'flex';
 }
 
-// Re-focus input on arena click (but not when paused)
-elArena.addEventListener('click', function() {
+function onArenaClick() {
   if (!isPaused) elInput.focus();
-});
+}
+elArena.addEventListener('click', onArenaClick);
 
 // ============================================================
 // PAUSE / RESUME
@@ -297,21 +311,17 @@ function resumeGame() {
   elInput.focus();
 }
 
-document.getElementById('btn-pause').addEventListener('click', function() {
-  if (isPaused) {
-    resumeGame();
-  } else {
-    pauseGame();
-  }
-});
+function onBtnPause() {
+  if (isPaused) { resumeGame(); } else { pauseGame(); }
+}
+
+document.getElementById('btn-pause').addEventListener('click', onBtnPause);
 document.getElementById('btn-resume').addEventListener('click', resumeGame);
 
-// Auto-pause when user switches tabs / minimises window
-document.addEventListener('visibilitychange', function() {
-  if (document.hidden && gameRunning && !isPaused) {
-    pauseGame();
-  }
-});
+function onVisibilityChange() {
+  if (document.hidden && gameRunning && !isPaused) pauseGame();
+}
+document.addEventListener('visibilitychange', onVisibilityChange);
 
 // ============================================================
 // HUD
@@ -321,7 +331,7 @@ function updateHUD() {
   for (var i = 0; i < lives; i++)  hearts += '❤️';
   for (var i = lives; i < 3; i++) hearts += '🖤';
   elHudLives.textContent = hearts;
-  elHudLevel.textContent = 'Level ' + currentLevel + ' (' + xpThisLevel + '/' + XP_PER_LEVEL*currentLevel + ' xp)';
+  elHudLevel.textContent = 'Level ' + currentLevel + ' (' + xpThisLevel + '/' + XP_PER_LEVEL * currentLevel + ' xp)';
   elHudXP.textContent    = 'Total: ' + totalXP + ' xp';
 }
 
@@ -329,22 +339,22 @@ function updateHUD() {
 // SPAWNING
 // ============================================================
 function getSpawnInterval() {
-  if(currentLevel == MAX_LEVEL)
-	return 2800;
+  if (currentLevel == MAX_LEVEL) return 2800;
   return 2800 - (currentLevel - 1) * 280;
 }
 function getFallSpeed() {
-  if(currentLevel == MAX_LEVEL)
-	return 0.3;
+  if (currentLevel == MAX_LEVEL) return 0.3;
   return 0.6 + (currentLevel - 1) * 0.1;
+}
+
+function onSpawnTimer() {
+  spawnWord();
+  scheduleSpawn();
 }
 
 function scheduleSpawn() {
   if (!gameRunning || isPaused) return;
-  spawnTimer = setTimeout(function() {
-    spawnWord();
-    scheduleSpawn();
-  }, getSpawnInterval());
+  spawnTimer = setTimeout(onSpawnTimer, getSpawnInterval());
 }
 
 function spawnWord() {
@@ -353,20 +363,16 @@ function spawnWord() {
   var div  = document.createElement('div');
   div.className   = 'word';
   div.textContent = text;
-
   div.style.visibility = 'hidden';
   div.style.left = '0px';
   div.style.top  = '0px';
   elArena.appendChild(div);
-
   var wordWidth = div.offsetWidth;
   var maxX = elArena.clientWidth - wordWidth;
   var x    = Math.random() * Math.max(0, maxX);
-
   div.style.left = x + 'px';
   div.style.top  = '0px';
   div.style.visibility = 'visible';
-
   wordTexts.push(text);
   wordEls.push(div);
   wordYs.push(0);
@@ -400,30 +406,27 @@ function gameLoop() {
   if (!gameRunning || isPaused) return;
   var ground     = getGroundY();
   var dangerZone = ground * 0.75;
-
   for (var i = wordEls.length - 1; i >= 0; i--) {
     wordYs[i] += wordSpeeds[i];
     wordEls[i].style.top = wordYs[i] + 'px';
-
     if (wordYs[i] > dangerZone) {
       wordEls[i].classList.add('danger');
     } else {
       wordEls[i].classList.remove('danger');
     }
-
     if (wordYs[i] + wordEls[i].offsetHeight >= ground) {
       wordEls[i].remove();
       rebuildArraysSkipping(i);
       loseLife();
     }
   }
-
   rafId = requestAnimationFrame(gameLoop);
 }
+
 // ============================================================
 // INPUT — Enter OR Space submits
 // ============================================================
-elInput.addEventListener('keydown', function(e) {
+function onKeydown(e) {
   if (e.key !== 'Enter' && e.key !== ' ') return;
   e.preventDefault();
   var typed = elInput.value.trim().toLowerCase();
@@ -434,7 +437,8 @@ elInput.addEventListener('keydown', function(e) {
     if (wordTexts[i].toLowerCase() === typed) { found = i; break; }
   }
   if (found !== -1) {
-	var xp = calcXP(wordTexts[found]);    totalXP     += xp;
+    var xp = calcXP(wordTexts[found]);
+    totalXP     += xp;
     xpThisLevel += xp;
     showXPPop(wordEls[found], xp);
     wordEls[found].remove();
@@ -442,13 +446,18 @@ elInput.addEventListener('keydown', function(e) {
     updateHUD();
     checkLevelUp();
   }
-});
+}
+elInput.addEventListener('keydown', onKeydown);
 
 // ============================================================
-// SCORING — XP based on word length only
+// SCORING
 // ============================================================
 function calcXP(text) {
   return text.length * 10;
+}
+
+function removePopEl(pop) {
+  pop.remove();
 }
 
 function showXPPop(el, xp) {
@@ -460,7 +469,7 @@ function showXPPop(el, xp) {
   pop.style.left = (r.left - ar.left) + 'px';
   pop.style.top  = (r.top  - ar.top)  + 'px';
   elArena.appendChild(pop);
-  setTimeout(function() { pop.remove(); }, 900);
+  setTimeout(removePopEl, 900, pop);
 }
 
 // ============================================================
@@ -472,20 +481,23 @@ function loseLife() {
   if (lives <= 0) endGame();
 }
 
+// ============================================================
+// LEVEL UP
+// ============================================================
+function hideBanner() {
+  elBanner.classList.remove('show');
+}
 
-// ============================================================
-// LEVEL UP — based on XP earned THIS level, not total XP
-// ============================================================
 function checkLevelUp() {
   if (currentLevel < MAX_LEVEL && xpThisLevel >= XP_PER_LEVEL * currentLevel) {
     currentLevel++;
     xpThisLevel = 0;
-    recentWords = [];  // reset recent words for new level
+    recentWords = [];
     setBackgroundImage(currentLevel);
     updateHUD();
     elBanner.classList.add('show');
     doFlash('#ffd166');
-    setTimeout(function() { elBanner.classList.remove('show'); }, 1400);
+    setTimeout(hideBanner, 1400);
   }
 }
 
