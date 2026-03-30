@@ -1,73 +1,18 @@
 // ============================================================
 // WORD LISTS
 // ============================================================
-const words1 = [
-"cat","dog","sun","hat","run","cup","sky","hop","mud","ant",
-"fly","bat","log","den","web","oak","dew","fog","bud","bee",
-"fox","owl","pig","hen"
-];
+const words1 = ["cat","dog","sun","hat","run","cup","sky","ant","fly","bat","log","oak","dew","mud","hop"];
+const words2 = ["jump","frog","leaf","rain","wind","tree","bark","moss","pond","swim","buzz","nest","mist","dawn","glow"];
+const words3 = ["forest","breeze","rabbit","stream","canopy","meadow","sparrow","flutter","rustle","lantern","hollow","shadow"];
+const words4 = ["moonlight","firefly","whisper","blossom","twilight","cascade","murmur","thicket","crescent","nightfall","glisten"];
+const words5 = ["avalanche","frostbitten","snowbound","blizzard","glacial","treacherous","expedition","permafrost","snowdrift"];
+const words6 = ["scorching","parched","evaporate","blistering","withering","desolation","relentless","mirage","suffocating"];
+const words7 = ["interstellar","gravitational","juxtaposition","transcendental","kaleidoscope","extraordinary","incomprehensible"];
+const words8 = ["antidisestablishmentarianism","supercalifragilisticexpialidocious","electroencephalography","floccinaucinihilipilification","hippopotomonstrosesquippedaliophobia"];
 
-const words2 = [
-"jump","frog","leaf","rain","wind","tree","bark","moss","vine","pond",
-"swim","glow","buzz","hive","claw","nest","fern","dusk","mist","dawn",
-"root","seed","bloom","petal","grove"
-];
-
-const words3 = [
-"forest","breeze","thunder","rabbit","stream","glimmer","canopy","meadow",
-"lantern","hollow","sparrow","flutter","rustle","branch","willow",
-"feather","whistle","drizzle","clearing","woodland"
-];
-
-const words4 = [
-"moonlight","firefly","whisper","blossom","wanderer","twilight","cascade",
-"glisten","murmur","thicket","phantom","solitude","crescent","nightfall",
-"starlight","midnight","shimmer","luminous","silhouette","nocturne"
-];
-
-const words5 = [
-"avalanche","crystalline","frostbitten","snowbound","permafrost","glacial",
-"blizzard","snowdrift","treacherous","expedition","forsaken","whiteout",
-"iceberg","frostbite","snowstorm","icicle","windchill","icefield","snowpack","glaciate"
-];
-
-const words6 = [
-"desolation","mirage","scorching","parched","relentless","evaporate",
-"withering","blistering","suffocating","unforgiving","heatwave","dryland",
-"sandstorm","arid","drought","overheat","scalding","sunburn","wasteland","barren"
-];
-
-const words7 = [
-"interstellar","gravitational","extravagance","juxtaposition",
-"incomprehensible","transcendental","kaleidoscope","disenfranchised",
-"extraordinary","cosmological","astronomical","dimensional","hyperspace",
-"singularity","relativistic","superposition","multiverse","constellation",
-"equilibrium","paradoxical"
-];
-
-const words8 = [
-"antidisestablishmentarianism","pneumonoultramicroscopicsilicovolcanoconiosis",
-"hippopotomonstrosesquippedaliophobia","supercalifragilisticexpialidocious",
-"electroencephalography","deinstitutionalization",
-"pseudopseudohypoparathyroidism","incomprehensibilities",
-"floccinaucinihilipilification","electrocardiographically",
-"immunohistochemistry","neuropharmacological",
-"pathophysiological","counterrevolutionary"
-];
-
-const ALL_WORDS = [words1, words2, words3, words4, words5, words6, words7, words8];
-
-const LEVEL_NAMES = [
-"Sunrise Forest",
-"Green Canopy",
-"Amber Dusk",
-"Starlit Hollow",
-"Frozen Peaks",
-"Scorched Wastes",
-"The Void",
-"Oblivion"
-];
-const XP_PER_LEVEL = 200; // XP needed to advance from one level to the next, times current level
+const ALL_WORDS    = [words1, words2, words3, words4, words5, words6, words7, words8];
+const LEVEL_NAMES  = ["Easy","Breezy","Forest","Night","Frozen","Desert","Space","Nightmare"];
+const XP_PER_LEVEL = 200; // XP needed to advance from one level to the next
 const MAX_LEVEL    = 8;
 
 // ============================================================
@@ -196,17 +141,6 @@ document.getElementById('btn-clear-scores').addEventListener('click', function()
 });
 
 // ============================================================
-// BACKGROUND IMAGE — sets per level
-// Dynamically loads and sets the background image for each level.
-// Images must be named level1.jpeg through level8.jpeg in images/ folder.
-// Called at game start and on level up to update the background.
-// ============================================================
-function setBackgroundImage(level) {
-  var imagePath = 'images/level' + level + '.jpeg';
-  elArena.style.backgroundImage = 'url("' + imagePath + '")';
-}
-
-// ============================================================
 // MENU — LEVEL SELECTOR
 // ============================================================
 function updateLvDisplay() {
@@ -264,8 +198,6 @@ function startGame() {
   isPaused      = false;
   wordQueue     = buildWordQueue(ALL_WORDS[currentLevel - 1]);
 
-  // Set background image for the selected level
-  setBackgroundImage(currentLevel);
   updateHUD();
   elInput.value = '';
   elInput.focus();
@@ -492,9 +424,15 @@ function showXPPop(el, xp) {
 function loseLife() {
   lives--;
   updateHUD();
+  doFlash('#e63946');
   if (lives <= 0) endGame();
 }
 
+function doFlash(color) {
+  elFlash.style.background = color;
+  elFlash.style.opacity    = '0.35';
+  setTimeout(function() { elFlash.style.opacity = '0'; }, 300);
+}
 
 // ============================================================
 // LEVEL UP — based on XP earned THIS level, not total XP
@@ -504,8 +442,6 @@ function checkLevelUp() {
     currentLevel++;
     xpThisLevel = 0; // reset counter for next level
     wordQueue   = buildWordQueue(ALL_WORDS[currentLevel - 1]); // fresh queue for new level
-    // Update background image when advancing to next level
-    setBackgroundImage(currentLevel);
     updateHUD();
     elBanner.classList.add('show');
     doFlash('#ffd166');
