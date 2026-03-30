@@ -1,18 +1,73 @@
 // ============================================================
 // WORD LISTS
 // ============================================================
-const words1 = ["cat","dog","sun","hat","run","cup","sky","ant","fly","bat","log","oak","dew","mud","hop"];
-const words2 = ["jump","frog","leaf","rain","wind","tree","bark","moss","pond","swim","buzz","nest","mist","dawn","glow"];
-const words3 = ["forest","breeze","rabbit","stream","canopy","meadow","sparrow","flutter","rustle","lantern","hollow","shadow"];
-const words4 = ["moonlight","firefly","whisper","blossom","twilight","cascade","murmur","thicket","crescent","nightfall","glisten"];
-const words5 = ["avalanche","frostbitten","snowbound","blizzard","glacial","treacherous","expedition","permafrost","snowdrift"];
-const words6 = ["scorching","parched","evaporate","blistering","withering","desolation","relentless","mirage","suffocating"];
-const words7 = ["interstellar","gravitational","juxtaposition","transcendental","kaleidoscope","extraordinary","incomprehensible"];
-const words8 = ["antidisestablishmentarianism","supercalifragilisticexpialidocious","electroencephalography","floccinaucinihilipilification","hippopotomonstrosesquippedaliophobia"];
+const words1 = [
+"cat","dog","sun","hat","run","cup","sky","hop","mud","ant",
+"fly","bat","log","den","web","oak","dew","fog","bud","bee",
+"fox","owl","pig","hen"
+];
 
-const ALL_WORDS    = [words1, words2, words3, words4, words5, words6, words7, words8];
-const LEVEL_NAMES  = ["Easy","Breezy","Forest","Night","Frozen","Desert","Space","Nightmare"];
-const XP_PER_LEVEL = 200; // XP needed to advance from one level to the next
+const words2 = [
+"jump","frog","leaf","rain","wind","tree","bark","moss","vine","pond",
+"swim","glow","buzz","hive","claw","nest","fern","dusk","mist","dawn",
+"root","seed","bloom","petal","grove"
+];
+
+const words3 = [
+"forest","breeze","thunder","rabbit","stream","glimmer","canopy","meadow",
+"lantern","hollow","sparrow","flutter","rustle","branch","willow",
+"feather","whistle","drizzle","clearing","woodland"
+];
+
+const words4 = [
+"moonlight","firefly","whisper","blossom","wanderer","twilight","cascade",
+"glisten","murmur","thicket","phantom","solitude","crescent","nightfall",
+"starlight","midnight","shimmer","luminous","silhouette","nocturne"
+];
+
+const words5 = [
+"avalanche","crystalline","frostbitten","snowbound","permafrost","glacial",
+"blizzard","snowdrift","treacherous","expedition","forsaken","whiteout",
+"iceberg","frostbite","snowstorm","icicle","windchill","icefield","snowpack","glaciate"
+];
+
+const words6 = [
+"desolation","mirage","scorching","parched","relentless","evaporate",
+"withering","blistering","suffocating","unforgiving","heatwave","dryland",
+"sandstorm","arid","drought","overheat","scalding","sunburn","wasteland","barren"
+];
+
+const words7 = [
+"interstellar","gravitational","extravagance","juxtaposition",
+"incomprehensible","transcendental","kaleidoscope","disenfranchised",
+"extraordinary","cosmological","astronomical","dimensional","hyperspace",
+"singularity","relativistic","superposition","multiverse","constellation",
+"equilibrium","paradoxical"
+];
+
+const words8 = [
+"antidisestablishmentarianism","pneumonoultramicroscopicsilicovolcanoconiosis",
+"hippopotomonstrosesquippedaliophobia","supercalifragilisticexpialidocious",
+"electroencephalography","deinstitutionalization",
+"pseudopseudohypoparathyroidism","incomprehensibilities",
+"floccinaucinihilipilification","electrocardiographically",
+"immunohistochemistry","neuropharmacological",
+"pathophysiological","counterrevolutionary"
+];
+
+const ALL_WORDS = [words1, words2, words3, words4, words5, words6, words7, words8];
+
+const LEVEL_NAMES = [
+"Sunrise Forest",
+"Green Canopy",
+"Amber Dusk",
+"Starlit Hollow",
+"Frozen Peaks",
+"Scorched Wastes",
+"The Void",
+"Oblivion"
+];
+const XP_PER_LEVEL = 200; // XP needed to advance from one level to the next, times current level
 const MAX_LEVEL    = 8;
 
 // ============================================================
@@ -41,8 +96,13 @@ const elPlayerName  = document.getElementById('player-name');
 // GAME STATE
 // ============================================================
 let selectedLevel = 1;
-let currentLevel, lives, totalXP, xpThisLevel, activeWords;
+let currentLevel, lives, totalXP, xpThisLevel;
 let spawnTimer, rafId, gameRunning, isPaused;
+
+var wordTexts  = [];
+var wordEls    = [];
+var wordYs     = [];
+var wordSpeeds = [];
 
 // Per-level word queue (ensures all words used before repeating)
 let wordQueue = [];
@@ -50,44 +110,27 @@ let wordQueue = [];
 // ============================================================
 // WORD QUEUE FUNCTION
 // Uses an array parameter, a for loop, and an if/else statement.
-// Shuffles the word list so every word appears once before any repeats.
+// Shuffles the word list so at least 3 different words are shown before any repeats.
 // ============================================================
-function buildWordQueue(wordList) {
-  // Copy the array, skipping words already visible on screen
-  var activeTexts = activeWords ? activeWords.map(function(w) { return w.text; }) : [];
-  var queue = [];
-  for (var i = 0; i < wordList.length; i++) {
-    if (activeTexts.indexOf(wordList[i]) !== -1) {
-      // Word is currently falling — leave it out of this round
-    } else {
-      queue.push(wordList[i]);
+var recentWords = [];
+
+function pickWord(wordList) {
+  var candidate;
+  for (var attempts = 0; attempts < 10; attempts++) {
+    candidate = wordList[Math.floor(Math.random() * wordList.length)];
+    if (recentWords.indexOf(candidate) === -1 && wordTexts.indexOf(candidate) === -1) {
+      recentWords.push(candidate);
+      if (recentWords.length > 3) {
+        recentWords.shift();//if greater than 3 elements, removes first element
+      }
+      return candidate;
     }
   }
-
-  // Safety fallback: if every word is on screen, just use the full list
-  if (queue.length === 0) {
-    for (var i = 0; i < wordList.length; i++) {
-      queue.push(wordList[i]);
-    }
-  }
-
-  // Fisher-Yates shuffle
-  for (var i = queue.length - 1; i > 0; i--) {
-    var j = Math.floor(Math.random() * (i + 1));
-    var temp = queue[i];
-    queue[i] = queue[j];
-    queue[j] = temp;
-  }
-
-  return queue;
+  return candidate; // fallback after 10 tries
 }
 
 function getNextWord() {
-  // If queue is empty, rebuild it from the current level's list
-  if (wordQueue.length === 0) {
-    wordQueue = buildWordQueue(ALL_WORDS[currentLevel - 1]);
-  }
-  return wordQueue.pop();
+  return pickWord(ALL_WORDS[currentLevel - 1]);
 }
 
 // ============================================================
@@ -141,6 +184,17 @@ document.getElementById('btn-clear-scores').addEventListener('click', function()
 });
 
 // ============================================================
+// BACKGROUND IMAGE — sets per level
+// Dynamically loads and sets the background image for each level.
+// Images must be named level1.jpeg through level8.jpeg in images/ folder.
+// Called at game start and on level up to update the background.
+// ============================================================
+function setBackgroundImage(level) {
+  var imagePath = 'images/level' + level + '.jpeg';
+  elArena.style.backgroundImage = 'url("' + imagePath + '")';
+}
+
+// ============================================================
 // MENU — LEVEL SELECTOR
 // ============================================================
 function updateLvDisplay() {
@@ -184,24 +238,25 @@ function startGame() {
   elGameover.classList.remove('show');
   elBanner.classList.remove('show');
   elPauseScreen.classList.remove('show');
-
   // Clear leftover word elements
   elArena.querySelectorAll('.word').forEach(function(w) { w.remove(); });
   elArena.querySelectorAll('.xp-pop').forEach(function(p) { p.remove(); });
-
   currentLevel  = selectedLevel;
   lives         = 3;
   totalXP       = 0;
   xpThisLevel   = 0;
-  activeWords   = [];
+  wordTexts     = [];
+  wordEls       = [];
+  wordYs        = [];
+  wordSpeeds    = [];
+  recentWords   = [];
   gameRunning   = true;
   isPaused      = false;
-  wordQueue     = buildWordQueue(ALL_WORDS[currentLevel - 1]);
-
+  // Set background image for the selected level
+  setBackgroundImage(currentLevel);
   updateHUD();
   elInput.value = '';
   elInput.focus();
-
   scheduleSpawn();
   rafId = requestAnimationFrame(gameLoop);
 }
@@ -291,109 +346,99 @@ function scheduleSpawn() {
     scheduleSpawn();
   }, getSpawnInterval());
 }
+
 function spawnWord() {
   if (!gameRunning || isPaused) return;
-
   var text = getNextWord();
   var div  = document.createElement('div');
   div.className   = 'word';
   div.textContent = text;
 
-  // TEMPORARILY add to DOM to measure width
   div.style.visibility = 'hidden';
   div.style.left = '0px';
   div.style.top  = '0px';
   elArena.appendChild(div);
 
   var wordWidth = div.offsetWidth;
-
-  // Calculate safe spawn range
   var maxX = elArena.clientWidth - wordWidth;
   var x    = Math.random() * Math.max(0, maxX);
 
-  // Apply final position
   div.style.left = x + 'px';
   div.style.top  = '0px';
   div.style.visibility = 'visible';
 
-  activeWords.push({ text: text, el: div, y: 0, speed: getFallSpeed() });
+  wordTexts.push(text);
+  wordEls.push(div);
+  wordYs.push(0);
+  wordSpeeds.push(getFallSpeed());
 }
-/*old function
-function spawnWord() {
-  if (!gameRunning || isPaused) return;
 
-  var text = getNextWord();
-  var div  = document.createElement('div');
-  div.className   = 'word';
-  div.textContent = text;
-
-  var maxX = elArena.clientWidth - 200;
-  var x    = 30 + Math.random() * Math.max(0, maxX);
-  div.style.left = x + 'px';
-  div.style.top  = '0px';
-  elArena.appendChild(div);
-
-  activeWords.push({ text: text, el: div, y: 0, speed: getFallSpeed() });
-}
-*/
-// ============================================================
-// GAME LOOP
-// ============================================================
 function getGroundY() {
   return elArena.clientHeight - 54;
 }
 
+function rebuildArraysSkipping(skipIndex) {
+  var newTexts  = [];
+  var newEls    = [];
+  var newYs     = [];
+  var newSpeeds = [];
+  for (var i = 0; i < wordEls.length; i++) {
+    if (i !== skipIndex) {
+      newTexts.push(wordTexts[i]);
+      newEls.push(wordEls[i]);
+      newYs.push(wordYs[i]);
+      newSpeeds.push(wordSpeeds[i]);
+    }
+  }
+  wordTexts  = newTexts;
+  wordEls    = newEls;
+  wordYs     = newYs;
+  wordSpeeds = newSpeeds;
+}
+
 function gameLoop() {
   if (!gameRunning || isPaused) return;
-
   var ground     = getGroundY();
   var dangerZone = ground * 0.75;
 
-  for (var i = activeWords.length - 1; i >= 0; i--) {
-    var w = activeWords[i];
-    w.y += w.speed;
-    w.el.style.top = w.y + 'px';
+  for (var i = wordEls.length - 1; i >= 0; i--) {
+    wordYs[i] += wordSpeeds[i];
+    wordEls[i].style.top = wordYs[i] + 'px';
 
-    if (w.y > dangerZone) {
-      w.el.classList.add('danger');
+    if (wordYs[i] > dangerZone) {
+      wordEls[i].classList.add('danger');
     } else {
-      w.el.classList.remove('danger');
+      wordEls[i].classList.remove('danger');
     }
 
-    if (w.y + w.el.offsetHeight >= ground) {
-      w.el.remove();
-      activeWords.splice(i, 1);
+    if (wordYs[i] + wordEls[i].offsetHeight >= ground) {
+      wordEls[i].remove();
+      rebuildArraysSkipping(i);
       loseLife();
     }
   }
 
   rafId = requestAnimationFrame(gameLoop);
 }
-
 // ============================================================
 // INPUT — Enter OR Space submits
 // ============================================================
 elInput.addEventListener('keydown', function(e) {
   if (e.key !== 'Enter' && e.key !== ' ') return;
   e.preventDefault();
-
   var typed = elInput.value.trim().toLowerCase();
   elInput.value = '';
   if (!typed || isPaused) return;
-
   var found = -1;
-  for (var i = 0; i < activeWords.length; i++) {
-    if (activeWords[i].text.toLowerCase() === typed) { found = i; break; }
+  for (var i = 0; i < wordTexts.length; i++) {
+    if (wordTexts[i].toLowerCase() === typed) { found = i; break; }
   }
-
   if (found !== -1) {
-    var w  = activeWords[found];
-    var xp = calcXP(w);
-    totalXP      += xp;
-    xpThisLevel  += xp;
-    showXPPop(w.el, xp);
-    w.el.remove();
-    activeWords.splice(found, 1);
+	var xp = calcXP(wordTexts[found]);    totalXP     += xp;
+    xpThisLevel += xp;
+    showXPPop(wordEls[found], xp);
+    wordEls[found].remove();
+    rebuildArraysSkipping(found);
     updateHUD();
     checkLevelUp();
   }
@@ -402,8 +447,8 @@ elInput.addEventListener('keydown', function(e) {
 // ============================================================
 // SCORING — XP based on word length only
 // ============================================================
-function calcXP(w) {
-  return w.text.length * 10;
+function calcXP(text) {
+  return text.length * 10;
 }
 
 function showXPPop(el, xp) {
@@ -424,24 +469,19 @@ function showXPPop(el, xp) {
 function loseLife() {
   lives--;
   updateHUD();
-  doFlash('#e63946');
   if (lives <= 0) endGame();
 }
 
-function doFlash(color) {
-  elFlash.style.background = color;
-  elFlash.style.opacity    = '0.35';
-  setTimeout(function() { elFlash.style.opacity = '0'; }, 300);
-}
 
 // ============================================================
 // LEVEL UP — based on XP earned THIS level, not total XP
 // ============================================================
 function checkLevelUp() {
-  if (currentLevel < MAX_LEVEL && xpThisLevel >= XP_PER_LEVEL*currentLevel) {
+  if (currentLevel < MAX_LEVEL && xpThisLevel >= XP_PER_LEVEL * currentLevel) {
     currentLevel++;
-    xpThisLevel = 0; // reset counter for next level
-    wordQueue   = buildWordQueue(ALL_WORDS[currentLevel - 1]); // fresh queue for new level
+    xpThisLevel = 0;
+    recentWords = [];  // reset recent words for new level
+    setBackgroundImage(currentLevel);
     updateHUD();
     elBanner.classList.add('show');
     doFlash('#ffd166');
