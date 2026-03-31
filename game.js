@@ -1,5 +1,5 @@
 // ============================================================
-// WORD LISTS
+// WORD LISTS (array storage system)
 // ============================================================
 const words1 = [
 "cat","dog","sun","hat","run","cup","sky","hop","mud","ant",
@@ -66,18 +66,17 @@ const MAX_LEVEL    = 8;
 // ============================================================
 // DOM REFERENCES
 // ============================================================
-const elMenu        = document.getElementById('menu');
+const elMenu        = document.getElementById('menu');//el = element 
 const elGame        = document.getElementById('game');
 const elLvDisplay   = document.getElementById('lv-display');
 const elLvDown      = document.getElementById('lv-down');
 const elLvUp        = document.getElementById('lv-up');
 const elArena       = document.getElementById('arena');
 const elInput       = document.getElementById('word-input');
-const elHudLives    = document.getElementById('hud-lives');
+const elHudLives    = document.getElementById('hud-lives');//hud = heads up display
 const elHudLevel    = document.getElementById('hud-level');
 const elHudXP       = document.getElementById('hud-xp');
 const elGameover    = document.getElementById('gameover');
-const elFlash       = document.getElementById('flash');
 const elBanner      = document.getElementById('levelup-banner');
 const elFinalScore  = document.getElementById('final-score');
 const elModalHow    = document.getElementById('modal-how');
@@ -92,28 +91,30 @@ let selectedLevel = 1;
 let currentLevel, lives, totalXP, xpThisLevel;
 let spawnTimer, rafId, gameRunning, isPaused;
 
-var wordTexts   = [];
-var wordEls     = [];
-var wordYs      = [];
-var wordSpeeds  = [];
-var recentWords = [];
+//word information
+let wordTexts  = [];
+let wordEls    = [];
+let wordYs     = [];
+let wordSpeeds = [];
+let recentWords = [];
 
 // ============================================================
 // WORD SELECTION
 // ============================================================
+//our for and if loop! 
 function pickWord(wordList) {
-  var candidate;
-  for (var attempts = 0; attempts < 10; attempts++) {
+  let candidate;
+  for (let attempts = 0; attempts < 10; attempts++) {
     candidate = wordList[Math.floor(Math.random() * wordList.length)];
     if (recentWords.indexOf(candidate) === -1 && wordTexts.indexOf(candidate) === -1) {
       recentWords.push(candidate);
       if (recentWords.length > 3) {
-        recentWords.shift();
+        recentWords.shift();//removes first element if array length > 3
       }
       return candidate;
     }
   }
-  return candidate; // fallback after 10 tries
+  return candidate;
 }
 
 function getNextWord() {
@@ -122,18 +123,10 @@ function getNextWord() {
 
 // ============================================================
 // BEST SCORES (localStorage)
-// Scores are saved as a JSON string — a text format for storing
-// structured data. JSON.stringify converts the array to a string
-// for storage. JSON.parse converts it back to an array when reading.
 // ============================================================
 function getScores() {
-  var raw = localStorage.getItem('ddtw_scores'); // returns raw string, or null if nothing saved
-  if (!raw) return [];                            // nothing saved yet — start fresh
-  try {
-    return JSON.parse(raw);                       // parse string back into an array of objects
-  } catch(e) {
-    return [];                                    // data is corrupt — start fresh
-  }
+  try { return JSON.parse(localStorage.getItem('ddtw_scores')) || []; }
+  catch(e) { return []; }
 }
 
 function compareScores(a, b) {
@@ -141,32 +134,30 @@ function compareScores(a, b) {
 }
 
 function saveScore(xp) {
-  var name   = elPlayerName.value.trim() || 'Anonymous';
-  var scores = getScores();
+  let name   = elPlayerName.value.trim() || 'Anonymous';
+  let scores = getScores();
   scores.push({ name: name, xp: xp, date: new Date().toLocaleDateString() });
   scores.sort(compareScores);
-  // Trim to top 5 — remove lowest scores from the end until only 5 remain
-  while (scores.length > 5) {
-    scores.pop();
-  }
-  localStorage.setItem('ddtw_scores', JSON.stringify(scores)); // convert array back to string for storage
+  scores = scores.slice(0, 5);
+  localStorage.setItem('ddtw_scores', JSON.stringify(scores));
 }
 
 function renderScores() {
-  var list   = document.getElementById('scores-list');
-  var scores = getScores();
-  var medals = ['🥇','🥈','🥉','4️⃣','5️⃣'];
+  let list   = document.getElementById('scores-list');
+  let scores = getScores();
+  let medals = ['🥇','🥈','🥉','4️⃣','5️⃣'];
   if (scores.length === 0) {
     list.innerHTML = '<div class="score-empty">No scores yet — play your first game!</div>';
     return;
   }
-  var html = '';
-  for (var i = 0; i < scores.length; i++) {
+  //dynamically adding high score
+  let html = '';
+  for (let i = 0; i < scores.length; i++) {
     html += '<div class="score-row">' +
-      '<span class="score-rank">' + medals[i]      + '</span>' +
-      '<span class="score-name">' + scores[i].name + '</span>' +
-      '<span class="score-xp">'   + scores[i].xp   + ' xp</span>' +
-      '<span class="score-date">' + scores[i].date  + '</span>' +
+      '<span class="score-rank">' + medals[i]       + '</span>' +
+      '<span class="score-name">' + scores[i].name  + '</span>' +
+      '<span class="score-xp">'   + scores[i].xp    + ' xp</span>' +
+      '<span class="score-date">' + scores[i].date   + '</span>' +
     '</div>';
   }
   list.innerHTML = html;
@@ -248,6 +239,7 @@ function removeEl(el) {
   el.remove();
 }
 
+//essentially, reset all
 function startGame() {
   elMenu.style.display    = 'none';
   elGame.style.display    = 'flex';
@@ -268,7 +260,7 @@ function startGame() {
   gameRunning   = true;
   isPaused      = false;
   setBackgroundImage(currentLevel);
-  updateHUD();
+  updateHUD();//HUD = heads up display; the bar at the top
   elInput.value = '';
   elInput.focus();
   scheduleSpawn();
@@ -324,19 +316,20 @@ function onVisibilityChange() {
 document.addEventListener('visibilitychange', onVisibilityChange);
 
 // ============================================================
-// HUD
+// HUD (Heads Up Display)
 // ============================================================
 function updateHUD() {
-  var hearts = '';
-  for (var i = 0; i < lives; i++)  hearts += '❤️';
-  for (var i = lives; i < 3; i++) hearts += '🖤';
+  let hearts = '';
+  for (let i = 0; i < lives; i++)  hearts += '❤️';
+  for (let i = lives; i < 3; i++) hearts += '🖤';
   elHudLives.textContent = hearts;
-  elHudLevel.textContent = 'Level ' + currentLevel + ' (' + xpThisLevel + '/' + XP_PER_LEVEL * currentLevel + ' xp)';
+  elHudLevel.textContent = 'Level ' + currentLevel + ' (' 
+	+ xpThisLevel + '/' + XP_PER_LEVEL * currentLevel + ' xp)';
   elHudXP.textContent    = 'Total: ' + totalXP + ' xp';
 }
 
 // ============================================================
-// SPAWNING
+// SPAWNING (word spawn speed and fall speed)
 // ============================================================
 function getSpawnInterval() {
   if (currentLevel == MAX_LEVEL) return 2800;
@@ -359,17 +352,20 @@ function scheduleSpawn() {
 
 function spawnWord() {
   if (!gameRunning || isPaused) return;
-  var text = getNextWord();
-  var div  = document.createElement('div');
+  let text = getNextWord();
+  
+  //dynamically editing the div element 
+  let div  = document.createElement('div');
   div.className   = 'word';
   div.textContent = text;
   div.style.visibility = 'hidden';
   div.style.left = '0px';
   div.style.top  = '0px';
   elArena.appendChild(div);
-  var wordWidth = div.offsetWidth;
-  var maxX = elArena.clientWidth - wordWidth;
-  var x    = Math.random() * Math.max(0, maxX);
+  
+  let wordWidth = div.offsetWidth;
+  let maxX = elArena.clientWidth - wordWidth;
+  let x    = Math.random() * Math.max(0, maxX);
   div.style.left = x + 'px';
   div.style.top  = '0px';
   div.style.visibility = 'visible';
@@ -384,11 +380,11 @@ function getGroundY() {
 }
 
 function rebuildArraysSkipping(skipIndex) {
-  var newTexts  = [];
-  var newEls    = [];
-  var newYs     = [];
-  var newSpeeds = [];
-  for (var i = 0; i < wordEls.length; i++) {
+  let newTexts  = [];
+  let newEls    = [];
+  let newYs     = [];
+  let newSpeeds = [];
+  for (let i = 0; i < wordEls.length; i++) {
     if (i !== skipIndex) {
       newTexts.push(wordTexts[i]);
       newEls.push(wordEls[i]);
@@ -404,9 +400,9 @@ function rebuildArraysSkipping(skipIndex) {
 
 function gameLoop() {
   if (!gameRunning || isPaused) return;
-  var ground     = getGroundY();
-  var dangerZone = ground * 0.75;
-  for (var i = wordEls.length - 1; i >= 0; i--) {
+  let ground     = getGroundY();
+  let dangerZone = ground * 0.75;
+  for (let i = wordEls.length - 1; i >= 0; i--) {
     wordYs[i] += wordSpeeds[i];
     wordEls[i].style.top = wordYs[i] + 'px';
     if (wordYs[i] > dangerZone) {
@@ -429,15 +425,15 @@ function gameLoop() {
 function onKeydown(e) {
   if (e.key !== 'Enter' && e.key !== ' ') return;
   e.preventDefault();
-  var typed = elInput.value.trim().toLowerCase();
+  let typed = elInput.value.trim().toLowerCase();
   elInput.value = '';
   if (!typed || isPaused) return;
-  var found = -1;
-  for (var i = 0; i < wordTexts.length; i++) {
+  let found = -1;
+  for (let i = 0; i < wordTexts.length; i++) {
     if (wordTexts[i].toLowerCase() === typed) { found = i; break; }
   }
   if (found !== -1) {
-    var xp = calcXP(wordTexts[found]);
+    let xp = calcXP(wordTexts[found]);
     totalXP     += xp;
     xpThisLevel += xp;
     showXPPop(wordEls[found], xp);
@@ -461,11 +457,11 @@ function removePopEl(pop) {
 }
 
 function showXPPop(el, xp) {
-  var pop = document.createElement('div');
+  let pop = document.createElement('div');
   pop.className   = 'xp-pop';
   pop.textContent = '+' + xp + ' xp';
-  var r  = el.getBoundingClientRect();
-  var ar = elArena.getBoundingClientRect();
+  let r  = el.getBoundingClientRect();
+  let ar = elArena.getBoundingClientRect();
   pop.style.left = (r.left - ar.left) + 'px';
   pop.style.top  = (r.top  - ar.top)  + 'px';
   elArena.appendChild(pop);
@@ -496,7 +492,6 @@ function checkLevelUp() {
     setBackgroundImage(currentLevel);
     updateHUD();
     elBanner.classList.add('show');
-    doFlash('#ffd166');
     setTimeout(hideBanner, 1400);
   }
 }

@@ -21,21 +21,8 @@ body {
   font-weight: bold;                     /* Bold font */
   border: none;                          /* Remove default border */
   border-radius: 50px;                   /* Pill shape */
-  cursor: pointer;                       /* Pointer on hover */
   background: #f77f00;                   /* Orange background */
   color: #fff;                           /* White text */
-  box-shadow: 0 4px 0 #c96200;          /* box-shadow: adds shadow effects to elements */
-  transition: transform .1s, box-shadow .1s; /* transition: smoothly animates changes to CSS properties over time */
-}
-/* Hover state: slightly lifted with longer shadow (pseudo-class :hover - styles buttons when hovered by the mouse) */
-.btn:hover  { 
-  transform: translateY(-2px); 
-  box-shadow: 0 6px 0 #c96200; 
-}
-/* Active state: pressed down with shorter shadow */
-.btn:active { 
-  transform: translateY(2px);  
-  box-shadow: 0 2px 0 #c96200; 
 }
 
 /* Small button variant */
@@ -43,15 +30,6 @@ body {
   padding: 8px 24px;
   font-size: 0.95rem;
   background: #48cae4;                 /* Blue background */
-  box-shadow: 0 3px 0 #0096c7;         /* Smaller shadow */
-}
-.btn-sm:hover  { 
-  transform: translateY(-2px); 
-  box-shadow: 0 5px 0 #0096c7; 
-}
-.btn-sm:active { 
-  transform: translateY(2px);  
-  box-shadow: 0 1px 0 #0096c7; 
 }
 
 /* ── MENU ── */
@@ -91,10 +69,6 @@ body {
   outline: none; 
   width: 200px;
 }
-/* Highlight on focus (pseudo-class :focus - styles the input field when it gains focus) */
-.name-row input:focus { 
-  border-color: #f77f00; 
-}
 
 /* ── LEVEL SELECTOR ── */
 .level-row { 
@@ -111,12 +85,8 @@ body {
   cursor: pointer; 
   color: #f77f00;
   border-radius: 50%;                     /* Circular buttons */
-  transition: background .15s;            /* Smooth hover background change */
 }
-/* Hover background (pseudo-class :hover - styles buttons when hovered by the mouse) */
-.level-row button:hover { 
-  background: rgba(247,127,0,0.12); 
-}
+
 /* Disabled buttons: semi-transparent and non-clickable (pseudo-class :disabled - styles elements that are disabled/uninteractive) */
 .level-row button:disabled { 
   opacity: 0.3; 
@@ -157,7 +127,6 @@ body {
   padding: 32px 36px;
   max-width: 420px; 
   width: 90%;           /* Responsive width */
-  box-shadow: 0 8px 32px rgba(0,0,0,0.2); /* Soft shadow */
 }
 /* Descendant selectors; styles h2 and ul inside .modal */
 .modal h2 { 
@@ -178,9 +147,6 @@ body {
   font-size: 1.4rem; 
   cursor: pointer; 
   color: #aaa; 
-}
-.modal-close:hover { 
-  color: #e63946; 
 }
 
 /* ── SCORES LIST ── */
@@ -265,9 +231,6 @@ body {
   color: #333; 
   transition: background .15s; 
 }
-.hud-btn:hover { 
-  background: rgba(0,0,0,0.22); 
-}
 
 /* ARENA */
 /* Background images are set dynamically via JS based on current level.
@@ -281,10 +244,10 @@ body {
   background-position: center;
   background-repeat: no-repeat;
 }
-/* Ground pseudo-element (#arena::after - pseudo-element to insert content after #arena) */
-#arena::after {
-  content: '';
-  position: absolute; bottom: 0; left: 0; right: 0;
+
+#ground {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
   height: 30px;
   background: #a8d5a2;
   border-top: 3px solid #6dbb63;
@@ -300,12 +263,9 @@ body {
   font-size: 1rem; font-weight: bold;
   white-space: nowrap;                     /* white-space: nowrap - prevents text from wrapping to a new line */
   user-select: none;                       /* user-select: none - prevents the user from selecting text */
-  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-  transition: border-color .2s, box-shadow .2s; /* transition: smoothly animates changes to CSS properties over time */
 }
 .word.danger {
   border-color: #e63946;
-  box-shadow: 0 0 10px rgba(230,57,70,0.5);
 }
 
 /* ── XP POPUP ── */
@@ -344,11 +304,6 @@ body {
   outline: none; 
   text-align: center;
   background: rgba(255,255,255,0.93);
-  box-shadow: 0 4px 12px rgba(247,127,0,0.2);
-}
-/* Styles the input field when it gains focus (pseudo-class :focus) */
-#word-input:focus { 
-  border-color: #48cae4; 
 }
 
 /* ── PAUSE SCREEN ── */
@@ -361,6 +316,8 @@ body {
   justify-content: center; 
   z-index: 15; 
 }
+
+/* Shows pause overlay when the .show class is added (combined ID + class selector) */
 #pause-screen.show { 
   display: flex; 
 }
@@ -372,7 +329,6 @@ body {
   display: flex; 
   flex-direction: column; 
   gap: 20px; 
-  box-shadow: 0 8px 32px rgba(0,0,0,0.2); 
 }
 
 /* ── LEVEL UP BANNER ── */
@@ -383,12 +339,12 @@ body {
   align-items: center; 
   justify-content: center; 
   z-index: 10; 
-  background: rgba(255,209,102,0.2); 
+  background: rgba(255,209,102,0.2); /*fourth is opacity (makes it clearer yellow)*/
   pointer-events: none; 
 }
+
 #levelup-banner.show { 
   display: flex; 
-  animation: bannerPop .5s ease; 
 }
 #levelup-banner div { 
   font-size: 2.5rem; 
@@ -397,21 +353,6 @@ body {
   background: #fff; 
   padding: 20px 48px; 
   border-radius: 20px; 
-  box-shadow: 0 8px 24px rgba(0,0,0,0.15); 
-}
-/* @keyframes name { ... } - defines steps of a CSS animation */
-@keyframes bannerPop { 
-  0% { 
-	opacity: 0; 
-	transform: scale(.7); 
-  } 
-  60% { 
-	transform: scale(1.08); 
-  } 
-  100% { 
-	opacity: 1; 
-	transform: scale(1); 
-  } 
 }
 
 /* ── GAME OVER ── */
@@ -424,7 +365,7 @@ body {
   justify-content: center; 
   z-index: 20; 
 }
-/* Shows gameover overlay when the .show class is added (combined ID + class selector) */
+
 #gameover.show { 
   display: flex; 
 }
@@ -434,7 +375,6 @@ body {
   border-radius: 20px; 
   padding: 36px 48px; 
   text-align: center; 
-  box-shadow: 0 8px 32px rgba(0,0,0,0.25); 
 }
 .go-box h2 { 
   font-size: 2rem; 
@@ -450,14 +390,4 @@ body {
   display: flex; 
   gap: 12px; 
   justify-content: center; 
-}
-
-/* ── FLASH ── */
-#flash { 
-  position: absolute; 
-  inset: 0; 
-  pointer-events: none; 
-  z-index: 30; 
-  opacity: 0; 
-  display: none;
 }
