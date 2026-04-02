@@ -292,7 +292,7 @@ body {
   position: absolute; 
   bottom: 50px; 
   left: 50%; 
-  transform: translateX(-50%); 
+  transform: translateX(-50%); /*centers horizontally by shifting left 50% and then pulling back by half its own width*/
   z-index: 5; 
 }
 #word-input {
