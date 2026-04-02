@@ -187,7 +187,7 @@ document.getElementById('btn-clear-scores').addEventListener('click', onBtnClear
 // BACKGROUND IMAGE
 // ============================================================
 function setBackgroundImage(level) {
-  elArena.style.backgroundImage = 'url("../images/level' + level + '.jpeg")';
+  elArena.style.backgroundImage = 'url("images/level' + level + '.jpeg")';
 }
 
 // ============================================================
@@ -261,6 +261,7 @@ function startGame() {
   isPaused      = false;
   setBackgroundImage(currentLevel);
   updateHUD();//HUD = heads up display; the bar at the top
+  elInput.disabled = false;
   elInput.value = '';
   elInput.focus();
   scheduleSpawn();
@@ -489,6 +490,13 @@ function checkLevelUp() {
     currentLevel++;
     xpThisLevel = 0;
     recentWords = [];
+    for (let i = 0; i < wordEls.length; i++) {
+      wordEls[i].remove();
+    }
+    wordTexts  = [];
+    wordEls    = [];
+    wordYs     = [];
+    wordSpeeds = [];
     setBackgroundImage(currentLevel);
     updateHUD();
     elBanner.classList.add('show');
@@ -506,4 +514,5 @@ function endGame() {
   saveScore(totalXP);
   elFinalScore.textContent = 'You scored ' + totalXP + ' xp!';
   elGameover.classList.add('show');
+  elInput.disabled = true;
 }
