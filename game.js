@@ -1,4 +1,12 @@
 // ============================================================
+// MAIN CONCEPT: WORD DATA STORE
+// ============================================================
+// This section defines all word pools used by the game.
+// 1) Difficulty tiers (words1..words8) are used as falling targets.
+// 2) Powerup words are used to spawn special bubbles that grant bonuses.
+// 3) Additional words for different powerup effects are also defined here.
+// Arrays are used exclusively for storage and indexing, matching your request.
+// ============================================================
 // WORD LISTS (array storage system)
 // ============================================================
 // Arrays grouped by difficulty tiers (levels).
@@ -57,6 +65,32 @@ const words8 = [
 "pathophysiological","counterrevolutionary"
 ];
 
+const wordsPowerup = [
+"powerup","bonus","upgrade","boost","enhancement","perk","ability",
+"advantage","aid","asset","benefit","buff","help","improvement",
+"reinforcement","support","augmentation"
+];
+
+const wordsClearWords = [
+  "clear", "clean", "purge", "eliminate", "remove", "delete",
+  "obliterate", "annihilate"
+];
+
+const wordsExtraLife = [
+  "life", "heart", "extra", "bonus", "revive", "rescue", "save",
+  "survive", "continue", "secondchance"
+];
+
+const wordsSlowTime = [
+  "slow", "time", "freeze", "pause", "delay", "stasis", "suspend",
+  "hinder", "procrastinate", "stall"
+];
+
+const wordsSlowSpawn = [
+  "reduce", "decrease", "diminish", "curtail",
+  "limit", "restrain", "suppress", "temper"
+];
+
 // Master list allows dynamic access by level index.
 const ALL_WORDS   = [words1, words2, words3, words4, words5, words6, words7, words8];
 
@@ -70,6 +104,11 @@ const LEVEL_NAMES = [
 const XP_PER_LEVEL = 200;
 const MAX_LEVEL    = 8;
 
+// ============================================================
+// MAIN CONCEPT: USER INTERFACE BINDINGS
+// ============================================================
+// DOM references are stored in variables and reused across game logic.
+// This keeps rendering, input and state updates decoupled from query logic.
 // ============================================================
 // DOM REFERENCES
 // ============================================================
@@ -95,6 +134,12 @@ const elPauseScreen = document.getElementById('pause-screen');
 const elPlayerName  = document.getElementById('player-name');
 
 // ============================================================
+// MAIN CONCEPT: GAME STATE
+// ============================================================
+// The mutable state defines runtime properties like current level, player lives,
+// experience points, spawn control, and active entity arrays.
+// Using parallel arrays for entities keeps the complexity O(n) for storage.
+// ============================================================
 // GAME STATE
 // ============================================================
 // Centralized mutable state controlling the game lifecycle.
@@ -110,6 +155,15 @@ let wordTexts  = [];
 let wordEls    = [];
 let wordYs     = [];
 let wordSpeeds = [];
+
+// Powerup bubbles use same approach to keep storage complexity as arrays.
+let powerupTexts  = [];
+let powerupEls    = [];
+let powerupYs     = [];
+let powerupSpeeds = [];
+
+// Controls approximate frequency (1 powerup per ~5 words)
+let wordsSinceLastPowerup = 0;
 
 // Prevents recent duplicates for better UX randomness
 let recentWords = [];
@@ -334,13 +388,13 @@ elModalHow.addEventListener('click', onModalHowClick);
 // ============================================================
 // START / RETRY / QUIT
 // ============================================================
-//adds event listeners 
+//adds event listeners
 document.getElementById('btn-start').addEventListener('click', startGame);
 document.getElementById('btn-retry').addEventListener('click', startGame);
 document.getElementById('btn-menu').addEventListener('click', goMenu);
 document.getElementById('btn-quit').addEventListener('click', goMenu);
 
-//parameter for forEach methods 
+//parameter for forEach methods
 function removeEl(el) {
   el.remove();
 }
@@ -356,6 +410,7 @@ function startGame() {
   elPauseScreen.classList.remove('show');
   // Clear all dynamic elements (words + effects)
   elArena.querySelectorAll('.word').forEach(removeEl);
+  elArena.querySelectorAll('.powerup').forEach(removeEl);
   elArena.querySelectorAll('.xp-pop').forEach(removeEl);
   // Reset core state
   currentLevel  = selectedLevel;
@@ -369,6 +424,11 @@ function startGame() {
   wordEls       = [];
   wordYs        = [];
   wordSpeeds    = [];
+  powerupTexts  = [];
+  powerupEls    = [];
+  powerupYs     = [];
+  powerupSpeeds = [];
+  wordsSinceLastPowerup = 0;
   recentWords   = [];
   // Initialize systems
   setBackgroundImage(currentLevel);
@@ -453,40 +513,124 @@ function updateHUD() {
 }
 
 // ============================================================
+// MAIN CONCEPT: ENTITY SPAWNING + PHYSICS
+// ============================================================
+// Words and powerups are spawned on a timer and move downward in the game loop.
+// Spawn interval and falling speed scale with level.
+// Overlap avoidance occurs at creation. Ground collision is handled in loop.
+// ============================================================
 // SPAWNING (word spawn speed and fall speed)
 // ============================================================
 // Difficulty scaling through:
 // 1. spawn interval (frequency)
 // 2. fall speed (reaction time)
 function getSpawnInterval() {
-  // Faster spawns as level increases
+  // Faster spawns as level increases. Each level reduces delay by 280ms.
   if (currentLevel == MAX_LEVEL) return 2800;
   return 2800 - (currentLevel - 1) * 280;
 }
+
 function getFallSpeed() {
-  // Faster falling words = harder gameplay
+  // Entities fall faster as level increases (harder game).
   if (currentLevel == MAX_LEVEL) return 0.3;
   return 0.6 + (currentLevel - 1) * 0.1;
 }
 
-//called when spawninterval timer is done
+// Determine collision between two axis-aligned rectangles.
+// Used to prevent initial game-piece spawning overlap.
+function doesOverlapBox(x, y, w, h, otherX, otherY, otherW, otherH) {
+  return x < otherX + otherW && x + w > otherX && y < otherY + otherH && y + h > otherY;
+}
+
+// Find a random x position where a newly spawned entity does not overlap
+// existing words or powerups. Tries multiple attempts before fallback.
+function findSpawnX(width, height) {
+  let maxX = Math.max(0, elArena.clientWidth - width);
+  for (let attempts = 0; attempts < 12; attempts++) {
+    let x = Math.random() * maxX;
+    let collision = false;
+
+    // Check against active word boxes
+    let anyWordCollision = false;
+    for (let i = 0; i < wordEls.length; i++) {
+      if (doesOverlapBox(x, 0, width, height, parseFloat(wordEls[i].style.left), wordYs[i], wordEls[i].offsetWidth, wordEls[i].offsetHeight)) {
+        anyWordCollision = true;
+      }
+    }
+    if (anyWordCollision) {
+      collision = true;
+    }
+
+    // Check powerups only when no word collision
+    let anyPowerupCollision = false;
+    if (!collision) {
+      for (let i = 0; i < powerupEls.length; i++) {
+        if (doesOverlapBox(x, 0, width, height, parseFloat(powerupEls[i].style.left), powerupYs[i], powerupEls[i].offsetWidth, powerupEls[i].offsetHeight)) {
+          anyPowerupCollision = true;
+        }
+      }
+      if (anyPowerupCollision) collision = true;
+    }
+
+    if (!collision) return x;
+  }
+
+  // Fallback position in case all attempts collided (rare edge case).
+  return Math.random() * maxX;
+}
+
+// Single spawn timer callback; keeps spawn loop alive.
 function onSpawnTimer() {
   spawnWord();
   scheduleSpawn();
 }
 
-// Recurring timed spawning loop
 function scheduleSpawn() {
-  if (!gameRunning || isPaused) return;//crucial break to avoid infinite 
+  if (!gameRunning || isPaused) return; // pause/spawn guard
   spawnTimer = setTimeout(onSpawnTimer, getSpawnInterval());
 }
 
-// Creates a new word entity
+// Create and register a powerup bubble entity.
+function spawnPowerup() {
+  if (!gameRunning || isPaused) return;
+  let text = pickWord(wordsPowerup);
+
+  let div = document.createElement('div');
+  div.className   = 'powerup';
+  div.textContent = text;
+  div.style.visibility = 'hidden';
+  div.style.left = '0px';
+  div.style.top  = '0px';
+  elArena.appendChild(div);
+
+  let width  = div.offsetWidth;
+  let height = div.offsetHeight;
+  let x = findSpawnX(width, height);
+
+  div.style.left = x + 'px';
+  div.style.top  = '0px';
+  div.style.visibility = 'visible';
+
+  powerupTexts.push(text);
+  powerupEls.push(div);
+  powerupYs.push(0);
+  powerupSpeeds.push(getFallSpeed() * 0.9); // slower than standard words
+  wordsSinceLastPowerup = 0;
+}
+
+// Create and register a normal word bubble entity.
 function spawnWord() {
   if (!gameRunning || isPaused) return;
+
+  // Spawn powerups frequently but irregularly by design.
+  if (wordsSinceLastPowerup >= 5 || Math.random() < 0.2) {
+    spawnPowerup();
+  }
+
+  wordsSinceLastPowerup++;
+
   let text = getNextWord();
-  
-  // Create DOM node (entity representation)
+
   let div  = document.createElement('div');
   div.className   = 'word';
   div.textContent = text;
@@ -494,68 +638,104 @@ function spawnWord() {
   div.style.left = '0px';
   div.style.top  = '0px';
   elArena.appendChild(div);
-  
-  let wordWidth = div.offsetWidth;
-  // Random horizontal placement within bounds
-  let maxX = elArena.clientWidth - wordWidth;
-  let x    = Math.random() * Math.max(0, maxX);
+
+  let width  = div.offsetWidth;
+  let height = div.offsetHeight;
+  let x = findSpawnX(width, height);
+
   div.style.left = x + 'px';
   div.style.top  = '0px';
   div.style.visibility = 'visible';
-  // Register entity into parallel arrays
+
   wordTexts.push(text);
   wordEls.push(div);
   wordYs.push(0);
   wordSpeeds.push(getFallSpeed());
 }
 
-//value of user's window height
+// value of the play area ground threshold; entities below this trigger ground logic.
 function getGroundY() {
   return elArena.clientHeight - 54;
 }
 
-//rebuilds arrays without the value of an index. 
-//called to remove a word from the arrays
-function rebuildArraysSkipping(skipIndex) {
-  //initialize new arrays 
+// Build a reduced set of parallel arrays excluding one index.
+// Used to remove either a word or a powerup from all entity arrays.
+function rebuildParallelArraysSkipping(skipIndex, sourceTexts, sourceEls, sourceYs, sourceSpeeds) {
   let newTexts  = [];
   let newEls    = [];
   let newYs     = [];
   let newSpeeds = [];
-  for (let i = 0; i < wordEls.length; i++) {
-	//skip index would skip over this 
+
+  for (let i = 0; i < sourceEls.length; i++) {
     if (i !== skipIndex) {
-      newTexts.push(wordTexts[i]);
-      newEls.push(wordEls[i]);
-      newYs.push(wordYs[i]);
-      newSpeeds.push(wordSpeeds[i]);
+      newTexts.push(sourceTexts[i]);
+      newEls.push(sourceEls[i]);
+      newYs.push(sourceYs[i]);
+      newSpeeds.push(sourceSpeeds[i]);
     }
   }
-  //replace old arrays with new ones 
-  wordTexts  = newTexts;
-  wordEls    = newEls;
-  wordYs     = newYs;
-  wordSpeeds = newSpeeds;
+
+  // Return arrays in a consistent order, no objects/dictionaries used.
+  return [newTexts, newEls, newYs, newSpeeds];
 }
+
+function rebuildArraysSkipping(skipIndex) {
+  // Remove one word at index skipIndex and keep all other words in sync.
+  const result = rebuildParallelArraysSkipping(skipIndex, wordTexts, wordEls, wordYs, wordSpeeds);
+  wordTexts  = result[0];
+  wordEls    = result[1];
+  wordYs     = result[2];
+  wordSpeeds = result[3];
+}
+
+function rebuildPowerupArraysSkipping(skipIndex) {
+  // Remove one powerup similarly.
+  const result = rebuildParallelArraysSkipping(skipIndex, powerupTexts, powerupEls, powerupYs, powerupSpeeds);
+  powerupTexts  = result[0];
+  powerupEls    = result[1];
+  powerupYs     = result[2];
+  powerupSpeeds = result[3];
+}
+
 // Runs every frame using requestAnimationFrame
 function gameLoop() {
+  // Safety guard: do nothing when the game is stopped or paused.
   if (!gameRunning || isPaused) return;
+
   let ground     = getGroundY();
-  let dangerZone = ground * 0.75;
+  let dangerZone = ground * 0.75; // visual warning zone before hitting ground
+
+  // Move normal words and handle danger status / ground collisions.
   for (let i = wordEls.length - 1; i >= 0; i--) {
     wordYs[i] += wordSpeeds[i];
-    wordEls[i].style.top = wordYs[i] + 'px';//actually descending the element 
+    wordEls[i].style.top = wordYs[i] + 'px';
+
+    // Mark falling words when they pass the danger threshold.
     if (wordYs[i] > dangerZone) {
       wordEls[i].classList.add('danger');
     } else {
       wordEls[i].classList.remove('danger');
     }
-    if (wordYs[i] + wordEls[i].offsetHeight >= ground) {//if words hit the ground
+
+    // Word hit the ground: penalize life, remove word from arrays.
+    if (wordYs[i] + wordEls[i].offsetHeight >= ground) {
       wordEls[i].remove();
       rebuildArraysSkipping(i);
       loseLife();
     }
   }
+
+  // Move powerups and remove if they hit the ground (no life penalty).
+  for (let i = powerupEls.length - 1; i >= 0; i--) {
+    powerupYs[i] += powerupSpeeds[i];
+    powerupEls[i].style.top = powerupYs[i] + 'px';
+    if (powerupYs[i] + powerupEls[i].offsetHeight >= ground) {
+      powerupEls[i].remove();
+      rebuildPowerupArraysSkipping(i);
+    }
+  }
+
+  // Continue the animation loop.
   rafId = requestAnimationFrame(gameLoop);
 }
 
@@ -563,16 +743,27 @@ function gameLoop() {
 // INPUT — Enter OR Space submits
 // ============================================================
 function onKeydown(e) {
+  // Accept Enter or Space as submission controls.
   if (e.key !== 'Enter' && e.key !== ' ') return;
   e.preventDefault();
+
+  // Normalize typed input for case-insensitive match.
   let typed = elInput.value.trim().toLowerCase();
   elInput.value = '';
+
+  // Ignore empty input or paused game.
   if (!typed || isPaused) return;
+
+  // Search plain word bubbles in active game words.
   let found = -1;
   for (let i = 0; i < wordTexts.length; i++) {
-    if (wordTexts[i].toLowerCase() === typed) { found = i; break; }
+    if (wordTexts[i].toLowerCase() === typed) {
+      found = i;
+    }
   }
+
   if (found !== -1) {
+    // Word matched: award XP, remove word, and update UI.
     let xp = calcXP(wordTexts[found]);
     totalXP     += xp;
     xpThisLevel += xp;
@@ -581,8 +772,33 @@ function onKeydown(e) {
     rebuildArraysSkipping(found);
     updateHUD();
     checkLevelUp();
+    return;
+  }
+
+  // Search powerup bubbles for match.
+  let guardian = -1;
+  for (let i = 0; i < powerupTexts.length; i++) {
+    if (powerupTexts[i].toLowerCase() === typed) {
+      guardian = i;
+    }
+  }
+
+  if (guardian !== -1) {
+    // Powerup matched: apply special reward and remove.
+    let xp = 50;
+    totalXP += xp;
+    xpThisLevel += xp;
+    lives = Math.min(3, lives + 1); // +1 life as a bonus effect
+    showXPPop(powerupEls[guardian], xp, '+1 life');
+    powerupEls[guardian].remove();
+    rebuildPowerupArraysSkipping(guardian);
+    updateHUD();
+    checkLevelUp();
+    return;
   }
 }
+
+// Listen for keyboard submit events.
 elInput.addEventListener('keydown', onKeydown);
 
 // ============================================================
@@ -596,10 +812,12 @@ function removePopEl(pop) {
   pop.remove();
 }
 
-function showXPPop(el, xp) {
+function showXPPop(el, xp, suffix) {
   let pop = document.createElement('div');
   pop.className   = 'xp-pop';
-  pop.textContent = '+' + xp + ' xp';
+  let label = (typeof xp === 'number') ? '+' + xp + ' xp' : xp;
+  if (suffix) label += ' ' + suffix;
+  pop.textContent = label;
   let r  = el.getBoundingClientRect();
   let ar = elArena.getBoundingClientRect();
   pop.style.left = (r.left - ar.left) + 'px';

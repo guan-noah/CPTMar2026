@@ -267,6 +267,19 @@ body {
 .word.danger {
   border-color: #e63946;
 }
+.powerup {
+  position: absolute;
+  padding: 5px 14px;
+  background: #fff9c4;
+  border: 2px dashed #ffb300;
+  color: #bf360c;
+  border-radius: 22px;
+  font-size: 1rem;
+  font-weight: bold;
+  white-space: nowrap;
+  user-select: none;
+  text-transform: uppercase;
+}
 
 /* ── XP POPUP ── */
 .xp-pop {
