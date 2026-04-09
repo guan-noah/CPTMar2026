@@ -619,15 +619,21 @@ function scheduleSpawn() {
 // Create and register a powerup bubble entity.
 function spawnPowerup(wordList) {
   if (!gameRunning || isPaused) return;
-  // If no wordList provided, pick randomly across all categories
-  let text = '';
   
+  // Dev tools: If no wordList provided, pick randomly across all categories
+  let text = '';
   if (!wordList) {
-    let allPowerupWords = wordsClearWords.concat(wordsExtraLife, wordsSlowTime, wordsSlowSpawn);
+    
+	//original code
+	let allPowerupWords = wordsClearWords.concat(wordsExtraLife, wordsSlowTime, wordsSlowSpawn);
     text = allPowerupWords[Math.floor(Math.random() * allPowerupWords.length)];
+	//end of original code
+  
+  // dev tools code
   } else {
     text = wordList[Math.floor(Math.random() * wordList.length)];
   }
+  
   // Determine emoji from category membership
   let emoji = '';
   if (wordsClearWords.indexOf(text) !== -1)  emoji = '🧹 ';
