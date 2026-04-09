@@ -125,7 +125,7 @@ body {
   background: #fff; 
   border-radius: 16px; 
   padding: 32px 36px;
-  max-width: 420px; 
+  max-width: 800px; 
   width: 90%;           /* Responsive width */
 }
 /* Descendant selectors; styles h2 and ul inside .modal */
@@ -403,4 +403,19 @@ body {
   display: flex; 
   gap: 12px; 
   justify-content: center; 
+}
+
+#dev-panel {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  z-index: 20;
+  display: flex;
+  flex-direction: column; 
+  gap: 6px;
+}
+#dev-buttons {
+  display: flex;
+  flex-direction: column; /*make the buttons stack on top of each other*/
+  gap: 6px;
 }

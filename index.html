@@ -89,28 +89,28 @@
 
   <!-- HOW TO PLAY MODAL -->
   <div class="overlay" id="modal-how">
-    <div class="modal">
+  <div class="modal">
 
-      <button class="modal-close" id="close-how">✕</button>
+    <button class="modal-close" id="close-how">✕</button>
 
-      <h2>How to Play 🎮</h2>
+    <h2>How to Play 🎮</h2>
 
-      <ul>
-        <!-- Instruction list -->
-        <li>Words fall from the sky.</li>
-        <li>Type a word and press <strong>Enter</strong> or <strong>Space</strong> to destroy it.</li>
-        <!-- <strong> makes text bold -->
+    <ul>
+      <li>Words fall from the sky.</li>
+      <li>Type a word and press <strong>Enter</strong> or <strong>Space</strong> to destroy it.</li>
+      <li>You have <strong>3 lives ❤️</strong>. Lose one when a word hits the ground.</li>
+      <li>Longer words give more <strong>XP</strong>! ⚡</li>
+      <li>Earn an additional 200 XP per level to <strong>level up</strong> — words get faster! 🚀</li>
+      <li>Red glow means a word is about to fall! ⚠️</li>
+      <li>✨ <strong>Powerup bubbles</strong> appear during the game — type them for special effects:</li>
+      <li>&nbsp;&nbsp;💛 <strong>Extra life</strong> — type words like <em>life, heart, revive</em> for +1 life (up to 5)</li>
+      <li>&nbsp;&nbsp;🧹 <strong>Clear</strong> — type words like <em>clear, purge, obliterate</em> to wipe all words</li>
+      <li>&nbsp;&nbsp;🐢 <strong>Slow time</strong> — type words like <em>slow, freeze, stasis</em> to slow falling words</li>
+      <li>&nbsp;&nbsp;⏳ <strong>Slow spawn</strong> — type words like <em>reduce, limit, suppress</em> to slow new words appearing</li>
+    </ul>
 
-        <li>You have <strong>3 lives ❤️</strong>. Lose one when a word hits the ground.</li>
-
-        <li>Longer words give more <strong>XP</strong>! ⚡</li>
-
-        <li>Earn 200 XP per level to <strong>level up</strong> — words get faster! 🚀</li>
-
-        <li>Red glow means a word is about to fall! ⚠️</li>
-      </ul>
-    </div>
   </div>
+</div>
 
   <!-- GAME SCREEN (hidden until Start is pressed) -->
   <div id="game">
@@ -188,6 +188,17 @@
              spellcheck off = prevents red underline
              always focused during gameplay -->
       </div>
+	  
+	  <!-- DEV TOOLS -->
+	  <div id="dev-panel">
+		<button class="hud-btn" id="btn-dev-toggle">🛠 Dev</button>
+		<div id="dev-buttons" style="display:none;"><!--display:none hides it-->
+		  <button class="hud-btn" id="btn-dev-clear">🧹 Clear</button>
+		  <button class="hud-btn" id="btn-dev-life">💛 Life</button>
+		  <button class="hud-btn" id="btn-dev-slow">🐢 Slow</button>
+		  <button class="hud-btn" id="btn-dev-spawn">⏳ Spawn</button>
+		</div>
+	  </div>
     </div>
   </div>
 

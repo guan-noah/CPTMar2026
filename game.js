@@ -109,7 +109,7 @@ const MAX_LEVEL    = 8;
 // ============================================================
 // MAIN CONCEPT: USER INTERFACE BINDINGS
 // ============================================================
-// DOM references are stored in variables and reused across game logic.
+// DOM references are stored in letiables and reused across game logic.
 // This keeps rendering, input and state updates decoupled from query logic.
 // ============================================================
 // DOM REFERENCES
@@ -161,9 +161,9 @@ let powerupEls    = [];
 let powerupYs     = [];
 let powerupSpeeds = [];
 
-// Powerup affecting game state
-let spawnSlowed   = false;
-let speedSlowed   = false;
+// Powerup affecting game state; an int to ensure effect stacking
+let spawnSlowed   = 0;
+let speedSlowed   = 0;
 
 // Controls approximate frequency (1 powerup per ~10 words)
 let wordsSinceLastPowerup = 0;
@@ -213,15 +213,15 @@ function getNextWord() {
 // Three parallel arrays are used instead of an array of objects —
 // one array per field, all kept the same length and in the same order.
 // ============================================================
-var scoreNames = []; // holds the player name for each score entry
-var scoreXPs   = []; // holds the xp value for each score entry
-var scoreDates = []; // holds the date string for each score entry
+let scoreNames = []; // holds the player name for each score entry
+let scoreXPs   = []; // holds the xp value for each score entry
+let scoreDates = []; // holds the date string for each score entry
 
 function loadScores() {
   // localStorage.getItem returns the raw stored string, or null if nothing saved yet
-  var rawNames = localStorage.getItem('ddtw_names');
-  var rawXPs   = localStorage.getItem('ddtw_xps');
-  var rawDates = localStorage.getItem('ddtw_dates');
+  let rawNames = localStorage.getItem('ddtw_names');
+  let rawXPs   = localStorage.getItem('ddtw_xps');
+  let rawDates = localStorage.getItem('ddtw_dates');
   // JSON.parse converts the stored string back into a JavaScript array
   // The ternary (condition ? valueIfTrue : valueIfFalse) returns an empty
   // array as a fallback if nothing has been saved yet (rawNames is null)
@@ -244,19 +244,19 @@ function sortScoresByXP() {
   // Descending order means higher XP values bubble to the front.
   // The outer loop tracks how many passes are needed (n-1 for n items).
   // The inner loop shrinks each pass since the last i items are already sorted.
-  for (var i = 0; i < scoreXPs.length - 1; i++) {
-    for (var j = 0; j < scoreXPs.length - 1 - i; j++) {
+  for (let i = 0; i < scoreXPs.length - 1; i++) {
+    for (let j = 0; j < scoreXPs.length - 1 - i; j++) {
       if (scoreXPs[j] < scoreXPs[j + 1]) {
-        // Swap XP — a temp variable is needed to avoid overwriting a value
+        // Swap XP — a temp letiable is needed to avoid overwriting a value
         // before it has been moved. All three arrays are swapped in sync
         // at the same index to keep names, xps and dates aligned.
-        var tmpXP   = scoreXPs[j];   
+        let tmpXP   = scoreXPs[j];   
 		scoreXPs[j]   = scoreXPs[j+1];   
 		scoreXPs[j+1]   = tmpXP;
-        var tmpName = scoreNames[j]; 
+        let tmpName = scoreNames[j]; 
 		scoreNames[j] = scoreNames[j+1]; 
 		scoreNames[j+1] = tmpName;
-        var tmpDate = scoreDates[j]; 
+        let tmpDate = scoreDates[j]; 
 		scoreDates[j] = scoreDates[j+1]; 
 		scoreDates[j+1] = tmpDate;
       }
@@ -284,8 +284,8 @@ function saveScore(xp) {
 
 function renderScores() {
   loadScores(); // always read latest data before rendering
-  var list   = document.getElementById('scores-list');
-  var medals = ['🥇','🥈','🥉','4️⃣','5️⃣']; // one medal per rank position
+  let list   = document.getElementById('scores-list');
+  let medals = ['🥇','🥈','🥉','4️⃣','5️⃣']; // one medal per rank position
   // Early return — if no scores exist, show a placeholder message and stop
   if (scoreXPs.length === 0) {
     list.innerHTML = '<div class="score-empty">No scores yet — play your first game!</div>';
@@ -294,8 +294,8 @@ function renderScores() {
   // Build the full HTML string in one pass, then assign it once at the end.
   // Assigning innerHTML once is faster than appending elements one by one
   // because the browser only has to re-render the list a single time.
-  var html = '';
-  for (var i = 0; i < scoreXPs.length; i++) {
+  let html = '';
+  for (let i = 0; i < scoreXPs.length; i++) {
     html += '<div class="score-row">' +
       '<span class="score-rank">' + medals[i]      + '</span>' +
       '<span class="score-name">' + scoreNames[i]  + '</span>' +
@@ -444,8 +444,8 @@ function startGame() {
   powerupYs     = [];
   powerupSpeeds = [];
   wordsSinceLastPowerup = 0;
-  spawnSlowed = false;
-  speedSlowed = false;
+  spawnSlowed = 0;
+  speedSlowed = 0;
   recentWords   = [];
   // Initialize systems
   setBackgroundImage(currentLevel);
@@ -529,6 +529,8 @@ function updateHUD() {
 	hearts += '🖤';  // empty hearts
   elHudLives.textContent = hearts;
   elHudLevel.textContent = 'Level ' + currentLevel + ' (' + xpThisLevel + '/' + XP_PER_LEVEL * currentLevel + ' xp)';
+  if(currentLevel == MAX_LEVEL)
+	elHudLevel.textContent = 'Level ' + currentLevel + ': Oblivion (' + xpThisLevel + ' xp)';
   elHudXP.textContent    = 'Total: ' + totalXP + ' xp';
 }
 
@@ -545,14 +547,14 @@ function updateHUD() {
 
 function getSpawnInterval() {
   // Faster spawns as level increases. Each level reduces delay by 280ms.
-  var base = (currentLevel == MAX_LEVEL) ? 2800 : 2800 - (currentLevel - 1) * 280;
-  return spawnSlowed ? base * 3 : base;
+  let base = (currentLevel == MAX_LEVEL) ? 2800 : 2800 - (currentLevel - 1) * 280;
+  return base * Math.pow(3, spawnSlowed);
 }
 
 function getFallSpeed() {
   // Entities fall faster as level increases (harder game).
-  var base = (currentLevel == MAX_LEVEL) ? 0.3 : 0.6 + (currentLevel - 1) * 0.1;
-  return speedSlowed ? base * 0.4 : base;
+  let base = (currentLevel == MAX_LEVEL) ? 0.3 : 0.6 + (currentLevel - 1) * 0.1;
+  return base * Math.pow(0.4, speedSlowed);
 }
 
 // Determine collision between two axis-aligned rectangles.
@@ -601,6 +603,11 @@ function findSpawnX(width, height) {
 // Single spawn timer callback; keeps spawn loop alive.
 function onSpawnTimer() {
   spawnWord();
+  // Spawn powerups frequently but irregularly by design.
+  if (wordsSinceLastPowerup >= 10 || Math.random() < 0.2) {
+    spawnPowerup();
+  }
+  
   scheduleSpawn();
 }
 
@@ -610,42 +617,62 @@ function scheduleSpawn() {
 }
 
 // Create and register a powerup bubble entity.
-function spawnPowerup() {
+function spawnPowerup(wordList) {
   if (!gameRunning || isPaused) return;
-  var allPowerupWords = wordsClearWords.concat(wordsExtraLife, wordsSlowTime, wordsSlowSpawn);
-  var text = allPowerupWords[Math.floor(Math.random() * allPowerupWords.length)];
+  // If no wordList provided, pick randomly across all categories
+  let text = '';
+  
+  if (!wordList) {
+    let allPowerupWords = wordsClearWords.concat(wordsExtraLife, wordsSlowTime, wordsSlowSpawn);
+    text = allPowerupWords[Math.floor(Math.random() * allPowerupWords.length)];
+  } else {
+    text = wordList[Math.floor(Math.random() * wordList.length)];
+  }
+  // Determine emoji from category membership
+  let emoji = '';
+  if (wordsClearWords.indexOf(text) !== -1)  emoji = '🧹 ';
+  if (wordsExtraLife.indexOf(text)  !== -1)  emoji = '💛 ';
+  if (wordsSlowTime.indexOf(text)   !== -1)  emoji = '🐢 ';
+  if (wordsSlowSpawn.indexOf(text)  !== -1)  emoji = '⏳ ';
   
   let div = document.createElement('div');
-  div.className   = 'powerup';
-  div.textContent = text;
+  div.className        = 'word powerup';
+  div.textContent      = emoji + text;
   div.style.visibility = 'hidden';
-  div.style.left = '0px';
-  div.style.top  = '0px';
+  div.style.left       = '0px';
+  div.style.top        = '0px';
   elArena.appendChild(div);
-
-  let width  = div.offsetWidth;
-  let height = div.offsetHeight;
-  let x = findSpawnX(width, height);
-
-  div.style.left = x + 'px';
-  div.style.top  = '0px';
+  
+  let x = findSpawnX(div.offsetWidth, div.offsetHeight);
+  div.style.left       = x + 'px';
+  div.style.top        = '0px';
   div.style.visibility = 'visible';
-
+  
   powerupTexts.push(text);
   powerupEls.push(div);
   powerupYs.push(0);
-  powerupSpeeds.push(getFallSpeed() * 0.9); // slower than standard words
+  powerupSpeeds.push(getFallSpeed() * 0.9);
   wordsSinceLastPowerup = 0;
 }
+
+function onDevToggle() {
+  let panel = document.getElementById('dev-buttons');
+  panel.style.display = panel.style.display === 'none' ? 'flex' : 'none';
+}
+function onDevClear()  { spawnPowerup(wordsClearWords); }
+function onDevLife()   { spawnPowerup(wordsExtraLife);  }
+function onDevSlow()   { spawnPowerup(wordsSlowTime);   }
+function onDevSpawn()  { spawnPowerup(wordsSlowSpawn);  }
+
+document.getElementById('btn-dev-toggle').addEventListener('click', onDevToggle);
+document.getElementById('btn-dev-clear').addEventListener('click',  onDevClear);
+document.getElementById('btn-dev-life').addEventListener('click',   onDevLife);
+document.getElementById('btn-dev-slow').addEventListener('click',   onDevSlow);
+document.getElementById('btn-dev-spawn').addEventListener('click',  onDevSpawn);
 
 // Create and register a normal word bubble entity.
 function spawnWord() {
   if (!gameRunning || isPaused) return;
-
-  // Spawn powerups frequently but irregularly by design.
-  if (wordsSinceLastPowerup >= 10 || Math.random() < 0.2) {
-    spawnPowerup();
-  }
 
   wordsSinceLastPowerup++;
 
@@ -805,7 +832,7 @@ function onKeydown(e) {
   }
   if (guardian !== -1) {
     let matchedText = powerupTexts[guardian].toLowerCase();
-    let xp = 50;
+    let xp = matchedText.length*10;
     totalXP     += xp;
     xpThisLevel += xp;
 
@@ -827,15 +854,15 @@ function onKeydown(e) {
       showXPPop(powerupEls[guardian], xp, '+1 life');
 
     } else if (wordsSlowTime.indexOf(matchedText) !== -1) {
-      speedSlowed = true;
+      speedSlowed++;
       for (let i = 0; i < wordSpeeds.length; i++) {
         wordSpeeds[i] = getFallSpeed();  // apply to existing words immediately
       }
-      setTimeout(restoreFallSpeed, 5000);
+      setTimeout(restoreFallSpeed, 5000); //slow word speed 
       showXPPop(powerupEls[guardian], xp, 'slow!');
 
     } else if (wordsSlowSpawn.indexOf(matchedText) !== -1) {
-      spawnSlowed = true;
+      spawnSlowed++;
       setTimeout(restoreSpawnSpeed, 8000);
       showXPPop(powerupEls[guardian], xp, 'slow spawn!');
     }
@@ -853,11 +880,11 @@ elInput.addEventListener('keydown', onKeydown);
 
 // Powerup functions
 function restoreSpawnSpeed() {
-  spawnSlowed = false;
+  spawnSlowed--;
 }
 
 function restoreFallSpeed() {
-  speedSlowed = false;
+  speedSlowed--;
   for (let i = 0; i < wordSpeeds.length; i++) {
     wordSpeeds[i] = getFallSpeed();
   }
