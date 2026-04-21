@@ -521,13 +521,12 @@ document.addEventListener('visibilitychange', onVisibilityChange);
 // Renders all player-facing stats (lives, level, XP)
 function updateHUD() {
   let hearts = '';
-  //emoji insertion from https://stackoverflow.com/questions/46043330/how-to-insert-emoticons-chars-into-js-script
   for (let i = 0; i < Math.min(lives, 3); i++)  
-	hearts += String.fromCodePoint("U+2764");// ❤️ red hearts up to 3
+	hearts += '❤️';  // red hearts up to 3
   for (let i = 3; i < lives; i++)                
-	hearts += String.fromCodePoint("U+1F49B");//💛 yellow hearts above 3
+	hearts += '💛';  // yellow hearts above 3
   for (let i = lives; i < 3; i++)                
-	hearts += String.fromCodePoint("U+1F5A4");//🖤 blank/black hearts
+	hearts += '🖤';  // empty hearts
   elHudLives.textContent = hearts;
   elHudLevel.textContent = 'Level ' + currentLevel + ' (' + xpThisLevel + '/' + XP_PER_LEVEL * currentLevel + ' xp)';
   if(currentLevel == MAX_LEVEL)
@@ -618,20 +617,29 @@ function scheduleSpawn() {
 }
 
 // Create and register a powerup bubble entity.
-function spawnPowerup() {
+function spawnPowerup(wordList) {
   if (!gameRunning || isPaused) return;
   
+  // Dev tools: If no wordList provided, pick randomly across all categories
   let text = '';
-  let allPowerupWords = wordsClearWords.concat(wordsExtraLife, wordsSlowTime, wordsSlowSpawn);
-  text = allPowerupWords[Math.floor(Math.random() * allPowerupWords.length)];
+  if (!wordList) {
+    
+	//original code
+	let allPowerupWords = wordsClearWords.concat(wordsExtraLife, wordsSlowTime, wordsSlowSpawn);
+    text = allPowerupWords[Math.floor(Math.random() * allPowerupWords.length)];
+	//end of original code
+  
+  // dev tools code
+  } else {
+    text = wordList[Math.floor(Math.random() * wordList.length)];
+  }
   
   // Determine emoji from category membership
-  // emoji spawning from https://stackoverflow.com/questions/46043330/how-to-insert-emoticons-chars-into-js-script
   let emoji = '';
-  if (wordsClearWords.indexOf(text) !== -1)  emoji = String.fromCodePoint("U+1F9F9") + ' '; //🧹
-  if (wordsExtraLife.indexOf(text)  !== -1)  emoji = String.fromCodePoint("U+2764") + ' '; //💛
-  if (wordsSlowTime.indexOf(text)   !== -1)  emoji = String.fromCodePoint("U+1F422") + ' '; //🐢
-  if (wordsSlowSpawn.indexOf(text)  !== -1)  emoji = String.fromCodePoint("U+231B") + ' '; //⏳
+  if (wordsClearWords.indexOf(text) !== -1)  emoji = '🧹 ';
+  if (wordsExtraLife.indexOf(text)  !== -1)  emoji = '💛 ';
+  if (wordsSlowTime.indexOf(text)   !== -1)  emoji = '🐢 ';
+  if (wordsSlowSpawn.indexOf(text)  !== -1)  emoji = '⏳ ';
   
   let div = document.createElement('div');
   div.className        = 'word powerup';
