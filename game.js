@@ -621,6 +621,7 @@ function scheduleSpawn() {
 function spawnPowerup() {
   if (!gameRunning || isPaused) return;
   
+  let text = '';
   let allPowerupWords = wordsClearWords.concat(wordsExtraLife, wordsSlowTime, wordsSlowSpawn);
   text = allPowerupWords[Math.floor(Math.random() * allPowerupWords.length)];
   
