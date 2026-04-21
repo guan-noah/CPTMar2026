@@ -521,12 +521,13 @@ document.addEventListener('visibilitychange', onVisibilityChange);
 // Renders all player-facing stats (lives, level, XP)
 function updateHUD() {
   let hearts = '';
+  //emoji insertion from https://dencode.com/en/string/unicode-escape
   for (let i = 0; i < Math.min(lives, 3); i++)  
-	hearts += '❤️';  // red hearts up to 3
+	hearts += "\u2764\uFE0F";// ❤️ red hearts up to 3
   for (let i = 3; i < lives; i++)                
-	hearts += '💛';  // yellow hearts above 3
+	hearts += '\uD83D\uDC9B';//💛 yellow hearts above 3
   for (let i = lives; i < 3; i++)                
-	hearts += '🖤';  // empty hearts
+	hearts += "\uD83D\uDDA4";//🖤 empty/black hearts
   elHudLives.textContent = hearts;
   elHudLevel.textContent = 'Level ' + currentLevel + ' (' + xpThisLevel + '/' + XP_PER_LEVEL * currentLevel + ' xp)';
   if(currentLevel == MAX_LEVEL)
@@ -617,29 +618,18 @@ function scheduleSpawn() {
 }
 
 // Create and register a powerup bubble entity.
-function spawnPowerup(wordList) {
+function spawnPowerup() {
   if (!gameRunning || isPaused) return;
-  
-  // Dev tools: If no wordList provided, pick randomly across all categories
-  let text = '';
-  if (!wordList) {
-    
-	//original code
-	let allPowerupWords = wordsClearWords.concat(wordsExtraLife, wordsSlowTime, wordsSlowSpawn);
-    text = allPowerupWords[Math.floor(Math.random() * allPowerupWords.length)];
-	//end of original code
-  
-  // dev tools code
-  } else {
-    text = wordList[Math.floor(Math.random() * wordList.length)];
-  }
-  
+  let allPowerupWords = wordsClearWords.concat(wordsExtraLife, wordsSlowTime, wordsSlowSpawn);
+  let text = allPowerupWords[Math.floor(Math.random() * allPowerupWords.length)];
+
   // Determine emoji from category membership
-  let emoji = '';
-  if (wordsClearWords.indexOf(text) !== -1)  emoji = '🧹 ';
-  if (wordsExtraLife.indexOf(text)  !== -1)  emoji = '💛 ';
-  if (wordsSlowTime.indexOf(text)   !== -1)  emoji = '🐢 ';
-  if (wordsSlowSpawn.indexOf(text)  !== -1)  emoji = '⏳ ';
+  // emoji spawning from https://dencode.com/en/string/unicode-escape
+  let emoji = '';  
+  if (wordsClearWords.indexOf(text) !== -1)  emoji = "\uD83E\uDDF9" + ' '; //🧹
+  if (wordsExtraLife.indexOf(text)  !== -1)  emoji = "\uD83D\uDC9B" + ' '; //💛
+  if (wordsSlowTime.indexOf(text)   !== -1)  emoji = "\uD83D\uDC22" + ' '; //🐢
+  if (wordsSlowSpawn.indexOf(text)  !== -1)  emoji = "\u23F3" + ' '; //⏳
   
   let div = document.createElement('div');
   div.className        = 'word powerup';
@@ -660,21 +650,6 @@ function spawnPowerup(wordList) {
   powerupSpeeds.push(getFallSpeed() * 0.9);
   wordsSinceLastPowerup = 0;
 }
-
-function onDevToggle() {
-  let panel = document.getElementById('dev-buttons');
-  panel.style.display = panel.style.display === 'none' ? 'flex' : 'none';
-}
-function onDevClear()  { spawnPowerup(wordsClearWords); }
-function onDevLife()   { spawnPowerup(wordsExtraLife);  }
-function onDevSlow()   { spawnPowerup(wordsSlowTime);   }
-function onDevSpawn()  { spawnPowerup(wordsSlowSpawn);  }
-
-document.getElementById('btn-dev-toggle').addEventListener('click', onDevToggle);
-document.getElementById('btn-dev-clear').addEventListener('click',  onDevClear);
-document.getElementById('btn-dev-life').addEventListener('click',   onDevLife);
-document.getElementById('btn-dev-slow').addEventListener('click',   onDevSlow);
-document.getElementById('btn-dev-spawn').addEventListener('click',  onDevSpawn);
 
 // Create and register a normal word bubble entity.
 function spawnWord() {

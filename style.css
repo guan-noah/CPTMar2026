@@ -404,19 +404,3 @@ body {
   gap: 12px; 
   justify-content: center; 
 }
-/* DEV TOOLS (remove after done with testing) */
-#dev-panel {
-  position: absolute;
-  top: 10px;
-  left: 10px;
-  z-index: 20;
-  display: flex;
-  flex-direction: column; 
-  gap: 6px;
-}
-#dev-buttons {
-  display: flex;
-  flex-direction: column; /*make the buttons stack on top of each other*/
-  gap: 6px;
-}
-/* end of dev tools */
